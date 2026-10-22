@@ -80,9 +80,9 @@ describe('GameShell', () => {
     const html = render({
       ...roundBase,
       tally: { id: 'x', finalTotal: 10, contributions: [] },
-      summary: { heading: 'Round 1 cleared', lines: [{ label: 'Base', amount: 5 }], total: 5 },
+      summary: { heading: 'Q1 closed', lines: [{ label: 'Base', amount: 5 }], total: 5 },
     });
-    expect(html).toContain('Round 1 cleared');
+    expect(html).toContain('Q1 closed');
     expect(html).not.toContain('Score breakdown');
   });
 });

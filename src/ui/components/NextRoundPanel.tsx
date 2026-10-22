@@ -1,5 +1,5 @@
 import type { NextRoundView } from '../types';
-import { quarterOf } from './quarter';
+import { quarterOf } from '../format';
 
 export type NextRoundPanelProps = {
   next: NextRoundView;

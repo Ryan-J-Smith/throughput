@@ -52,7 +52,7 @@ describe('toRoundSummary', () => {
     payout.add('Interest', 2);
     const summary = toRoundSummary({ number: 4, isBoss: true, target: 100 }, payout, presenter);
     expect(summary).toEqual({
-      heading: 'Boss round 4 cleared',
+      heading: 'Q4 closed: board memo met',
       lines: [
         { label: 'Round reward', amount: 3 },
         { label: 'Interest', amount: 2 },

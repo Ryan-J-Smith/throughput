@@ -13,6 +13,7 @@ body {
 /* Sealed concrete warehouse floor: speckle, saw-cut slab joints, overhead light falloff. */
 body {
   min-height: 100vh;
+  overflow-x: clip; /* cards dealt in from off-screen must not add a horizontal scrollbar */
   color: var(--chalk);
   font-family: var(--font-body);
   font-size: var(--text-md);
@@ -953,6 +954,16 @@ button {
 
 .hand__cards > .card-wrap {
   flex: 0 1 136px;
+  animation: deal-in var(--dur-slow) var(--ease-out) backwards;
+  animation-delay: calc(var(--i, 0) * var(--stagger));
+}
+
+/* Newly drawn cards slide in from the deck off to the right, one after another. */
+@keyframes deal-in {
+  from {
+    opacity: 0;
+    transform: translate(min(40vw, 320px), 24px) rotate(10deg);
+  }
 }
 
 .hand__controls {

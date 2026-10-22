@@ -9,6 +9,7 @@ import type {
   ScoreContributionView,
   ScoreTallyView,
 } from '../ui/types';
+import { quarterOf } from '../ui/format';
 import type { ContentPresenter } from './ContentPresenter';
 
 /**
@@ -62,7 +63,7 @@ export function toScoreTally<TCard>(
 
 export function toRoundSummary<TCard>(round: RoundInfo, payout: Payout, presenter: ContentPresenter<TCard>): RoundSummaryView {
   return {
-    heading: `${round.isBoss ? 'Boss round' : 'Round'} ${round.number} cleared`,
+    heading: `${quarterOf(round.number).quarter} closed${round.isBoss ? ': board memo met' : ''}`,
     lines: payout.lines.map((line) => ({ label: presenter.payoutLabel(line.source), amount: line.amount })),
     total: payout.total(),
   };

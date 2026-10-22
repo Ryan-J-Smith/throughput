@@ -70,7 +70,7 @@ describe('RoundSummary', () => {
     const html = renderToStaticMarkup(
       <RoundSummary
         summary={{
-          heading: 'Round 2 cleared',
+          heading: 'Q2 closed',
           lines: [
             { label: 'Base', amount: 5 },
             { label: 'Interest', amount: 2 },
@@ -80,7 +80,7 @@ describe('RoundSummary', () => {
         onCashOut={noop}
       />,
     );
-    expect(html).toContain('Round 2 cleared');
+    expect(html).toContain('Q2 closed');
     expect(html).toContain('Interest');
     expect(html).toContain('Cash out $7');
   });

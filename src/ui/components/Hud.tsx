@@ -1,5 +1,14 @@
+import { useEffect, useState } from 'react';
+import { quarterOf } from '../format';
+import { durationToken, prefersReducedMotion } from '../motion';
 import type { HudView } from '../types';
-import { quarterOf } from './quarter';
+import { useTickingNumber } from './useTickingNumber';
+
+/**
+ * Cash the last HUD showed. Each screen mounts its own HUD, so the shop's HUD counts on from the
+ * round screen's figure after cash out (the shop still reports the round just cleared).
+ */
+let lastCash: { round: number; cash: number } | null = null;
 
 export type HudProps = {
   hud: HudView;
@@ -9,6 +18,12 @@ export type HudProps = {
 export function Hud({ hud }: HudProps) {
   const progress = hud.targetScore > 0 ? Math.min(1, hud.currentScore / hud.targetScore) : 0;
   const { quarter, year } = quarterOf(hud.round);
+  const [tickMs] = useState(() => (prefersReducedMotion() ? 0 : durationToken('--dur-slow', 480) * 1.5));
+  const revenue = useTickingNumber(hud.currentScore, tickMs);
+  const cash = useTickingNumber(hud.cash, tickMs, lastCash?.round === hud.round ? lastCash.cash : hud.cash);
+  useEffect(() => {
+    lastCash = { round: hud.round, cash };
+  }, [hud.round, cash]);
 
   return (
     <header className="hud">
@@ -19,7 +34,7 @@ export function Hud({ hud }: HudProps) {
       <div className="hud__stat hud__stat--score">
         <span className="hud__label">Revenue</span>
         <span className="hud__value">
-          {hud.currentScore}
+          {revenue}
           <span className="hud__target"> of {hud.targetScore} target</span>
         </span>
         <div
@@ -43,7 +58,7 @@ export function Hud({ hud }: HudProps) {
       </div>
       <div className="hud__stat hud__stat--cash">
         <span className="hud__label">Cash</span>
-        <span className="hud__value">${hud.cash}</span>
+        <span className="hud__value">${cash}</span>
       </div>
       {hud.boss && (
         <div className="hud__boss">

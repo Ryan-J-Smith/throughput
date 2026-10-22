@@ -151,7 +151,7 @@ describe('GameController: playing', () => {
     expect(summary.hud.currentScore).toBe(15);
     expect(summary.hud.cash).toBe(4);
     expect(summary.summary).toEqual({
-      heading: 'Round 1 cleared',
+      heading: 'Q1 closed',
       lines: [
         { label: 'Round reward', amount: 3 },
         { label: 'Unused plays', amount: 1 },
@@ -273,7 +273,7 @@ describe('GameController: boss round and victory', () => {
     expect(tally.finalTotal).toBe(30);
     c.onTallyComplete();
     const summary = expectScreen(c, 'round').summary!;
-    expect(summary.heading).toBe('Boss round 2 cleared');
+    expect(summary.heading).toBe('Q2 closed: board memo met');
     expect(summary.lines.map((l) => l.label)).toContain('Plus bonus');
     c.onCashOut();
     expectScreen(c, 'victory');

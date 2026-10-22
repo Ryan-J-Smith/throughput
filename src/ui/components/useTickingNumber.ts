@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 
-/** Animate `value` toward its latest target; integers tick as integers. */
-export function useTickingNumber(target: number, durationMs: number): number {
-  const [shown, setShown] = useState(target);
-  const current = useRef(target);
+/**
+ * Animate `value` toward its latest target; integers tick as integers. `from` sets the first
+ * value shown, so a freshly mounted readout can count on from where an earlier one stopped.
+ */
+export function useTickingNumber(target: number, durationMs: number, from: number = target): number {
+  const [shown, setShown] = useState(from);
+  const current = useRef(from);
 
   useEffect(() => {
     const from = current.current;

@@ -55,12 +55,13 @@ export function Hand({
         </div>
       )}
       <div className="hand__cards">
-        {cards.map((card) => {
+        {cards.map((card, index) => {
           const selected = selectedIds.includes(card.id);
           return (
             <Card
               key={card.id}
               card={card}
+              index={index}
               selected={selected}
               disabled={locked || (!selected && atCapacity)}
               onClick={() => onToggleSelect(card.id)}
