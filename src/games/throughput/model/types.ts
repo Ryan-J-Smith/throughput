@@ -24,6 +24,8 @@ export type DesignDef = CardDefBase & {
   readonly stage: 'design';
   readonly marginAdd: number;
   readonly marginMul: number;
+  /** The × instead of `marginMul` once a card of this kind has already resolved this Shift (Rebrand chains). */
+  readonly repeatMul?: number;
 };
 
 /** Make: adds Units to the Batch (and may nudge Margin). Dispatched after the Shift. */
@@ -83,4 +85,5 @@ export type ContractDef = {
 };
 
 /** Run-long bonuses bought with Contracts. */
-export type Perks = { readonly hotPips: number; readonly retools: number; readonly interestCap: number };
+/** Run-long Contract perks: extra Hot pips and Retools a round, and Treasury Bond Capital a round. */
+export type Perks = { readonly hotPips: number; readonly retools: number; readonly coupon: number };

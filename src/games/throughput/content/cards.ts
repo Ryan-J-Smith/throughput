@@ -49,14 +49,15 @@ export const REBRAND: CardDef = {
   price: 6,
   marginAdd: -2,
   marginMul: 2,
-  text: '-$2 Margin, then Margin ×2',
+  repeatMul: 1.5,
+  text: '-$2 Margin, then Margin ×2 (×1.5 if a Rebrand already ran this Shift)',
 };
 export const PRINTER_3D: CardDef = { id: '3d-printer', name: '3D Printer', stage: 'make', price: 3, units: 4, marginAdd: 2, text: '+4 Units, +$2 Margin' };
 export const CONTRACT_MANUFACTURER: CardDef = {
   id: 'contract-manufacturer',
   name: 'Contract Manufacturer',
   stage: 'make',
-  price: 5,
+  price: 6,
   units: 20,
   marginAdd: -1,
   text: '+20 Units, -$1 Margin',
@@ -76,8 +77,8 @@ export const MARKETPLACE: CardDef = {
   stage: 'ship',
   price: 5,
   cap: 'demand',
-  marginMul: 1.25,
-  text: 'Ship up to Demand at Margin ×1.25 (this sale only)',
+  marginMul: 1.5,
+  text: 'Ship up to Demand at Margin ×1.5 (this sale only)',
 };
 export const SUBSCRIPTION_BOX: CardDef = {
   id: 'subscription-box',
@@ -92,14 +93,15 @@ export const EXPORT_DEAL: CardDef = {
   id: 'export-deal',
   name: 'Export Deal',
   stage: 'ship',
-  price: 6,
+  price: 5,
   cap: 'all',
   marginMul: 0.75,
   text: 'Ship all Units at Margin ×0.75 (ignores Demand and cap cuts)',
 };
 
 /** Per Category: 1 Sketch, 2 Workshops, 2 Trucks (20 cards over 4 Categories). */
-export const STARTER_CARDS: readonly CardDef[] = [SKETCH, WORKSHOP, WORKSHOP, TRUCK, TRUCK];
+// Playtest 2: one Truck per Category (was two), so fewer hands are Ships the Line can't use.
+export const STARTER_CARDS: readonly CardDef[] = [SKETCH, WORKSHOP, WORKSHOP, TRUCK];
 
 /** Cards the shop sells, each in any Category. Expediter is cut for the MVP (see DESIGN_NOTES). */
 export const SHOP_CARDS: readonly CardDef[] = [

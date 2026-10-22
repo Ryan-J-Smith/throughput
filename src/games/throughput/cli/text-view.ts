@@ -205,14 +205,14 @@ function lineCardNote(run: ThroughputRun, slot: number): string {
   return `[${since}; ${run.staysAfterShift(slot) ? 'stays after the run' : 'dispatched after the run'}${recall}]`;
 }
 
-/** Run-long perks from Contracts, e.g. "Perks: +1 Hot pip, +1 Retool, interest cap 7C", or '' if none. */
+/** Run-long perks from Contracts, e.g. "Perks: +1 Hot pip a round, +1 Retool a round, +1C a round", or '' if none. */
 export function perksText(run: ThroughputRun): string {
-  const { hotPips, retools, interestCap } = run.perks;
+  const { hotPips, retools, coupon } = run.perks;
   const plural = (n: number, word: string) => `+${n} ${word}${n === 1 ? '' : 's'}`;
   const parts = [
     hotPips > 0 ? `${plural(hotPips, 'Hot pip')} a round` : '',
     retools > 0 ? `${plural(retools, 'Retool')} a round` : '',
-    interestCap > 0 ? `interest cap ${run.interestRule.cap}C` : '',
+    coupon > 0 ? `+${coupon}C a round (Treasury Bond)` : '',
   ].filter(Boolean);
   return parts.length === 0 ? '' : `Perks: ${parts.join(', ')}.`;
 }

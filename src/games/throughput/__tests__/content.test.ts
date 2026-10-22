@@ -139,19 +139,25 @@ describe('wave-1 Contracts', () => {
     expect(run.deck.at(-1)?.uid).not.toBe(source.uid);
   });
 
-  it('Ad Campaign, Training Program and Treasury Bond add a pip, a Retool and 2C of interest cap for good', () => {
+  it('Ad Campaign, Training Program and Treasury Bond add a pip, a Retool and 1C a round for good', () => {
     const run = shopWith('campaign');
     run.buy(4);
-    expect(run.perks).toEqual({ hotPips: 1, retools: 0, interestCap: 0 });
+    expect(run.perks).toEqual({ hotPips: 1, retools: 0, coupon: 0 });
     for (const effect of ['training', 'bond']) {
       for (let i = 0; i < 300 && !(run.offers[4]?.kind === 'contract' && run.offers[4].def.effect === effect); i++) run.reroll();
       run.buy(4);
     }
-    expect(run.perks).toEqual({ hotPips: 1, retools: 1, interestCap: 2 });
-    expect(run.interestRule.cap).toBe(DEFAULT_CONFIG.interest.cap + 2);
+    expect(run.perks).toEqual({ hotPips: 1, retools: 1, coupon: 1 });
+    // Training Program is once a run: the shop stops offering it.
+    for (let i = 0; i < 30; i++) {
+      expect(run.offers[4]?.kind === 'contract' && run.offers[4].def.effect).not.toBe('training');
+      run.reroll();
+    }
     run.continueToNextRound();
     expect(run.hotPipsLeft).toBe(DEFAULT_CONFIG.hotPips + 1);
     expect(run.retoolsLeft).toBe(DEFAULT_CONFIG.retoolsPerRound + 1);
+    run.runShift();
+    expect(run.lastPayout).toContainEqual({ source: 'Treasury Bond', amount: 1 });
   });
 });
 
