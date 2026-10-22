@@ -225,7 +225,8 @@ export function runSummary(run: ThroughputRun): RunSummary {
     rounds: run.rounds,
     bestShift,
     outcome,
-    line: run.line.map((slot, i) => (slot.fixture === null ? null : fixtureView(slot.fixture.def, `summary-fixture-${i}`))),
+    // Each Fixture reads as its bay plate did: the short gist and what it does now.
+    line: run.line.map((slot, i) => (slot.fixture === null ? null : { ...fixtureView(slot.fixture.def, `summary-fixture-${i}`), description: plateText(slot.fixture) })),
     cards: run.deck.filter((c) => c.paid > 0 || c.upgrades > 0 || c.growth > 0).map((c) => cardView(c, `summary-card-${c.uid}`)),
     grants: CATEGORIES.flatMap((c) => {
       const { scale, premium } = run.grants[c];

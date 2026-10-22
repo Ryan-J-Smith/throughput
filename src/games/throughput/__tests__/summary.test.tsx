@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { Rng } from '../../../engine/rng';
-import { LineView, RunSummaryView, runSummary } from '../browser';
+import { LineView, RunSummaryView, plateText, runSummary } from '../browser';
 import type { ThroughputConfig } from '../content';
 import { ThroughputRun } from '../rules';
 import { GreedyBot } from '../sim';
@@ -70,6 +70,7 @@ describe('THROUGHPUT run summary', () => {
     expect(summary.outcome).toContain(`by $${(last.target - last.sales).toLocaleString('en-US')}.`);
     expect(summary.line).toHaveLength(run.line.length);
     expect(summary.line.filter((f) => f !== null)).toHaveLength(run.line.filter((s) => s.fixture !== null).length);
+    run.line.forEach((slot, i) => slot.fixture !== null && expect(summary.line[i]?.description).toBe(plateText(slot.fixture)));
     expect(summary.cards).toHaveLength(run.deck.filter((c) => c.paid > 0 || c.upgrades > 0 || c.growth > 0).length);
   });
 
@@ -102,7 +103,10 @@ describe('THROUGHPUT run summary', () => {
     expect(html).toContain('Best Shift');
     expect(html).toContain(`<code class="tp-summary__seed-value">${run.seed}</code>`);
     expect(html).toContain('Copy seed');
-    expect(html.match(/class="card card--compact/g)?.length ?? 0).toBe(summary.line.filter((f) => f !== null).length + summary.cards.length);
+    // The Line's Fixtures as full cards with their art; the added or improved cards compact.
+    const bays = [...html.matchAll(/<li class="tp-summary__bay"[^>]*><div class="card-wrap"><div class="card card--windowed"/g)];
+    expect(bays).toHaveLength(summary.line.filter((f) => f !== null).length);
+    expect(html.match(/class="card card--compact/g)?.length ?? 0).toBe(summary.cards.length);
   });
 });
 

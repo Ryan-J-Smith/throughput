@@ -96,7 +96,7 @@ export function RunSummaryView({ run, onNewRun, onQuit, copy = clipboardCopy }: 
           <ol className="tp-summary__line">
             {summary.line.map((view, slot) => (
               <li key={slot} className="tp-summary__bay" data-slot={slot + 1} data-empty={view === null || undefined}>
-                {view === null ? <span className="tp-summary__empty">Bay {slot + 1}</span> : <Card card={view} compact />}
+                {view === null ? <span className="tp-summary__empty">Bay {slot + 1}</span> : <Card card={view} />}
               </li>
             ))}
           </ol>
