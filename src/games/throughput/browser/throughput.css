@@ -1512,6 +1512,14 @@ body:has(.screen--tp-shop[data-year])::before {
   box-shadow: 0 0 16px -6px rgb(61 220 151 / 0.8);
 }
 
+/* What a Shift with no Ship still earns (TraceReceipt `note`). */
+.tp-receipt__note {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  color: var(--print-dim);
+}
+
 /* ---------- Shop ---------- */
 
 .tp-payout {

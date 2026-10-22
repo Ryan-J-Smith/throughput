@@ -6,6 +6,7 @@ import { durationToken } from '../../../ui/motion';
 import { SilentPlayer } from '../../../ui/sound';
 import type { KeyValueStore } from '../../../ui/storage';
 import type { ToastKind, ToastView } from '../../../ui/types';
+import { noShipNote, shipsToDraw } from '../cli';
 import type { ThroughputAction } from '../cli';
 import { cardName } from '../model';
 import { ThroughputRun } from '../rules';
@@ -324,7 +325,7 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
                   Retool ({run.retoolsLeft} left)
                 </button>
               )}
-              <PileStack draw={run.drawPile.length} discard={run.discardPile.length} {...(restockNote === null ? {} : { note: restockNote })} />
+              <PileStack draw={run.drawPile.length} discard={run.discardPile.length} ships={shipsToDraw(run)} {...(restockNote === null ? {} : { note: restockNote })} />
               <button
                 type="button"
                 className="btn btn--play"
@@ -343,6 +344,7 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
               salesBefore={run.sales}
               target={run.target}
               overkillPay={run.overkillPayFor(Math.max(0, run.sales + preview.total))}
+              note={noShipNote(run)}
             />
           </aside>
         </div>

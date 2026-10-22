@@ -2,5 +2,5 @@ export { ThroughputTextGame } from './throughput-text-game';
 export { formatAction, parseAction } from './actions';
 export type { GrantChoice, ParsedAction, ThroughputAction } from './actions';
 export { rulesText } from './rules-text';
-export { cardText, deckText, demandUseText, fixtureNow, fixtureText, formatView, grownText, interestTrade, legalActions, movesText, offerBlocker, overkillNote, offerText, perksText, quarterLabel, soldOutNote, stateData, traceLines, trendsText } from './text-view';
+export { cardText, deckText, demandUseText, fixtureNow, fixtureText, formatView, grownText, interestTrade, legalActions, movesText, noShipNote, offerBlocker, overkillNote, offerText, perksText, quarterLabel, shipsToDraw, soldOutNote, stateData, traceLines, trendsText } from './text-view';
 export type { ViewContext } from './text-view';

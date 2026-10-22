@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { SaveFile, TurnResult } from '../../../play/session';
-import { ThroughputTextGame, formatAction, formatView, legalActions, offerBlocker, offerText, parseAction, perksText, rulesText, soldOutNote, traceLines } from '../cli';
+import { ThroughputTextGame, formatAction, formatView, legalActions, noShipNote, offerBlocker, offerText, parseAction, perksText, rulesText, shipsToDraw, soldOutNote, traceLines } from '../cli';
 import { BOSSES, CONTRACTS, DEFAULT_CONFIG, INFLUENCER, TRUCK, WHOLESALE_CLUB, WORKSHOP } from '../content';
 import { CATEGORIES } from '../model';
 import type { Category, Perks } from '../model';
@@ -250,6 +250,33 @@ describe('playtest-2 clarity', () => {
     expect(soldOutNote(new SoldOutRun(ship.category), ship)).toBe(` (${ship.category} sold out: sells 0)`);
     expect(soldOutNote(new SoldOutRun(other), ship)).toBe('');
     expect(soldOutNote(new SoldOutRun(ship.category), { ...ship, def: WHOLESALE_CLUB })).toBe('');
+  });
+});
+
+describe('brick hands', () => {
+  it('the header counts the Ships left to draw', () => {
+    const run = new ThroughputRun(1);
+    const ships = run.drawPile.filter((c) => c.def.stage === 'ship').length;
+    expect(shipsToDraw(run)).toBe(ships);
+    expect(formatView(run, { game: 'throughput', seed: 1, actionsTaken: 0 })).toContain(`Draw pile ${run.drawPile.length} (${ships} Ship${ships === 1 ? '' : 's'}) · Discard pile 0`);
+  });
+
+  it('with no Ship on the Line, the preview says what the Shift still earns', () => {
+    const run = new ThroughputRun(1, easyConfig());
+    const note = 'No Ship on the Line, so nothing sells: each Unit left at the end of the Shift clears for $1.';
+    expect(noShipNote(run)).toBe(note);
+    run.load([{ hand: run.hand.findIndex((c) => c.def.stage === 'make'), slot: 0 }]);
+    expect(noShipNote(run)).toBe(note);
+    expect(formatView(run, { game: 'throughput', seed: 1, actionsTaken: 1 })).toContain(`Shift total $${run.preview().total}.\n  ${note}`);
+    run.load([{ hand: run.hand.findIndex((c) => c.def.stage === 'ship'), slot: 1 }]);
+    expect(noShipNote(run)).toBeNull();
+  });
+
+  it('under JIT Auditor the note says leftover Units cost money', () => {
+    const config = easyConfig({ roundsPerYear: 1, targets: [10_000] });
+    const seed = Array.from({ length: 400 }, (_, i) => i + 1).find((x) => new ThroughputRun(x, config).boardBosses[0]?.id === 'jit-auditor');
+    if (seed === undefined) throw new Error('no seed with JIT Auditor first');
+    expect(noShipNote(new ThroughputRun(seed, config))).toBe('No Ship on the Line, so nothing sells, and under JIT Auditor each Unit left at the end costs $2.');
   });
 });
 

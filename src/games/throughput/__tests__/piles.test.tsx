@@ -14,4 +14,12 @@ describe('THROUGHPUT draw and discard piles', () => {
     expect(html).toContain('<span class="tp-pile tp-pile--discard" data-depth="0"><span class="tp-pile__count">0</span>');
     expect(renderToStaticMarkup(<PileStack draw={2} discard={5} />)).not.toContain('tp-piles__note');
   });
+
+  it('says how many Ships are left to draw', () => {
+    const html = renderToStaticMarkup(<PileStack draw={9} discard={4} ships={2} note="Restock ready" />);
+    expect(html).toContain('aria-label="Draw pile 9 (2 Ships left to draw), 4 discarded, Restock ready"');
+    expect(html).toContain('<span class="tp-piles__ships">2 Ships left to draw</span><span class="tp-piles__note">Restock ready</span>');
+    expect(renderToStaticMarkup(<PileStack draw={9} discard={4} ships={1} />)).toContain('>1 Ship left to draw<');
+    expect(renderToStaticMarkup(<PileStack draw={9} discard={4} />)).not.toContain('tp-piles__ships');
+  });
 });

@@ -243,7 +243,7 @@ export function formatView(run: ThroughputRun, context: ViewContext): string {
     case 'shift':
       lines.push(
         `${where} · Shift ${run.shift} of ${run.shiftsThisRound} · Sales $${run.sales} of $${run.target} target · Capital ${run.wallet.cash}C`,
-        `Retools left this round ${run.retoolsLeft} · Draw pile ${run.drawPile.length} · Discard pile ${run.discardPile.length}${restockText(run)}${run.stored > 0 ? ` · Stored ${run.stored} Units` : ''}`,
+        `Retools left this round ${run.retoolsLeft} · Draw pile ${run.drawPile.length} (${shipsToDraw(run)} Ship${shipsToDraw(run) === 1 ? '' : 's'}) · Discard pile ${run.discardPile.length}${restockText(run)}${run.stored > 0 ? ` · Stored ${run.stored} Units` : ''}`,
       );
       if (perksText(run) !== '') lines.push(perksText(run));
       if (run.boss !== null) lines.push(`BOARD REVIEW: ${run.boss.name}: ${run.boss.text}${run.shiftCap === null ? '' : ` This round: at most $${run.shiftCap} a Shift.`}`);
@@ -290,6 +290,8 @@ export function formatView(run: ThroughputRun, context: ViewContext): string {
     const preview = run.preview();
     const clears = overkillNote(run, Math.max(0, run.sales + preview.total));
     lines.push('', 'If you run now:', ...traceLines(preview));
+    const noShip = noShipNote(run);
+    if (noShip !== null) lines.push(`  ${noShip}`);
     const demand = demandUseText(preview, run);
     if (demand !== '') lines.push(`  Demand used: ${demand}.`);
     if (clears !== '') lines.push(`  This Shift ${clears}.`);
@@ -387,6 +389,23 @@ export function demandUseText(result: ShiftResult, run: ThroughputRun): string {
 export function soldOutNote(run: ThroughputRun, card: Card): string {
   if (run.phase !== 'shift' || card.def.stage !== 'ship' || shipCap(card) === 'all') return '';
   return run.demandLeft[card.category] === 0 ? ` (${card.category} sold out: sells 0)` : '';
+}
+
+/** Ship cards left in the draw pile. */
+export function shipsToDraw(run: ThroughputRun): number {
+  return run.drawPile.filter((c) => c.def.stage === 'ship').length;
+}
+
+/**
+ * When no Ship card is on the Line (outside a welded slot), what the Shift still earns, so a $0
+ * preview isn't a mystery: its leftover Units at the overstock value. Null if a Ship is loaded.
+ */
+export function noShipNote(run: ThroughputRun): string | null {
+  if (run.phase !== 'shift' || run.line.some((slot, i) => slot.card?.card.def.stage === 'ship' && !run.isWelded(i))) return null;
+  const value = run.boss?.overstockValue(run.config.overstockValue) ?? run.config.overstockValue;
+  return value >= 0
+    ? `No Ship on the Line, so nothing sells: each Unit left at the end of the Shift clears for $${value}.`
+    : `No Ship on the Line, so nothing sells, and under ${run.boss?.name ?? 'this boss'} each Unit left at the end costs $${-value}.`;
 }
 
 /** What spending `cost` does to next round's interest, e.g. "then holding 7C → +1C interest, now +1C". */

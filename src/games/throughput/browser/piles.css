@@ -98,7 +98,8 @@
   font-size: 0.6875rem;
 }
 
-.tp-piles__note {
+.tp-piles__note,
+.tp-piles__ships {
   align-self: center;
   max-width: 7em;
   font-size: var(--text-xs);
@@ -120,7 +121,8 @@
     width: 24px;
   }
 
-  .tp-piles__note {
+  .tp-piles__note,
+  .tp-piles__ships {
     display: none;
   }
 }

@@ -5,6 +5,8 @@ export type PileStackProps = {
   draw: number;
   /** Cards in the discard pile. */
   discard: number;
+  /** Ship cards in the draw pile, shown as "3 Ships left to draw" so a Ship-less hand isn't a surprise. */
+  ships?: number;
   /** A short status after the counts, e.g. "Restock ready". */
   note?: string;
 };
@@ -18,12 +20,14 @@ export function pileDepth(count: number): number {
  * The draw pile as a little stack of card backs with its count, beside a smaller discard stack.
  * Display only: the label says it all in words.
  */
-export function PileStack({ draw, discard, note }: PileStackProps) {
-  const label = `Draw pile ${draw}, ${discard} discarded${note === undefined ? '' : `, ${note}`}`;
+export function PileStack({ draw, discard, ships, note }: PileStackProps) {
+  const shipsText = ships === undefined ? undefined : `${ships} Ship${ships === 1 ? '' : 's'} left to draw`;
+  const label = `Draw pile ${draw}${shipsText === undefined ? '' : ` (${shipsText})`}, ${discard} discarded${note === undefined ? '' : `, ${note}`}`;
   return (
     <span className="tp-piles" role="img" aria-label={label}>
       <Pile kind="draw" count={draw} />
       <Pile kind="discard" count={discard} />
+      {shipsText !== undefined && <span className="tp-piles__ships">{shipsText}</span>}
       {note !== undefined && <span className="tp-piles__note">{note}</span>}
     </span>
   );

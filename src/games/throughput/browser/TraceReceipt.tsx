@@ -10,10 +10,12 @@ export type TraceReceiptProps = {
   target: number;
   /** Overkill pay if this Shift clears the round (preview only). */
   overkillPay?: number;
+  /** A line under the slots explaining the total, e.g. what a Shift with no Ship still earns (preview only). */
+  note?: string | null;
 };
 
 /** A Shift's Batch printed as a register receipt: one line per slot, then leftovers and the total. */
-export function TraceReceipt({ result, heading, salesBefore, target, overkillPay }: TraceReceiptProps) {
+export function TraceReceipt({ result, heading, salesBefore, target, overkillPay, note = null }: TraceReceiptProps) {
   const after = Math.max(0, salesBefore + result.total);
   const cleared = result.leftover;
   return (
@@ -68,6 +70,7 @@ export function TraceReceipt({ result, heading, salesBefore, target, overkillPay
             </li>
           )}
         </ol>
+        {note !== null && <p className="tp-receipt__note">{note}</p>}
         <div className="receipt__total">
           <span className="receipt__total-label">Shift</span>
           <span className="tally__total">${result.total}</span>

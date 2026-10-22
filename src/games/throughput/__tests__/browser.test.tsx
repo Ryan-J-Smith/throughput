@@ -95,6 +95,13 @@ describe('THROUGHPUT browser screen', () => {
     expect(renderToStaticMarkup(<TpHud run={run} />)).toContain('Sales past that are lost. This round: at most $3 a Shift.</span>');
   });
 
+  it('a receipt can carry a note under its slots, such as what a Shift with no Ship still earns', () => {
+    const result = scoreLine([slot(null, card(WORKSHOP, 'Home'))], context());
+    const html = renderToStaticMarkup(<TraceReceipt result={result} heading="If you run now" salesBefore={0} target={10} note="No Ship on the Line." />);
+    expect(html).toContain('</ol><p class="tp-receipt__note">No Ship on the Line.</p><div class="receipt__total">');
+    expect(renderToStaticMarkup(<TraceReceipt result={result} heading="Shift" salesBefore={0} target={10} />)).not.toContain('tp-receipt__note');
+  });
+
   it('receipt lines lay out the Fixture as a chip, struck through when idle, then the card', () => {
     const line = [slot(fixture('quality-lab'), card(SKETCH, 'Home')), slot(null, card(WORKSHOP, 'Home')), slot(fixture('quality-lab'), card(TRUCK, 'Home')), slot(null, null)];
     const html = renderToStaticMarkup(<TraceReceipt result={scoreLine(line, context())} heading="Shift" salesBefore={0} target={10} />);
@@ -169,7 +176,7 @@ describe('THROUGHPUT browser screen', () => {
 
   it('the Shift controls show the draw and discard piles as card stacks', () => {
     const html = renderToStaticMarkup(<ThroughputScreen seed={1} onQuit={() => {}} store={new MemoryStore()} resume={false} />);
-    expect(html).toMatch(/<span class="tp-piles" role="img" aria-label="Draw pile \d+, 0 discarded, Restock ready">/);
+    expect(html).toMatch(/<span class="tp-piles" role="img" aria-label="Draw pile \d+ \(\d+ Ships? left to draw\), 0 discarded, Restock ready">/);
     expect(html).not.toContain('hand__count');
   });
 
