@@ -5,6 +5,7 @@ import type { Modifier } from './modifier';
 export type ModifierDef<TCard> = ContentDef & {
   readonly kind: 'modifier';
   readonly name: string;
+  readonly description: string;
   /** Creates a fresh modifier instance for the player's slots. */
   create(): Modifier<TCard>;
 };

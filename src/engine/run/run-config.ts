@@ -1,6 +1,8 @@
+import type { BossDef } from '../bosses';
 import type { CardDef } from '../deck';
 import type { InterestConfig } from '../economy';
 import type { ModifierDef } from '../modifiers';
+import type { Registry } from '../registry';
 import type { Rng } from '../rng';
 import type { ScoreFormula } from '../scoring';
 import type { ShopConfig } from '../shop';
@@ -18,6 +20,14 @@ export type RoundInfo = {
   readonly isBoss: boolean;
   /** Score needed to clear the round. */
   readonly target: number;
+};
+
+/** Per-round rules a boss may adjust before the round starts. */
+export type RoundRules = {
+  readonly target: number;
+  readonly plays: number;
+  readonly discards: number;
+  readonly handSize: number;
 };
 
 /** Anything the run's shop can sell. */
@@ -44,6 +54,8 @@ export type RunConfig<TCard> = {
   readonly cashPerUnusedDiscard: number;
   readonly interest: InterestConfig;
   readonly shop: ShopConfig<RunShopDef<TCard>>;
+  /** Boss rules drawn (seeded) for boss rounds; without it boss rounds are only flagged. */
+  readonly bossPool?: Registry<BossDef<TCard>>;
 };
 
 /** Collaborators injected into a run. */

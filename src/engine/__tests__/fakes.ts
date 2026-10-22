@@ -30,7 +30,7 @@ export class RecordingModifier extends Modifier<TestCard> {
   private readonly log: string[];
 
   constructor(id: string, log: string[], price = 4) {
-    super({ id, name: id, rarity: 'common', price });
+    super({ id, name: id, description: `${id} test modifier`, rarity: 'common', price });
     this.log = log;
   }
 
@@ -45,7 +45,7 @@ export class HookModifier extends Modifier<TestCard> {
   private readonly fn: (event: EngineEvent<TestCard>, self: HookModifier) => void;
 
   constructor(id: string, on: EngineEventType, fn: (event: EngineEvent<TestCard>, self: HookModifier) => void) {
-    super({ id, name: id, rarity: 'common', price: 6 });
+    super({ id, name: id, description: `${id} test modifier`, rarity: 'common', price: 6 });
     this.on = on;
     this.fn = fn;
   }
@@ -62,6 +62,7 @@ export function modifierDef(id: string, price = 4, create?: () => Modifier<TestC
     kind: 'modifier',
     id,
     name: id,
+    description: `${id} test modifier`,
     rarity: 'common',
     price,
     create: create ?? (() => new RecordingModifier(id, [], price)),

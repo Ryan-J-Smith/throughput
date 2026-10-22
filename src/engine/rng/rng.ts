@@ -10,6 +10,12 @@ export function hashString(text: string): number {
   return hash >>> 0;
 }
 
+/** Serializable snapshot of an Rng, for save/load. */
+export type RngState = {
+  readonly seed: number;
+  readonly state: number;
+};
+
 /**
  * Seedable deterministic PRNG (mulberry32). All engine randomness goes through this —
  * never Math.random — so a run is fully reproducible from its seed.
@@ -22,6 +28,24 @@ export class Rng {
   constructor(seed: number | string) {
     this.seed = typeof seed === 'string' ? hashString(seed) : seed >>> 0;
     this.state = this.seed;
+  }
+
+  /** Rebuilds a stream that continues exactly where `state` was captured. */
+  static fromState(state: RngState): Rng {
+    const rng = new Rng(state.seed);
+    rng.restore(state);
+    return rng;
+  }
+
+  /** Snapshot of this stream's position; plain data, safe to JSON-serialize. */
+  getState(): RngState {
+    return { seed: this.seed, state: this.state };
+  }
+
+  /** Rewinds or fast-forwards this stream to a captured position of the same seed. */
+  restore(state: RngState): void {
+    if (state.seed >>> 0 !== this.seed) throw new EngineError('Rng.restore: state belongs to a different seed');
+    this.state = state.state | 0;
   }
 
   /** Uniform float in [0, 1). */
