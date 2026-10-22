@@ -1,2 +1,2 @@
-export { defineScenario } from './scenario';
-export type { Scenario, ScenarioSpec } from './scenario';
+export { Scenario, defineScenario } from './scenario';
+export type { ScenarioSpec } from './scenario';

@@ -1,24 +1,19 @@
 import type { Run } from '../../engine/run';
 import { applyAction, formatAction, parseAction } from '../actions';
 import type { Renderer } from '../render';
-import { buildView } from '../view';
+import { buildView, formatView } from '../view';
 import type { StateView } from '../view';
 import { SaveError } from './save-file';
 import type { SaveFile } from './save-file';
+import { TextGame } from './text-game';
+import type { GameView, TurnResult } from './text-game';
 
 export type ActResult =
   | { readonly ok: true; readonly save: SaveFile; readonly log: readonly string[]; readonly view: StateView }
   | { readonly ok: false; readonly reason: string; readonly view: StateView };
 
-/** A playable game as the CLI sees it: no card type, only saves, views and text actions. */
-export abstract class Game {
-  abstract readonly name: string;
-
-  newSave(seed: number): SaveFile {
-    if (!Number.isInteger(seed)) throw new SaveError(`Seed must be an integer (got ${seed})`);
-    return { version: 1, game: this.name, seed, actions: [] };
-  }
-
+/** A Run-based game as the CLI sees it: no card type, only saves, views and text actions. */
+export abstract class Game extends TextGame {
   /** Replays `save` and describes the resulting state. */
   abstract view(save: SaveFile): StateView;
 
@@ -27,6 +22,19 @@ export abstract class Game {
    * action appended; on refusal the reason, and the save is unchanged.
    */
   abstract act(save: SaveFile, text: string): ActResult;
+
+  override show(save: SaveFile): GameView {
+    return toGameView(this.view(save));
+  }
+
+  override take(save: SaveFile, text: string): TurnResult {
+    const result = this.act(save, text);
+    return { ...result, view: toGameView(result.view) };
+  }
+}
+
+function toGameView(view: StateView): GameView {
+  return { text: formatView(view), legalActions: view.legalActions, state: view };
 }
 
 export type GameDefinition<TCard> = {

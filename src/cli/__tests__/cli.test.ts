@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { CounterGame } from '../../play/__tests__/counter-game';
 import { ALL_GAMES, CliIo, EXIT_ILLEGAL, EXIT_OK, EXIT_USAGE, runCli } from '..';
 
 /** In-memory files and captured output. */
@@ -146,5 +147,19 @@ describe('cli errors', () => {
     const io = new FakeIo();
     expect(io.run('help')).toBe(EXIT_OK);
     expect(io.output).toMatch(/^usage:/);
+  });
+});
+
+describe('cli with a non-Run game', () => {
+  it('drives any TextGame and does not rewrite the save for read-only queries', () => {
+    const io = new FakeIo();
+    const games = [...ALL_GAMES, new CounterGame()];
+    expect(runCli(['new', '--seed', '3', '--save', 'c.json', '--game', 'counter'], io, games)).toBe(EXIT_OK);
+    expect(runCli(['act', '--save', 'c.json', 'add', '4'], io, games)).toBe(EXIT_OK);
+    const saved = io.read('c.json');
+    io.stdout = [];
+    expect(runCli(['act', '--save', 'c.json', 'peek', '--json'], io, games)).toBe(EXIT_OK);
+    expect(JSON.parse(io.stdout.join(''))).toEqual({ ok: true, action: 'peek', recorded: false, log: ['value is 7'], state: { value: 7 } });
+    expect(io.read('c.json')).toBe(saved);
   });
 });

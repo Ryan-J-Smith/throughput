@@ -1,6 +1,7 @@
 import { Rng } from '../../engine/rng';
 import type { Run } from '../../engine/run';
 import type { Bot } from '../bots';
+import { RunRecorder } from './run-recorder';
 
 export type RunFactory<TCard> = (seed: number) => Run<TCard>;
 
@@ -88,12 +89,10 @@ function inRound<TCard>(run: Run<TCard>): boolean {
 }
 
 function simulateOne<TCard>(run: Run<TCard>, bot: Bot<TCard>, seed: number, maxActions: number): RunStats {
-  const rounds: RoundStats[] = [];
-  const purchases: PurchaseRecord[] = [];
-  const offers: OfferRecord[] = [];
+  const recorder = new RunRecorder(seed, bot.name);
   const recordOffers = (): void => {
     for (const offer of run.shop.offers) {
-      if (offer !== null) offers.push({ round: run.round.number, id: offer.def.id, kind: offer.def.kind, price: offer.price });
+      if (offer !== null) recorder.offer({ round: run.round.number, id: offer.def.id, kind: offer.def.kind, price: offer.price });
     }
   };
   bot.beginRun(run, new Rng(seed).fork('bot'));
@@ -101,16 +100,7 @@ function simulateOne<TCard>(run: Run<TCard>, bot: Bot<TCard>, seed: number, maxA
 
   const recordRound = (): void => {
     const { number, isBoss, target } = run.round;
-    const score = run.roundScore;
-    rounds.push({
-      round: number,
-      isBoss,
-      target,
-      score,
-      margin: target > 0 ? (score - target) / target : 0,
-      won: run.phase !== 'lost',
-      cash: run.wallet.cash,
-    });
+    recorder.round({ round: number, isBoss, target, score: run.roundScore, won: run.phase !== 'lost', cash: run.wallet.cash });
   };
 
   while (run.phase !== 'won' && run.phase !== 'lost') {
@@ -140,7 +130,7 @@ function simulateOne<TCard>(run: Run<TCard>, bot: Bot<TCard>, seed: number, maxA
           if (decision.action === 'leave') break;
           if (decision.action === 'buy') {
             const offer = run.buy(decision.slot);
-            purchases.push({ round: run.round.number, id: offer.def.id, kind: offer.def.kind, price: offer.price });
+            recorder.purchase({ round: run.round.number, id: offer.def.id, kind: offer.def.kind, price: offer.price });
           } else if (decision.action === 'sell') {
             run.sell(decision.modifier);
           } else {
@@ -153,17 +143,5 @@ function simulateOne<TCard>(run: Run<TCard>, bot: Bot<TCard>, seed: number, maxA
     }
   }
 
-  const won = run.phase === 'won';
-  const roundReached = run.round.number;
-  return {
-    seed,
-    bot: bot.name,
-    archetype: bot.archetypeOf(run),
-    won,
-    roundReached,
-    roundsCleared: won ? roundReached : roundReached - 1,
-    rounds,
-    offers,
-    purchases,
-  };
+  return recorder.finish({ won: run.phase === 'won', roundReached: run.round.number, archetype: bot.archetypeOf(run) });
 }
