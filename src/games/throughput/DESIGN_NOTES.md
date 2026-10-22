@@ -892,3 +892,46 @@ Expert on seeds 1–200; roster 1000 seeds per bot.
   - It cuts the Mega lane from 1.22× to 1.18× of the no-burst field, and trims its peak.
   - It puts the `station-volume` bot's burst rounds level with its no-burst rounds.
 - **No-burst holds:** 1.31–1.33 for the expert in every variant, and the roster's no-burst is unchanged.
+
+### Hot opener A/B (asst-a's `hotOpener`, round 3 §7 #6)
+
+Simmed on tp-r3 (`f022d03`) merged with the two changes above, with the hotOpener flag on and off. Roster 1000 seeds a
+bot, expert 200.
+
+| | Expert wins | Expert Shift-1 clears, R1–R5 | Roster wins (6 bots) | Roster Shift-1 clears, R1 / R4–R6 |
+|---|---|---|---|---|
+| Off | 48.0% | 74–90% | 2.3–13.4% | 34% / 18–27% |
+| **On** | 45.0% | 81–100% | 1.5–12.2% | 69% / 27–45% |
+
+- **Keep it on.** It removes the stranded-Hot-pip turns that 7 of 8 testers reported, and round tempo speeds up.
+- Ratios dip slightly, because rounds end on Shift 1 more often: the roster loses 0.6–2 points on 5 of 6 bots, and
+  the expert's dip is within noise.
+- The expert's `sampleHand` now mirrors the Hot swap, once tp-r3 is on main.
+
+### Years 1–2 re-firmed (round 3 §7 #3)
+
+Round 3 ran R4–R6 at 2.28×, with 83% Shift-1 clears. Re-fitted after Express Lane, the Station changes and the Hot
+opener, on the merged tp-r3 tree; R8–R12 unchanged. Expert 200 seeds (400 for the chosen curve), roster 1000 a bot.
+Cells are mean sales ÷ target, with Shift-1 clear % in parentheses.
+
+| Curve, R1–R7 | Expert R1–R3 | Expert R4–R6 | Expert wins | Roster reaching R7 | Roster wins |
+|---|---|---|---|---|---|
+| 130 / 200 / 270 / 360 / 470 / 600 / 950 (before) | 1.79 (93%) | 1.90 (93%) | 47.5% | 91% | 1.5–12.2% |
+| 130 / 200 / 270 / 420 / 560 / 720 / 1050 | 1.79 (93%) | 1.66 (88%) | 46.5% | 85% | 1.8–11.3% |
+| 155 / 240 / 325 / 420 / 560 / 720 / 1050 | 1.54 (81%) | 1.59 (90%) | 47.0% | 81% | 0.8–10.1% |
+| 170 / 260 / 350 / 450 / 600 / 780 / 1100 | 1.45 (82%) | 1.54 (86%) | 43.0% | 76% | 1.0–9.8% |
+| **150 / 240 / 320 / 420 / 560 / 720 / 1050 (chosen)** | **1.55 (83%)** | **1.61 (89%)** | **46.5%** | **81%** | **1.0–10.3%** |
+
+- **New curve:** 150, 240, 320 | 420, 560, 720 | 1050, 1400, 2050 | 3000, 4300, 5800.
+  - R1–R3 rise 15–20%, as NH asked. R4–R6 and R7 are the orchestrator's hypothesis.
+  - R10–R12 are not raised.
+- **Skilled play** (expert, 400 seeds):
+  - Years 1–2 now run at about 1.6× rather than 1.8–1.9×.
+  - Late play is unchanged: R7–R12 1.29×, burst / no-burst 1.33 / 1.26.
+  - The expert loses only at the Year-3 and Year-4 Boards (R9 12%, R12 36%).
+- **Weak play** (roster): Year-1 Board losses rise from 1% to 3%, and 81% reach R7 (91% before).
+  - The steeper curve costs weak play another 5 points of reach for little gain in skilled tension, so it was
+    rejected.
+- The expert still clears most of Years 1–2 on Shift 1. Raising targets doesn't change that: even +30% leaves 86%. Its
+  Shift-1 output is about 1.5× the target, so forcing Shift 2 would take +50%, which would wipe out weak play.
+  Tension in Years 1–2 has to come from the Boards and the draw, not the targets.
