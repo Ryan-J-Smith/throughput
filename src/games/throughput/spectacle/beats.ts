@@ -30,8 +30,9 @@ export type Beat = {
 export type ShiftBeats = {
   readonly beats: readonly Beat[];
   readonly leftover: number;
+  /** Units a Warehouse copied into stock this Shift. */
   readonly stored: number;
-  /** Leftover Units neither sold nor stored. */
+  /** Leftover Units, cleared at the overstock value. */
   readonly cleared: number;
   readonly overstockSales: number;
   readonly total: number;
@@ -87,8 +88,8 @@ export function shiftBeats(result: ShiftResult, baseMargin = DEFAULT_CONFIG.base
   return {
     beats,
     leftover: result.leftover,
-    stored: result.storedUnits,
-    cleared: result.leftover - result.storedUnits,
+    stored: result.stockedUnits,
+    cleared: result.leftover,
     overstockSales: result.overstockSales,
     total: result.total,
   };

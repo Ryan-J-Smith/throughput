@@ -308,7 +308,7 @@ export class ThroughputRun {
     return this.lastPayout_;
   }
 
-  /** What happened to stored Units on entering the shop, if anything. */
+  /** The Warehouse stock waiting for the next Board Review, noted on entering the shop (null if none). */
   get storageNotice(): string | null {
     return this.storageNotice_;
   }
@@ -765,16 +765,7 @@ export class ThroughputRun {
 
   private enterShop(): void {
     this.phase_ = 'shop';
-    if (this.stored_ > 0) {
-      const fee = Math.ceil(this.stored_ / this.config.storagePerCapital);
-      if (this.wallet.canAfford(fee)) {
-        this.wallet.spend(fee);
-        this.storageNotice_ = `Paid ${fee}C storage for ${this.stored_} stored Units`;
-      } else {
-        this.storageNotice_ = `Could not pay ${fee}C storage: ${this.stored_} stored Units were lost`;
-        this.stored_ = 0;
-      }
-    }
+    if (this.stored_ > 0) this.storageNotice_ = `Warehouse: ${this.stored_} Units in stock for the next Board Review`;
     this.shop_.restock(this.canExpand());
   }
 
@@ -827,6 +818,7 @@ export class ThroughputRun {
       trends: this.trendsNow,
       hotPipsLeft: this.hotPips_,
       stored: this.stored_,
+      shift: this.shift_,
       boss: this.boss,
       demand: { ...this.demand_ },
       demandLeft: { ...this.demandLeft_ },

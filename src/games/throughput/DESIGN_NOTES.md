@@ -511,3 +511,66 @@ Steps, on the same 500 seeds (win %):
   - Margin grows with Units, so the payout grows with Units².
   - The best bot Shift was $84,199 in round 12, 32× its target.
   - It doesn't raise win rate (mass-market wins less often than design-stack); playtests should judge the feel.
+
+## Item redesigns: Automation, Express Lane, Warehouse
+
+The orchestrator handed item-level redesigns to asst-b. The bar: one effect plus an optional condition, at
+most 20 words, and each one simmed.
+
+- **Why the old versions failed.**
+  - Automation and Express Lane: "Stays on the Line" was worth about nothing, and often less.
+    - The hand refills each Shift anyway, so keeping a card saves no draw.
+    - It locks the slot to one card for the round.
+  - Warehouse: leftovers are rare. A Warehouse stored about 2 Units a Shift, and paid a fee for the privilege.
+- **Automation** (uncommon 5C): "A Make card here stays on the Line and gains +3 Units for good each Shift."
+  - It is R&D Lab for Makes. Growth lives in `Card.growth`, which now means +1 Unit per point on a Make
+    (+$1 on a Design). Clone copies it.
+  - It gives volume a slow-burn compounding piece.
+  - Impact went from −13% to about +5%.
+- **Express Lane** (uncommon 6C): "A Ship card here sells at Margin ×3 in the first Shift of each round."
+  - An opening-rush tempo piece. It pays off with unused-Shift and overkill pay.
+  - Rejected variants:
+    - "Stays and ignores Demand" made mass-market worse (30.8 → 26.6). Demand rarely binds.
+    - ×2 was too small: trend-surfer did better without it.
+  - At ×3, trend-surfer rises 34.0 → 36.4, and impact goes from −15% to about −1%.
+  - `FixtureEffect.saleMultiplier` gains an optional `batch`, so a sale can see the Shift number.
+- **Warehouse** (uncommon 5C, now a Mod): "A Make card here also copies its Units into stock. Board Reviews:
+  the stock sells here at Margin ×2."
+  - This is the stockpile payoff. Stock builds all Year, then sells at the Board, ignoring Demand, at the
+    Batch's Margin where the Warehouse sits.
+  - So placing it is a choice: later in the Line means a higher Margin.
+  - Gone: leftover storage, the storage fee, and `warehouseCap`. JIT Auditor still closes it, and the stock
+    waits for the next Board.
+  - Rejected variants:
+    - Diverting the Make's Units into stock: 31% of the Board target, but it cost more than it paid.
+    - Copying at ×1: −1% impact.
+  - Chosen: copy at ×2. The stock sale averages 47% of the Board target for mass-market, with impact about 0%
+    (was −25%) and pick 21%.
+  - `ShiftResult.storedUnits` is now `stockedUnits` (Units copied into stock this Shift). Leftovers always clear.
+
+Steps, on the same 500 seeds (win %):
+
+| Variant | greedy | mass-market | rnd-compounder | trend-surfer |
+|---|---|---|---|---|
+| Before (e218f66) | 13.2 | 26.4 | 32.8 | 32.2 |
+| Automation grows; Express Lane stays and ignores Demand; Warehouse stores leftovers for the Board | 18.4 | 30.8 | 32.8 | 32.2 |
+| … mass-market wants that Express Lane | 18.4 | 26.6 | 32.8 | 32.2 |
+| Express Lane ×2 in Shift 1; Warehouse diverts its Make (mass-market uses it) | 18.6 | 28.4 | 32.8 | 33.2 |
+| **Express Lane ×3; Warehouse copies at ×2 (chosen)** | **22.4** | **30.0** | **32.8** | **36.4** |
+
+- **Result** (1000 seeds, win %): greedy 22.8, mass-market 30.1, rnd-compounder 31.4, trend-surfer 36.9.
+
+  | Build | Win % |
+  |---|---|
+  | design-stack | 36.3 |
+  | mass-market | 34.0 |
+  | stockpile | 30.3 (was 3.8) |
+  | rnd-compounder | 30.1 |
+  | skimmer | 25.5 |
+
+  - That is five viable builds within 1.5× of each other.
+  - New impact: Express Lane +4%, Automation +3%, Warehouse +1%.
+  - No item is below −10% any more. The lowest are Patent Office, Luxury Counter and Assembly Line at −7%.
+  - Every pick rate is within 10–80%.
+- **Greedy rose from 13.8 to 22.8.** Buying the priciest thing now rarely buys a trap. The best bot is still
+  inside the 30–60% band, so the targets stand.

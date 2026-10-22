@@ -15,7 +15,7 @@ export type TraceReceiptProps = {
 /** A Shift's Batch printed as a register receipt: one line per slot, then leftovers and the total. */
 export function TraceReceipt({ result, heading, salesBefore, target, overkillPay }: TraceReceiptProps) {
   const after = Math.max(0, salesBefore + result.total);
-  const cleared = result.leftover - result.storedUnits;
+  const cleared = result.leftover;
   return (
     <section className="tp-receipt" aria-label={heading}>
       <div className="receipt">
@@ -43,13 +43,13 @@ export function TraceReceipt({ result, heading, salesBefore, target, overkillPay
               </li>
             );
           })}
-          {(cleared > 0 || result.storedUnits > 0) && (
+          {cleared > 0 && (
             <li className="tp-receipt__line tp-receipt__line--leftover">
               <span className="tp-receipt__slot" />
               <span className="tp-receipt__what">
                 Leftover {result.leftover} Units
                 <small>
-                  {[result.storedUnits > 0 ? `${result.storedUnits} stored` : '', cleared > 0 ? `${cleared} cleared` : ''].filter(Boolean).join(', ')}
+                  {`${cleared} cleared`}
                 </small>
               </span>
               <span className="tp-receipt__batch" />

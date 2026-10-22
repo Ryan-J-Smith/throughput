@@ -106,7 +106,12 @@ describe('scoreLine: cards and fixtures', () => {
     expect(scoreLine(broken, context()).steps[2]?.events).not.toContain('Brand Manager Margin ×1.5');
   });
 
-  it('Automation keeps nothing in scoring but Assembly Line doubles Units', () => {
+  it('Automation grows its Make +3 Units for good; Assembly Line doubles Units', () => {
+    const automated = card(WORKSHOP, 'Home');
+    const result = scoreLine([slot(fixture('automation'), automated)], context());
+    expect(result.grown).toEqual([automated, automated, automated]);
+    expect(result.steps[0]?.units).toBe(6);
+    expect(scoreLine([slot(fixture('automation'), card(WORKSHOP, 'Home', { growth: 9 }))], context()).steps[0]?.units).toBe(15);
     const line = [slot(null, card(WORKSHOP, 'Home')), slot(fixture('assembly-line'), null), slot(null, card(TRUCK, 'Home'))];
     expect(scoreLine(line, context()).steps[1]?.units).toBe(12);
   });
@@ -127,13 +132,23 @@ describe('scoreLine: cards and fixtures', () => {
     ]);
   });
 
-  it('Warehouse releases stored Units and stores leftovers up to 40', () => {
-    const line = [slot(null, card(FACTORY_FLOOR, 'Home')), slot(fixture('warehouse'), null)];
+  it('Warehouse copies its Make\'s Units into stock, keeping them in the Batch too', () => {
+    const line = [slot(fixture('warehouse'), card(FACTORY_FLOOR, 'Home')), slot(null, card(TRUCK, 'Home'))];
     const result = scoreLine(line, context({ stored: 30 }));
-    expect(result.steps[1]?.units).toBe(44);
-    expect(result.storedUnits).toBe(40);
-    expect(result.overstockSales).toBe(4);
-    expect(result.storedAfter).toBe(40);
+    expect(result.steps[0]?.units).toBe(14);
+    expect(result.stockedUnits).toBe(14);
+    expect(result.storedAfter).toBe(44);
+    // Margin $2 - $1 + Handoff $1: the Truck still sells all 14.
+    expect(result.shipSales).toBe(14 * 2);
+  });
+
+  it('Warehouse sells its stock at the Batch\'s Margin ×2 in a Board Review', () => {
+    // Margin $2 + Sketch $2 + Handoff $1 = $5 when the Batch reaches the Warehouse.
+    const line = [slot(null, card(SKETCH, 'Home')), slot(fixture('warehouse'), card(WORKSHOP, 'Home'))];
+    const result = scoreLine(line, context({ stored: 30, boss: boss('turnover') }));
+    expect(result.steps[1]?.events).toContain('Warehouse sells 30 stored × $10 = $300');
+    expect(result.storedAfter).toBe(6);
+    expect(scoreLine(line, context({ stored: 30 })).storedAfter).toBe(36);
   });
 });
 
@@ -212,9 +227,10 @@ describe('scoreLine: bosses', () => {
   });
 
   it('JIT Auditor charges $2 per leftover Unit and closes the Warehouse', () => {
-    const line = [slot(null, card(FACTORY_FLOOR, 'Home')), slot(fixture('warehouse'), null)];
+    const line = [slot(fixture('warehouse'), card(FACTORY_FLOOR, 'Home'))];
     const result = scoreLine(line, context({ boss: boss('jit-auditor'), stored: 10 }));
     expect(result.overstockSales).toBe(-28);
+    expect(result.stockedUnits).toBe(0);
     expect(result.storedAfter).toBe(10);
   });
 });

@@ -55,7 +55,7 @@ export type Card = {
   readonly paid: number;
   /** Tooling Upgrades applied: each is Design +$1, Make +3 Units or (numeric-cap) Ship +5 cap. */
   upgrades: number;
-  /** R&D Lab growth: +$1 Margin per point when this Design resolves. */
+  /** Permanent growth: +$1 Margin per point on a Design (R&D Lab), +1 Unit per point on a Make (Automation). */
   growth: number;
 };
 

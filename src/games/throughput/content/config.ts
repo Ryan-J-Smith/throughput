@@ -54,9 +54,6 @@ export type ThroughputConfig = {
    * each of its Ship cards. Premium: its sales ×(1 + `premiumStep` × level).
    */
   readonly grant: { readonly scaleDemand: number; readonly scaleUnits: number; readonly premiumStep: number };
-  readonly warehouseCap: number;
-  /** Units per 1C of storage fee (rounded up). */
-  readonly storagePerCapital: number;
 };
 
 /** seed-03's original curve, kept for comparison; it assumes multiplicative late builds the bots don't reach. */
@@ -91,6 +88,4 @@ export const DEFAULT_CONFIG: ThroughputConfig = {
   // BoM graft b (DESIGN_NOTES "Demand"): variant F of the sims.
   demand: { start: 20, sellOutGrowth: 10, sellOutRate: 0.5, emergingGrowth: 10, saturatedMul: 0.5 },
   grant: { scaleDemand: 10, scaleUnits: 3, premiumStep: 0.25 },
-  warehouseCap: 40,
-  storagePerCapital: 10,
 };

@@ -22,8 +22,11 @@ export abstract class FixtureEffect {
     return 1;
   }
 
-  /** Extra Margin multiplier on a sale made by the card here. */
-  saleMultiplier(_card: Card, _fixture: Fixture): number {
+  /**
+   * Extra Margin multiplier on a sale made by the card here. `batch` is the Batch selling; it is
+   * absent when a view asks for the standing value (a plate's "Now ×"), so Shift-dependent effects return 1.
+   */
+  saleMultiplier(_card: Card, _fixture: Fixture, _batch?: Batch): number {
     return 1;
   }
 

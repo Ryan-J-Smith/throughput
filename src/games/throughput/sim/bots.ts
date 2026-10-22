@@ -1,5 +1,5 @@
 import type { Rng } from '../../../engine/rng';
-import { CATEGORIES } from '../model';
+import { CATEGORIES, makeUnits } from '../model';
 import type { Card, Category, GrantOption } from '../model';
 import type { BuyTarget, Offer, ShiftResult, ThroughputRun } from '../rules';
 import { classifyBuild, planLoad, preferredSlot, retoolChoice, scrapChoice } from './planner';
@@ -210,6 +210,7 @@ export class MassMarketBot extends StrategyBot {
       'wholesale-club': 7,
       'export-deal': 7,
       automation: 6,
+      warehouse: 6,
       'conveyor-belt': 6,
       marketplace: 6,
       'floor-expansion': 5,
@@ -229,7 +230,8 @@ export class MassMarketBot extends StrategyBot {
   }
 
   protected override planOptions(): PlanOptions {
-    return { designPersistence: 0.3 };
+    // A Make on the Warehouse also stocks its Units for the next Board Review.
+    return { designPersistence: 0.3, bias: (card, slot, run) => (card.def.stage === 'make' && run.line[slot]?.fixture?.def.id === 'warehouse' ? 3 * makeUnits(card) : 0) };
   }
 }
 

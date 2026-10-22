@@ -85,11 +85,12 @@ describe('wave-1 Fixtures', () => {
     expect(scoreLine([slot(null, card(CONTRACT_MANUFACTURER, 'Food')), slot(fixture('lean-cell'), null)], context()).steps[1]?.margin).toBe(1);
   });
 
-  it('Patent Office multiplies by 1 + 0.1 per R&D growth on its Design; Express Lane keeps a Ship on the Line', () => {
+  it('Patent Office multiplies by 1 + 0.1 per R&D growth on its Design; Express Lane is ×3 in Shift 1 only', () => {
     const grown = scoreLine([slot(fixture('patent-office'), card(SKETCH, 'Home', { growth: 5 }))], context());
     expect(grown.steps[0]?.margin).toBe((2 + 7) * 1.5);
-    expect(fixture('express-lane').def.effect.keepsOnLine(ship())).toBe(true);
-    expect(fixture('express-lane').def.effect.keepsOnLine(make())).toBe(false);
+    const express = [slot(null, make()), slot(fixture('express-lane'), card(TRUCK, 'Food'))];
+    expect(scoreLine(express, context()).total).toBe(6 * 2 * 3);
+    expect(scoreLine(express, context({ shift: 2 })).total).toBe(6 * 2);
   });
 });
 
