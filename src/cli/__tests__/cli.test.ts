@@ -162,4 +162,13 @@ describe('cli with a non-Run game', () => {
     expect(JSON.parse(io.stdout.join(''))).toEqual({ ok: true, action: 'peek', recorded: false, log: ['value is 7'], state: { value: 7 } });
     expect(io.read('c.json')).toBe(saved);
   });
+
+  it('prints only the log for read-only queries in text mode', () => {
+    const io = new FakeIo();
+    const games = [...ALL_GAMES, new CounterGame()];
+    runCli(['new', '--seed', '3', '--save', 'c.json', '--game', 'counter'], io, games);
+    io.stdout = [];
+    expect(runCli(['act', '--save', 'c.json', 'peek'], io, games)).toBe(EXIT_OK);
+    expect(io.stdout.join('\n')).toBe('> peek\nvalue is 3\n(state unchanged; use "state" to reprint it)');
+  });
 });

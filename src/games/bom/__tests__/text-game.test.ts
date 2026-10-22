@@ -64,7 +64,7 @@ describe('BomTextGame', () => {
     const view = game.show(game.newSave(42));
     expect(view.text).toMatch(/^Bill of Materials · seed 42 · 0 actions · phase: round/);
     expect(view.text).toMatch(/Q1 Small \(round 1\/12\) · Target 100 · Revenue 0 · Builds 4 · Scraps 3 · Cash \$4/);
-    expect(view.text).toMatch(/Hand: 1 \w+ \d/);
+    expect(view.text).toMatch(/Hand \(8\) · draw pile 24 · discard 0 \(reshuffled next round\): 1 \w+ \d/);
     expect(view.text).toMatch(/desk-fan\s+Motor\+Shell\s+15 Units/);
     expect(state(view).hand).toHaveLength(8);
     expect(JSON.parse(JSON.stringify(view.state))).toEqual(view.state);

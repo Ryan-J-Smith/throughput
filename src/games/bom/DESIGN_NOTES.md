@@ -104,6 +104,21 @@ doc was ambiguous and what the code does, plus deliberate deviations. Keep it cu
 - **Logs.** Each Ship prints a receipt: base, each part, each rule, then the formula line. Sell-outs,
   Overtime entry, draws and round results are also logged.
 - **`continue`.** In Overtime, `continue` means `collect` and is recorded as `collect`.
+- **Playtest round 1 clarity pass.** Text and view only; no rule changes.
+  - **Round screen.** It teaches the formula: Paint adds to Price, every other part adds its grade to
+    Units, Ship and Fab each cost 1 Build, the 5-part cap includes the Bench, and revenue over the target
+    is not paid.
+  - **Hand line.** It shows the draw and discard piles. `Drew:` logs where new parts landed after the
+    re-sort and notes when the draw pile is empty.
+  - **Cash line.** It previews next clear's interest.
+  - **Products.** They show Ships this round and this run. The Recall line names the current
+    most-shipped Product.
+  - **Shop lines.** They carry real numbers: R&D effects per blueprint, what a part adds, the Premium
+    tag, "needs the X Sub", and Shred as "PAY $2".
+  - **Logs.** Preview says whether a Ship clears the target. Overtime entry and the last-Build auto-clear
+    explain themselves.
+  - **Read-only queries.** In the CLI (`preview`), these print only their log, since the state can't
+    change (`--json` still includes `state`).
 
 ## Sim (Phase B)
 - **Bots.** `sim/StrategyBot` is one heuristic player driven by a `Strategy` preset. The four presets

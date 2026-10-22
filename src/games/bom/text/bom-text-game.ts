@@ -62,10 +62,11 @@ export class BomTextGame extends ReplayTextGame<BomRun> {
         if (why !== null) return refuse(why);
         const labels = parts.map(partLabel).join(' + ');
         const result = run.fabricate(parts, trash?.[0]);
-        const log = [`Fabricated ${result.sub.def.name} ${result.output.grade} from ${labels} → Bench`];
+        const log = [`Fabricated ${result.sub.def.name} ${result.output.grade} from ${labels} → Bench (1 Build used, ${run.buildsLeft} left)`];
         if (result.trashed) log.push(`Trashed ${partLabel(result.trashed)} from the Bench`);
         if (result.copiesBenched.length) log.push(`Kitting copy: ${result.copiesBenched.map(partLabel).join(', ')} → Bench`);
         if (result.copiesLost) log.push(`Kitting copy lost (Bench full)`);
+        if (result.roundEnd?.cleared) log.push('Last Build used: the round cleared automatically (no unused Builds to collect).');
         log.push(...afterBuild(run, result.drawn, result.roundEnd));
         const trashRef = command.trash === null ? '' : ` trash ${formatPartRef(command.trash)}`;
         return { ok: true, log, record: `fab ${command.parts.map(formatPartRef).join(' ')}${trashRef}` };
@@ -184,9 +185,10 @@ function previewLines(run: BomRun, parts: readonly Part[], refs: readonly PartRe
   if (shipProblem === null) {
     for (const q of run.quoteOptions(parts)) {
       const v = q.score.values();
-      lines.push(
-        `  ship ${q.blueprint.id} ${sel} → $${q.revenue} (min(${v.units} Units, ${v.demand} Demand) × $${v.price} × ${num(v.markup ?? 1)})${q.sellsOut ? ' · sells out' : ''}`,
-      );
+      const need = run.round.target - run.revenue;
+      const vsTarget = q.revenue >= need ? `clears the target${q.revenue > need ? ` ($${q.revenue - need} over is not paid)` : ''}` : `$${need - q.revenue} short of the target`;
+      const sellOut = q.sellsOut ? ' · sells out' : q.blueprint.shipsThisRound > 0 ? ' · repeat Ship: no sell-out growth' : '';
+      lines.push(`  ship ${q.blueprint.id} ${sel} → $${q.revenue} (min(${v.units} Units, ${v.demand} Demand) × $${v.price} × ${num(v.markup ?? 1)}) · ${vsTarget}${sellOut}`);
     }
   } else {
     lines.push(`  ship: ${shipProblem}`);
@@ -225,9 +227,17 @@ function afterBuild(run: BomRun, drawn: readonly Part[], roundEnd: RoundEnd | nu
   if (roundEnd !== null) return roundEndLines(run, roundEnd);
   const lines: string[] = [];
   if (run.phase === 'overtime') {
-    lines.push(`TARGET REACHED (${run.revenue}/${run.round.target}): Overtime. Ship is locked; fab to stock the Bench, or collect $${run.buildsLeft} for unused Builds`);
+    lines.push(
+      `TARGET REACHED (${run.revenue}/${run.round.target}). Revenue above the target is not paid. Overtime: Ship is locked; Scraps are free; ` +
+        `each fab uses a Build ($1 less from collect) and using the last Build ends the round. collect now pays $${run.buildsLeft}.`,
+    );
   }
-  if (drawn.length > 0) lines.push(`Drew: ${drawn.map(partLabel).join(', ')}`);
+  // The hand re-sorts after a draw, so say where the new parts landed.
+  const hand = sortedHand(run);
+  if (drawn.length > 0) lines.push(`Drew: ${drawn.map((p) => `${partLabel(p)} (now ${hand.indexOf(p) + 1})`).join(', ')}`);
+  if (run.deck.drawPile.length === 0 && hand.length < run.deck.handSize) {
+    lines.push(`Draw pile empty: the hand stays at ${hand.length} until next round (used and scrapped parts return then).`);
+  }
   return lines;
 }
 
