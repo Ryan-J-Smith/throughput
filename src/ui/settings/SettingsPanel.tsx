@@ -13,13 +13,14 @@ export type SettingsPanelProps = {
   onClose: () => void;
 };
 
-/** Settings as a modal dialog: animation speed, reduced motion, and tips. Changes apply at once. */
+/** Settings as a modal dialog: animation speed, reduced motion, sound, and tips. Changes apply at once. */
 export function SettingsPanel({ settings, onChange, onResetTips, onClose }: SettingsPanelProps) {
   const ids = useId();
   const [tipsReset, setTipsReset] = useState(false);
   const panel = useRef<HTMLDivElement>(null);
   const close = useRef(onClose);
   close.current = onClose;
+  const volumePercent = Math.round(settings.volume * 100);
 
   // Focus the first control once on open; Escape closes.
   useEffect(() => {
@@ -55,6 +56,26 @@ export function SettingsPanel({ settings, onChange, onResetTips, onClose }: Sett
             Reduce motion
           </label>
           <p className="settings__note">Motion is also reduced when your device asks for it.</p>
+        </div>
+
+        <div className="settings__group">
+          <label className="settings__toggle">
+            <input type="checkbox" checked={settings.sound} onChange={(event) => onChange({ ...settings, sound: event.target.checked })} />
+            Sound
+          </label>
+          <label className="settings__slider">
+            <span className="settings__label">Volume</span>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={volumePercent}
+              disabled={!settings.sound}
+              aria-valuetext={`${volumePercent}%`}
+              onChange={(event) => onChange({ ...settings, volume: Number(event.target.value) / 100 })}
+            />
+          </label>
         </div>
 
         {onResetTips !== undefined && (

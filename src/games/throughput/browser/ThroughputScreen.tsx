@@ -1,6 +1,9 @@
 import { useCallback, useRef, useState } from 'react';
+import type { MouseEvent } from 'react';
 import { Card, ToastStack } from '../../../ui/components';
 import type { BrowserGameProps } from '../../../ui/games';
+import { durationToken } from '../../../ui/motion';
+import { SilentPlayer } from '../../../ui/sound';
 import type { KeyValueStore } from '../../../ui/storage';
 import type { ToastKind, ToastView } from '../../../ui/types';
 import type { ThroughputAction } from '../cli';
@@ -13,12 +16,16 @@ import { MarketBoard } from './MarketBoard';
 import { cardView } from './present';
 import { RunAutosave, handNumber } from './run-autosave';
 import { RunSummaryView } from './RunSummary';
+import { playBeat, playFinale, playShiftAtOnce, shiftOutcome } from './shift-sound';
+import type { ShiftOutcome } from './shift-sound';
 import { Tip } from './Tip';
 import { TipMemory, currentTip, tipText } from './tips';
 import type { TipId } from './tips';
 import { DeckDrawer, GrantPicker, PayoutSlip, RulesSheet, Shelf } from './ShopParts';
 import { TpHud } from './TpHud';
 import { TraceReceipt } from './TraceReceipt';
+import { ShiftReplay, replayTiming } from '../spectacle';
+import type { ReplayTiming } from '../spectacle';
 import './throughput.css';
 
 /** What a tap means right now. Cards are tracked by uid because hand positions shift. */
@@ -33,7 +40,12 @@ type Mode =
 
 const IDLE: Mode = { kind: 'idle' };
 
+const SILENT = new SilentPlayer();
+
 type ShiftRecord = { readonly result: ShiftResult; readonly heading: string; readonly salesBefore: number; readonly target: number };
+
+/** A Run playing on the belt. The run itself is untouched until the replay finishes or the player moves on. */
+type Replay = { readonly key: number; readonly result: ShiftResult; readonly shift: number; readonly outcome: ShiftOutcome; readonly timing: ReplayTiming };
 
 type Session = { readonly run: ThroughputRun; readonly autosave: RunAutosave };
 
@@ -46,7 +58,7 @@ function openSession(store: KeyValueStore, seed: number, resume: boolean): Sessi
 }
 
 /** THROUGHPUT in the browser: tap a card, then a bay; run the Shift; shop for Fixtures between rounds. */
-export function ThroughputScreen({ seed, onQuit, store, resume }: BrowserGameProps) {
+export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }: BrowserGameProps) {
   const [opened] = useState(() => openSession(store, seed, resume));
   const [{ run, autosave }, setSession] = useState<Session>(opened);
   const [, setVersion] = useState(0);
@@ -54,7 +66,11 @@ export function ThroughputScreen({ seed, onQuit, store, resume }: BrowserGamePro
   const [toasts, setToasts] = useState<readonly ToastView[]>(() => (opened.notice === null ? [] : [{ id: 'tp-restore', kind: 'error', message: opened.notice }]));
   const [lastShift, setLastShift] = useState<ShiftRecord | null>(null);
   const [tips] = useState(() => new TipMemory(store));
+  const [replay, setReplay] = useState<Replay | null>(null);
   const toastId = useRef(0);
+  const replayKey = useRef(0);
+  /** A Run is replaying and not yet applied; guards against applying it twice. */
+  const replaying = useRef(false);
 
   const notify = (kind: ToastKind, message: string) => setToasts((t) => [...t, { id: `tp-${toastId.current++}`, kind, message }]);
   const dismiss = useCallback((id: string) => setToasts((t) => t.filter((x) => x.id !== id)), []);
@@ -68,6 +84,8 @@ export function ThroughputScreen({ seed, onQuit, store, resume }: BrowserGamePro
       return;
     }
     action();
+    if (entry.verb === 'load') sound.play('load');
+    if (entry.verb === 'buy') sound.play('buy');
     if (run.phase === 'won' || run.phase === 'lost') autosave.clear();
     else autosave.record(entry);
     // Doing what a tip explains retires it.
@@ -83,11 +101,18 @@ export function ThroughputScreen({ seed, onQuit, store, resume }: BrowserGamePro
     setMode(IDLE);
     setLastShift(null);
     setToasts([]);
+    replaying.current = false;
+    setReplay(null);
   };
 
   if (run.phase === 'won' || run.phase === 'lost') return <RunSummaryView run={run} onNewRun={newRun} onQuit={onQuit} />;
 
   const handIndex = (uid: number) => run.hand.findIndex((c) => c.uid === uid);
+  /** Picks up (or puts down) a card, offer or Fixture. */
+  const pick = (next: Mode) => {
+    sound.play('select');
+    setMode(next);
+  };
 
   // ---- Shift ----
   const tapHand = (i: number) => {
@@ -96,10 +121,10 @@ export function ThroughputScreen({ seed, onQuit, store, resume }: BrowserGamePro
     if (mode.kind === 'retool') {
       const marked = mode.uids.includes(uid) ? mode.uids.filter((u) => u !== uid) : [...mode.uids, uid];
       if (marked.length > run.config.retoolMax) return notify('info', `A Retool discards at most ${run.config.retoolMax} cards`);
-      setMode({ kind: 'retool', uids: marked });
+      pick({ kind: 'retool', uids: marked });
       return;
     }
-    setMode(mode.kind === 'place' && mode.uid === uid ? IDLE : { kind: 'place', uid });
+    pick(mode.kind === 'place' && mode.uid === uid ? IDLE : { kind: 'place', uid });
   };
 
   const tapBayInShift = (slot: number) => {
@@ -120,7 +145,42 @@ export function ThroughputScreen({ seed, onQuit, store, resume }: BrowserGamePro
     if (run.restocked > before) notify('info', `Restock: ${run.restocked - before} discards shuffled into a new draw pile`);
   };
 
+  /**
+   * Run plays the Shift on the belt first, from the preview (which is exactly what the Run will
+   * make), and applies it when the replay ends. Under reduced motion it applies at once.
+   */
   const runShift = () => {
+    const reason = run.whyCannotRun();
+    if (reason !== null) return notify('error', reason);
+    const result = run.preview();
+    const outcome = shiftOutcome(run, result);
+    const timing = replayTiming();
+    if (timing.instant) {
+      playShiftAtOnce(sound, result, outcome);
+      return applyRun();
+    }
+    replaying.current = true;
+    setMode(IDLE);
+    setReplay({ key: replayKey.current++, result, shift: run.shift, outcome, timing });
+  };
+
+  /** Applies the replayed Run: when the replay is done, or as soon as the player does anything else. */
+  const finishReplay = () => {
+    if (!replaying.current) return;
+    replaying.current = false;
+    setReplay(null);
+    applyRun();
+  };
+
+  /** Any tap outside the replay while it plays applies the Run instead, so the replay never holds the player up. */
+  const tapDuringReplay = (event: MouseEvent) => {
+    if (event.target instanceof Element && event.target.closest('.tp-replay') !== null) return;
+    event.preventDefault();
+    event.stopPropagation();
+    finishReplay();
+  };
+
+  const applyRun = () => {
     const before = { salesBefore: run.sales, target: run.target, heading: `Round ${run.round}, Shift ${run.shift}` };
     const restocked = run.restocked;
     attempt(run.whyCannotRun(), { verb: 'run' }, () => {
@@ -137,9 +197,9 @@ export function ThroughputScreen({ seed, onQuit, store, resume }: BrowserGamePro
     const item = run.offers[offer];
     if (item == null) return;
     if (!run.wallet.canAfford(item.price)) return notify('error', `Not enough Capital (${item.price}C)`);
-    if (item.kind === 'fixture') return setMode(mode.kind === 'install' && mode.offer === offer ? IDLE : { kind: 'install', offer });
-    if (item.kind === 'contract' && item.def.targetsCard) return setMode(mode.kind === 'contract' && mode.offer === offer ? IDLE : { kind: 'contract', offer });
-    if (item.kind === 'contract' && item.def.targetsCategory) return setMode(mode.kind === 'grant' && mode.offer === offer ? IDLE : { kind: 'grant', offer });
+    if (item.kind === 'fixture') return pick(mode.kind === 'install' && mode.offer === offer ? IDLE : { kind: 'install', offer });
+    if (item.kind === 'contract' && item.def.targetsCard) return pick(mode.kind === 'contract' && mode.offer === offer ? IDLE : { kind: 'contract', offer });
+    if (item.kind === 'contract' && item.def.targetsCategory) return pick(mode.kind === 'grant' && mode.offer === offer ? IDLE : { kind: 'grant', offer });
     attempt(run.whyCannotBuy(offer), { verb: 'buy', offer, target: null }, () => run.buy(offer));
   };
 
@@ -148,7 +208,7 @@ export function ThroughputScreen({ seed, onQuit, store, resume }: BrowserGamePro
     if (mode.kind === 'fixture' && mode.slot !== slot) {
       return attempt(run.whyCannotMove(mode.slot, slot), { verb: 'move', from: mode.slot, to: slot }, () => run.moveFixture(mode.slot, slot));
     }
-    if (run.line[slot]?.fixture != null) return setMode(mode.kind === 'fixture' ? IDLE : { kind: 'fixture', slot });
+    if (run.line[slot]?.fixture != null) return pick(mode.kind === 'fixture' ? IDLE : { kind: 'fixture', slot });
     notify('info', 'Buy a Fixture, then choose its bay');
   };
 
@@ -181,12 +241,27 @@ export function ThroughputScreen({ seed, onQuit, store, resume }: BrowserGamePro
   const pendingFixture = mode.kind === 'fixture' ? run.line[mode.slot]?.fixture : null;
 
   return (
-    <main className={`screen screen--tp ${inShift ? 'screen--tp-shift' : 'screen--tp-shop'}`}>
+    <main
+      className={`screen screen--tp ${inShift ? 'screen--tp-shift' : 'screen--tp-shop'}`}
+      data-replay={replay !== null || undefined}
+      onClickCapture={replay !== null ? tapDuringReplay : undefined}
+    >
       <ToastStack toasts={toasts} onDismiss={dismiss} />
       <TpHud run={run} />
       {!inShift && <PayoutSlip run={run} />}
       <MarketBoard run={run} preview={preview} />
       <LineView run={run} bayState={bayState} onBay={inShift ? tapBayInShift : tapBayInShop} onScrap={inShift ? (s) => attempt(run.whyCannotScrap([s]), { verb: 'scrap', slots: [s] }, () => run.scrap([s])) : undefined} bayLabel={bayLabel} />
+      {replay !== null && (
+        <ShiftReplay
+          key={replay.key}
+          result={replay.result}
+          shift={replay.shift}
+          baseMargin={run.config.baseMargin}
+          onBeat={(beat) => playBeat(sound, beat, replay.timing.stepMs)}
+          onFinale={() => playFinale(sound, replay.outcome, durationToken('--dur-med', 240))}
+          onDone={finishReplay}
+        />
+      )}
 
       {inShift && preview !== null && (
         <div className="tp-desk">

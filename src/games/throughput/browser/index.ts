@@ -12,6 +12,8 @@ export { CATEGORY_ACCENT, cardView, demandBossCut, demandViews, fixtureView, lin
 export type { DemandView, RunSummary } from './present';
 export { RunAutosave, handNumber } from './run-autosave';
 export { RunSummaryView } from './RunSummary';
+export { playBeat, playFinale, playShiftAtOnce, saleIntensity, shiftOutcome } from './shift-sound';
+export type { ShiftOutcome } from './shift-sound';
 export { Tip } from './Tip';
 export type { TipProps } from './Tip';
 export { TIP_IDS, TipMemory, currentTip, tipText } from './tips';

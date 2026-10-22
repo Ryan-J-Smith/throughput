@@ -4,5 +4,6 @@ export * from './model';
 export * from './screens';
 export * from './settings';
 export * from './shell';
+export * from './sound';
 export * from './storage';
 export type * from './types';

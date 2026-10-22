@@ -3,6 +3,8 @@ import type { BrowserGame } from '../games';
 import { HomeScreen } from '../screens';
 import { SettingsPanel, SettingsStore, applySettings } from '../settings';
 import type { Settings } from '../settings';
+import { SilentPlayer } from '../sound';
+import type { SoundPlayer } from '../sound';
 import type { KeyValueStore } from '../storage';
 
 export type LauncherProps = {
@@ -13,12 +15,16 @@ export type LauncherProps = {
   store: KeyValueStore;
   /** Also list `dev` games (dev builds only). */
   showDevGames?: boolean;
+  /** Plays sound cues; the launcher configures it from Settings and unlocks it on the first gesture. */
+  sound?: SoundPlayer;
 };
+
+const SILENT = new SilentPlayer();
 
 type Session = { readonly game: BrowserGame; readonly seed: number; readonly resume: boolean };
 
 /** Top of the app: the title, or the launched game under a Menu bar; Settings open over either. */
-export function Launcher({ games, nextSeed, store, showDevGames = false }: LauncherProps) {
+export function Launcher({ games, nextSeed, store, showDevGames = false, sound = SILENT }: LauncherProps) {
   const [session, setSession] = useState<Session | null>(null);
   const [settingsStore] = useState(() => new SettingsStore(store));
   const [settings, setSettings] = useState<Settings>(() => settingsStore.load());
@@ -26,6 +32,17 @@ export function Launcher({ games, nextSeed, store, showDevGames = false }: Launc
   const quit = () => setSession(null);
 
   useEffect(() => applySettings(settings, document.documentElement), [settings]);
+  useEffect(() => sound.configure(settings.sound, settings.volume), [sound, settings]);
+  // Browsers only start audio from a user gesture; capture runs this before the game's own handlers.
+  useEffect(() => {
+    const unlock = () => sound.unlock();
+    window.addEventListener('click', unlock, true);
+    window.addEventListener('keydown', unlock, true);
+    return () => {
+      window.removeEventListener('click', unlock, true);
+      window.removeEventListener('keydown', unlock, true);
+    };
+  }, [sound]);
 
   const tipGames = games.filter((game) => game.hasTips);
   const settingsPanel = settingsOpen && (
@@ -34,6 +51,11 @@ export function Launcher({ games, nextSeed, store, showDevGames = false }: Launc
       onChange={(next) => {
         settingsStore.save(next);
         setSettings(next);
+        // Apply sound now rather than after the render, so turning it on or moving the volume
+        // plays a click at the new level.
+        sound.configure(next.sound, next.volume);
+        sound.unlock();
+        if (next.sound && (!settings.sound || next.volume !== settings.volume)) sound.play('select');
       }}
       {...(tipGames.length > 0 ? { onResetTips: () => tipGames.forEach((game) => game.resetTips(store)) } : {})}
       onClose={() => setSettingsOpen(false)}
@@ -71,7 +93,7 @@ export function Launcher({ games, nextSeed, store, showDevGames = false }: Launc
           Settings
         </button>
       </nav>
-      <Screen key={session.seed} seed={session.seed} onQuit={quit} store={store} resume={session.resume} />
+      <Screen key={session.seed} seed={session.seed} onQuit={quit} store={store} resume={session.resume} sound={sound} />
       {settingsPanel}
     </div>
   );

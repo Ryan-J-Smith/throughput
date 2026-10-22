@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react';
+import type { SoundPlayer } from '../sound';
 import type { KeyValueStore } from '../storage';
 
 export type BrowserGameProps = {
@@ -10,6 +11,8 @@ export type BrowserGameProps = {
   readonly store: KeyValueStore;
   /** True to continue the autosaved run (see `BrowserGame.savedRun`) instead of starting one from `seed`. */
   readonly resume: boolean;
+  /** Plays the game's sound cues; silent if omitted. */
+  readonly sound?: SoundPlayer;
 };
 
 /** Where the title lists a game: the headline game, a "Prototype:" entry under More games, or dev builds only. */
