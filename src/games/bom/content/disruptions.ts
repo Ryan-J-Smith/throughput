@@ -5,7 +5,7 @@ import type { Part, RoundMods, ShipContext } from '../model';
 
 export class Strike extends Disruption {
   constructor() {
-    super({ id: 'strike', name: 'Strike', text: '−1 Build this round (3 instead of 4)' });
+    super({ id: 'strike', name: 'Strike', text: '−1 Build in the Boss round' });
   }
   override adjust(mods: RoundMods): void {
     mods.builds -= 1;
@@ -25,7 +25,7 @@ export class PriceWar extends Disruption {
 
 export class Recall extends Disruption {
   constructor() {
-    super({ id: 'recall', name: 'Recall', text: 'Your most-shipped blueprint this run gets ×0.5' });
+    super({ id: 'recall', name: 'Recall', text: 'Your most-shipped Product this run (ties: all of them) gets ×0.5' });
   }
   override shipMultiplier(ship: ShipContext): number {
     return ship.mostShipped.has(ship.blueprint.id) ? 0.5 : 1;

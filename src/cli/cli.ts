@@ -104,8 +104,11 @@ function commandAct(parsed: Parsed, io: CliIo, games: readonly TextGame[]): numb
   const action = recorded ? (result.save.actions.at(-1) ?? text) : text;
   if (parsed.flags.has('json')) {
     io.out(JSON.stringify({ ok: true, action, recorded, log: result.log, state: result.view.state }));
-  } else {
+  } else if (recorded) {
     io.out([`> ${action}`, ...result.log, '', result.view.text].join('\n'));
+  } else {
+    // The state can't have changed, so don't reprint it.
+    io.out([`> ${action}`, ...result.log, '(state unchanged; use "state" to reprint it)'].join('\n'));
   }
   return EXIT_OK;
 }
