@@ -1,6 +1,7 @@
 import type { CardView } from '../../../ui/types';
+import { fixtureNow } from '../cli';
 import { CATEGORIES, cardEffect, designAdd, formatAmount, makeUnits, shipCap } from '../model';
-import type { Card, CardDef, Category, FixtureDef, TrendStage } from '../model';
+import type { Card, CardDef, Category, Fixture, FixtureDef, TrendStage } from '../model';
 import type { Offer, ShiftResult, ThroughputRun } from '../rules';
 import { CATEGORY_ICON, cardArt, contractArt, fixtureArt } from './art';
 
@@ -67,6 +68,11 @@ export function fixtureView(def: FixtureDef, id: string): CardView {
     ...withArt(fixtureArt(def.id)),
     icon: def.kind === 'station' ? 'station' : 'mod',
   };
+}
+
+/** A bay plate's text: the Fixture's short gist (or its rule), then what it does now (Flagship's growing ×). */
+export function plateText(fixture: Fixture): string {
+  return `${fixture.def.short ?? fixture.def.text.replace(/^Station\. /, '')} ${fixtureNow(fixture)}`.trim();
 }
 
 /**

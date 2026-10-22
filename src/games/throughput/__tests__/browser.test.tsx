@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { GrantPicker, HowToPlay, LineView, ThroughputBrowserGame, ThroughputScreen, TraceReceipt, demandBossCut, demandViews, lineNotice } from '../browser';
+import { GrantPicker, HowToPlay, LineView, ThroughputBrowserGame, ThroughputScreen, TraceReceipt, demandBossCut, demandViews, lineNotice, plateText } from '../browser';
 import { DEFAULT_CONFIG, SKETCH, TRUCK, WORKSHOP } from '../content';
 import type { BayState } from '../browser';
 import { CATEGORIES } from '../model';
@@ -113,6 +113,15 @@ describe('THROUGHPUT browser screen', () => {
     run.continueToNextRound();
     run.load([{ hand: run.hand.findIndex((c) => c.def.stage !== 'design'), slot: 0 }]);
     expect(renderLine(run)).toContain('<span class="tp-bay__idle" title="Idle for this card">Idle</span>');
+  });
+
+  it('a plate shows the short gist (or the rule) and keeps what the Fixture does now', () => {
+    const flagship = fixture('flagship-store', 2);
+    const now = /Now ×[\d.]+\.$/;
+    expect(plateText(flagship)).toMatch(now);
+    expect(plateText({ ...flagship, def: { ...flagship.def, short: 'Ship ×1.2, grows' } })).toMatch(new RegExp(`^Ship ×1\\.2, grows ${now.source}`));
+    expect(plateText(fixture('quality-lab'))).toBe('A Design here gets +$4.');
+    expect(plateText({ ...fixture('quality-lab'), def: { ...fixture('quality-lab').def, short: '+$4 to a Design' } })).toBe('+$4 to a Design');
   });
 
   it('each loaded card says whether it stays after the run', () => {

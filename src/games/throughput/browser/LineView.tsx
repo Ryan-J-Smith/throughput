@@ -1,9 +1,9 @@
 import { Card } from '../../../ui/components';
 import { Icon } from '../../../ui/icons';
-import { fixtureNow, fixtureText } from '../cli';
+import { fixtureText } from '../cli';
 import type { ThroughputRun } from '../rules';
 import { fixtureArt } from './art';
-import { cardView, lineNotice } from './present';
+import { cardView, lineNotice, plateText } from './present';
 
 export type BayState = 'target' | 'selected' | 'idle';
 
@@ -63,9 +63,7 @@ export function LineView({ run, bayState, onBay, onScrap, bayLabel }: LineViewPr
                 </span>
                 <span className="tp-bay__fixture">{welded ? 'Welded shut' : (slot.fixture?.def.name ?? 'No fixture')}</span>
                 {slot.fixture !== null && !welded && (
-                  <span className="tp-bay__fixture-text">
-                    {slot.fixture.def.short ?? `${slot.fixture.def.text.replace(/^Station\. /, '')} ${fixtureNow(slot.fixture)}`}
-                  </span>
+                  <span className="tp-bay__fixture-text">{plateText(slot.fixture)}</span>
                 )}
                 {idle && (
                   <span className="tp-bay__idle" title="Idle for this card">

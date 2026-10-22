@@ -9,28 +9,42 @@ describe('settings', () => {
     const store = new MemoryStore();
     const settings = new SettingsStore(store);
     expect(settings.load()).toEqual(DEFAULT_SETTINGS);
-    settings.save({ speed: 'fast', reduceMotion: true });
-    expect(new SettingsStore(store).load()).toEqual({ speed: 'fast', reduceMotion: true });
-    store.set('settings', JSON.stringify({ speed: 'ludicrous', reduceMotion: 'yes' }));
+    settings.save({ speed: 'fast', reduceMotion: true, sound: false, volume: 0.75 });
+    expect(new SettingsStore(store).load()).toEqual({ speed: 'fast', reduceMotion: true, sound: false, volume: 0.75 });
+    store.set('settings', JSON.stringify({ speed: 'ludicrous', reduceMotion: 'yes', sound: 'loud', volume: 2 }));
     expect(settings.load()).toEqual(DEFAULT_SETTINGS);
+    // Settings saved before sound existed keep their choices and get sound at the defaults.
+    store.set('settings', JSON.stringify({ speed: 'slow', reduceMotion: true }));
+    expect(settings.load()).toEqual({ speed: 'slow', reduceMotion: true, sound: true, volume: DEFAULT_SETTINGS.volume });
     store.set('settings', '{oops');
     expect(settings.load()).toEqual(DEFAULT_SETTINGS);
   });
 
   it('apply as data attributes on the page root', () => {
     const root: SettingsTarget = { dataset: {} };
-    applySettings({ speed: 'slow', reduceMotion: true }, root);
+    applySettings({ ...DEFAULT_SETTINGS, speed: 'slow', reduceMotion: true }, root);
     expect(root.dataset).toEqual({ speed: 'slow', motion: 'reduced' });
-    applySettings({ speed: 'normal', reduceMotion: false }, root);
+    applySettings({ ...DEFAULT_SETTINGS, speed: 'normal', reduceMotion: false }, root);
     expect(root.dataset).toEqual({ speed: 'normal' });
   });
 
-  it('the panel shows the speed choices, Reduce motion and, when a game has tips, Show tips again', () => {
-    const html = renderToStaticMarkup(<SettingsPanel settings={{ speed: 'fast', reduceMotion: true }} onChange={() => {}} onResetTips={() => {}} onClose={() => {}} />);
+  it('sound starts on at a low volume', () => {
+    expect(DEFAULT_SETTINGS.sound).toBe(true);
+    expect(DEFAULT_SETTINGS.volume).toBeGreaterThan(0);
+    expect(DEFAULT_SETTINGS.volume).toBeLessThanOrEqual(0.5);
+  });
+
+  it('the panel shows the speed choices, Reduce motion, Sound with its volume and, when a game has tips, Show tips again', () => {
+    const settings = { speed: 'fast', reduceMotion: true, sound: true, volume: 0.35 } as const;
+    const html = renderToStaticMarkup(<SettingsPanel settings={settings} onChange={() => {}} onResetTips={() => {}} onClose={() => {}} />);
     expect(html).toContain('role="dialog"');
     expect(html.match(/type="radio"/g)).toHaveLength(3);
     expect(html).toMatch(/checked="" value="fast"/);
-    expect(html).toMatch(/type="checkbox" checked=""/);
+    expect(html.match(/type="checkbox" checked=""/g)).toHaveLength(2);
+    expect(html).toContain('Sound</label>');
+    expect(html).toMatch(/<input type="range" min="0" max="100" step="5" aria-valuetext="35%" value="35"\/>/);
+    const muted = renderToStaticMarkup(<SettingsPanel settings={{ ...settings, sound: false }} onChange={() => {}} onClose={() => {}} />);
+    expect(muted).toMatch(/<input type="range"[^>]* disabled=""/);
     expect(html).toContain('Show tips again');
     const noTips = renderToStaticMarkup(<SettingsPanel settings={DEFAULT_SETTINGS} onChange={() => {}} onClose={() => {}} />);
     expect(noTips).not.toContain('Show tips again');
