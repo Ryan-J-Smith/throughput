@@ -1,11 +1,13 @@
 import { RunBrowserGame } from './app';
 import { DemoGame } from './content/demo';
+import { BomBrowserGame } from './games/bom/browser';
 import { ThroughputBrowserGame } from './games/throughput/browser';
 import type { BrowserGame } from './ui/games';
 
 /** Games on the title screen's picker, in display order. Register a new game with one line here. */
 export const BROWSER_GAMES: readonly BrowserGame[] = [
   new ThroughputBrowserGame(),
+  new BomBrowserGame(),
   new RunBrowserGame({
     id: 'demo',
     title: 'Card demo',

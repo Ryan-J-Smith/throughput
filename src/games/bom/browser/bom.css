@@ -1,0 +1,751 @@
+/* BILL OF MATERIALS screens. Colours, type, radii, shadows and motion come from ui/theme/tokens.css;
+   the workbench wood is the one local colour. */
+
+.screen--bom {
+  --bench-wood: #8b5a33;
+  --bench-wood-dark: #6b4325;
+
+  gap: 14px;
+}
+
+.bom-hud__interest {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--cash);
+}
+
+.bom-hint {
+  margin: 0;
+  font-weight: 600;
+  color: var(--chalk-dim);
+}
+
+.bom-hint--shop {
+  text-align: center;
+  color: var(--floor-paint);
+}
+
+/* ---------- Overtime banner ---------- */
+
+.bom-overtime {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding: 10px 16px;
+  color: var(--print);
+  background: repeating-linear-gradient(-45deg, var(--dept-mustard) 0 14px, #f0bd3c 14px 28px);
+  border: 2px solid var(--print);
+  border-radius: var(--radius-panel);
+}
+
+.bom-overtime p {
+  flex: 1 1 260px;
+  margin: 0;
+  font-weight: 600;
+}
+
+/* ---------- Floor: the blueprint board and the receipt ---------- */
+
+/* Left: the board, with the hand right under it. Right: the Bench, then the receipt. */
+.bom-floor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    'board bench'
+    'board receipt'
+    'hand receipt';
+  align-items: start;
+  gap: 16px 18px;
+}
+
+.bom-floor > .bom-board {
+  grid-area: board;
+}
+
+.bom-floor > .bom-bench {
+  grid-area: bench;
+}
+
+.bom-floor > .bom-floor__receipt {
+  grid-area: receipt;
+}
+
+.bom-floor > .bom-hand {
+  grid-area: hand;
+}
+
+.bom-floor__empty {
+  margin: 0;
+  padding: 18px 16px;
+  color: var(--chalk-dim);
+  border: 2px dashed var(--panel-edge);
+  border-radius: var(--radius-panel);
+}
+
+/* The board is a printed spec sheet on ledger paper. */
+.bom-board {
+  padding: 10px 14px 14px;
+  color: var(--print);
+  background:
+    linear-gradient(transparent 27px, var(--paper-rule) 27px 28px) 0 0 / 100% 28px,
+    var(--paper);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+}
+
+.bom-board__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin-bottom: 6px;
+}
+
+.bom-board__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 900;
+  line-height: 1;
+}
+
+.bom-board__title--subs {
+  margin-top: 14px;
+  margin-bottom: 6px;
+  font-size: var(--text-lg);
+}
+
+.bom-board__slots {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--print-dim);
+}
+
+.bom-board__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bom-product {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    'head stats action'
+    'demand demand action'
+    'quote quote action';
+  align-items: center;
+  gap: 3px 14px;
+  padding: 6px 10px;
+  background: rgb(255 255 255 / 0.7);
+  border: 1.5px solid rgb(31 26 20 / 0.18);
+  border-left: 6px solid rgb(31 26 20 / 0.18);
+  border-radius: 3px;
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+
+.bom-product.is-quoted {
+  border-color: var(--print);
+  border-left-color: var(--focus);
+}
+
+.bom-product__head {
+  grid-area: head;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.bom-product__name {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.bom-product__stats {
+  grid-area: stats;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 2px 12px;
+  font-size: var(--text-sm);
+  color: var(--print-dim);
+}
+
+.bom-product__stats strong {
+  color: var(--print);
+  font-variant-numeric: tabular-nums;
+}
+
+.bom-product__levels,
+.bom-product__ships {
+  font-weight: 700;
+}
+
+.bom-product__quote {
+  grid-area: quote;
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.bom-product.is-sellout .bom-product__quote {
+  color: var(--cash);
+}
+
+.bom-product > .btn,
+.bom-product > .bom-product__rnd {
+  grid-area: action;
+}
+
+/* Scoped under .bom-product to outrank the shared .btn colours. */
+.bom-product .bom-product__ship {
+  min-width: 128px;
+  font-size: var(--text-lg);
+  color: #fff;
+  background: var(--dept-blue);
+}
+
+.bom-product .bom-product__ship:disabled {
+  opacity: 1;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--print-dim);
+  background: transparent;
+  border: 1.5px dashed rgb(31 26 20 / 0.3);
+  box-shadow: none;
+  cursor: default;
+}
+
+.bom-product .bom-sub__fab:not(:disabled) {
+  background: var(--dept-orange);
+}
+
+.bom-product__rnd {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bom-product__rnd .btn,
+.bom-product .bom-product__sell {
+  padding: 4px 12px;
+  font-size: var(--text-sm);
+}
+
+.bom-sub__arrow {
+  font-weight: 800;
+}
+
+.bom-sub__rule {
+  grid-area: demand;
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--print-dim);
+}
+
+/* Recipe chips: outlined until the selection covers that slot. */
+.bom-recipe {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.bom-chip {
+  display: inline-block;
+  padding: 1px 8px;
+  border: 1.5px solid var(--accent);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--print);
+  background: transparent;
+}
+
+.bom-chip.is-met {
+  color: var(--accent-ink);
+  background: var(--accent);
+}
+
+/* Demand bar: the track is base Demand on a shared scale; the fill is what the next Ship gets. */
+.bom-demand {
+  grid-area: demand;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bom-demand__rail {
+  height: 12px;
+}
+
+.bom-demand__track {
+  position: relative;
+  height: 100%;
+  min-width: 8px;
+  overflow: hidden;
+  background: rgb(31 26 20 / 0.08);
+  border: 1.5px solid var(--print);
+  border-radius: 2px;
+}
+
+.bom-demand__fill {
+  height: 100%;
+  background: var(--cash);
+  transition: width var(--dur-slow) var(--ease-out);
+}
+
+/* Sell-out growth: the newest part of base Demand, hatched. */
+.bom-demand__growth {
+  position: absolute;
+  inset: 0 0 0 auto;
+  background: repeating-linear-gradient(-45deg, rgb(255 255 255 / 0.65) 0 3px, transparent 3px 6px);
+  border-left: 2px solid var(--print);
+}
+
+.bom-demand__label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--print-dim);
+}
+
+/* ---------- Receipt ---------- */
+
+.bom-receipt {
+  filter: drop-shadow(0 10px 14px rgb(0 0 0 / 0.4));
+}
+
+.bom-receipt__lines {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+}
+
+.bom-receipt__line {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.bom-receipt__line > span:last-child {
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.bom-receipt__line--base {
+  font-weight: 700;
+}
+
+.bom-receipt__line--multiply > span:last-child {
+  color: var(--stamp-red);
+}
+
+.bom-receipt__formula {
+  margin: 6px 0 0;
+  padding-top: 6px;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  border-top: 1px dashed currentColor;
+}
+
+.bom-receipt__note,
+.bom-receipt__round {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.bom-receipt__note.is-good {
+  color: var(--cash);
+}
+
+.bom-receipt__round {
+  text-align: right;
+}
+
+.bom-receipt__round.is-cleared {
+  color: var(--stamp-red);
+}
+
+/* ---------- The Bench tray and the hand ---------- */
+
+.bom-bench {
+  padding: 10px 12px 14px;
+  color: var(--chalk);
+  background:
+    repeating-linear-gradient(90deg, rgb(0 0 0 / 0.07) 0 2px, transparent 2px 9px, rgb(255 255 255 / 0.05) 9px 10px, transparent 10px 23px),
+    linear-gradient(180deg, var(--bench-wood), var(--bench-wood-dark));
+  border-bottom: 6px solid #4a2e18;
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+}
+
+/* The bottom margin leaves room for a selected part, which lifts. */
+.bom-bench__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+  margin-bottom: 24px;
+}
+
+.bom-bench__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 900;
+  line-height: 1;
+}
+
+.bom-bench__count {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.bom-bench__note {
+  flex-basis: 100%;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: rgb(239 234 223 / 0.75);
+}
+
+.bom-bench.is-trashing .bom-bench__note {
+  color: var(--focus);
+}
+
+.bom-bench__slots {
+  display: flex;
+  gap: 10px;
+}
+
+.bom-bench__slot {
+  width: 116px;
+}
+
+.bom-bench__slot--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 150px;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: rgb(239 234 223 / 0.55);
+  border: 2px dashed rgb(239 234 223 / 0.35);
+  border-radius: var(--radius-card);
+}
+
+.bom-bench__slot.is-trashable .card {
+  outline: 3px solid var(--dept-red);
+  outline-offset: 2px;
+  animation: bom-trash-pulse 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes bom-trash-pulse {
+  to {
+    outline-color: var(--focus);
+  }
+}
+
+/* Parts are smaller than the shared card: the board, a hand of 8 and the Bench must fit one view.
+   They carry no title, so the band, the grade and Units/Price say it all. */
+.bom-hand .card,
+.bom-bench .card {
+  min-height: 132px;
+}
+
+.bom-hand .card__title,
+.bom-bench .card__title {
+  display: none;
+}
+
+.bom-hand .badge--value,
+.bom-bench .badge--value {
+  margin-top: 8px;
+}
+
+.bom-hand {
+  gap: 10px;
+  padding-top: 0;
+}
+
+/* Room for a selected part, which lifts. */
+.bom-hand .bom-hint {
+  margin-bottom: 18px;
+}
+
+.bom-hand .hand__cards {
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.bom-hand .hand__cards > .card-wrap {
+  flex-basis: 104px;
+}
+
+.bom-controls {
+  flex-wrap: wrap;
+}
+
+/* ---------- Shop ---------- */
+
+/* Between rounds the Bench is just shown, at its own size. */
+.screen--bom-shop > .bom-bench {
+  align-self: flex-start;
+}
+
+.bom-shop-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 18px;
+}
+
+.bom-payout__revenue {
+  margin: 0 0 6px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.bom-shop__group {
+  margin: 4px 6px 10px;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 800;
+  color: var(--chalk-dim);
+}
+
+.bom-shop__counter {
+  margin-bottom: 4px;
+}
+
+.bom-shop__pending {
+  outline: 3px dashed var(--focus);
+  outline-offset: 6px;
+  border-radius: var(--radius-card);
+}
+
+.bom-shop__sold {
+  min-height: 120px;
+  align-items: center;
+  justify-content: center;
+}
+
+.bom-shop__warn {
+  margin: 0;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--focus);
+}
+
+.bom-deck,
+.bom-rules {
+  padding: 8px 12px;
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--radius-panel);
+  background: rgb(0 0 0 / 0.15);
+}
+
+.bom-deck summary,
+.bom-rules summary {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.bom-deck__hint {
+  margin: 8px 0;
+  font-size: var(--text-sm);
+  color: var(--chalk-dim);
+}
+
+.bom-deck__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 4px;
+  padding: 0;
+  list-style: none;
+}
+
+.bom-deck__part {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--radius-button);
+  font: inherit;
+  color: var(--print);
+  background: var(--stock);
+  cursor: pointer;
+}
+
+.bom-deck__part:hover {
+  outline: 2px solid var(--focus);
+}
+
+.bom-deck__part.is-blocked {
+  opacity: 0.6;
+}
+
+.bom-deck__count {
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+/* ---------- Facilities ---------- */
+
+.bom-facilities {
+  padding: 10px 14px 14px;
+  color: var(--print);
+  background:
+    linear-gradient(rgb(29 78 158 / 0.06) 1px, transparent 1px) 0 0 / 14px 14px,
+    linear-gradient(90deg, rgb(29 78 158 / 0.06) 1px, transparent 1px) 0 0 / 14px 14px,
+    var(--paper);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+}
+
+/* The shared compact band has no padding outside the staff row. */
+.bom-facilities .card--compact .card__band {
+  min-height: 16px;
+  padding: 2px 8px;
+}
+
+.bom-facilities__note {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--print-dim);
+}
+
+.bom-facilities__slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.bom-facilities__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 70px;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--print-dim);
+  border: 2px dashed rgb(31 26 20 / 0.2);
+  border-radius: var(--radius-card);
+}
+
+.bom-facilities__sell {
+  width: 100%;
+  margin-top: 4px;
+  padding: 3px 0;
+  border: 1.5px solid var(--print);
+  border-radius: var(--radius-button);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  color: var(--print);
+  background: transparent;
+  cursor: pointer;
+}
+
+.bom-facilities__sell:hover {
+  color: #fff;
+  background: var(--dept-red);
+}
+
+/* ---------- Rules and end screen ---------- */
+
+.bom-rules__section h3 {
+  margin: 12px 0 4px;
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: 800;
+}
+
+.bom-rules__section p {
+  max-width: 72ch;
+  margin: 0 0 4px;
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+
+.bom-end-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+}
+
+/* ---------- Narrow screens ---------- */
+
+/* One column: the Bench and hand first (pick parts), then the board (tap a Product), then the receipt. */
+@media (max-width: 900px) {
+  .bom-floor {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-template-areas:
+      'bench'
+      'hand'
+      'board'
+      'receipt';
+  }
+
+  .bom-shop-top {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bom-floor__receipt {
+    width: min(100%, 380px);
+    justify-self: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .bom-product {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'head'
+      'stats'
+      'demand'
+      'quote'
+      'action';
+  }
+
+  .bom-product__stats {
+    justify-content: flex-start;
+  }
+
+  .bom-product .bom-product__ship {
+    width: 100%;
+  }
+
+  .bom-bench__slot {
+    width: 98px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bom-bench__slot.is-trashable .card {
+    animation: none;
+  }
+
+  .bom-demand__fill {
+    transition: none;
+  }
+}
