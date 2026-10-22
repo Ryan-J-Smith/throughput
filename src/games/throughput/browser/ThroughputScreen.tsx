@@ -13,6 +13,9 @@ import { MarketBoard } from './MarketBoard';
 import { cardView } from './present';
 import { RunAutosave, handNumber } from './run-autosave';
 import { RunSummaryView } from './RunSummary';
+import { Tip } from './Tip';
+import { TipMemory, currentTip, tipText } from './tips';
+import type { TipId } from './tips';
 import { DeckDrawer, GrantPicker, PayoutSlip, RulesSheet, Shelf } from './ShopParts';
 import { TpHud } from './TpHud';
 import { TraceReceipt } from './TraceReceipt';
@@ -50,6 +53,7 @@ export function ThroughputScreen({ seed, onQuit, store, resume }: BrowserGamePro
   const [mode, setMode] = useState<Mode>(IDLE);
   const [toasts, setToasts] = useState<readonly ToastView[]>(() => (opened.notice === null ? [] : [{ id: 'tp-restore', kind: 'error', message: opened.notice }]));
   const [lastShift, setLastShift] = useState<ShiftRecord | null>(null);
+  const [tips] = useState(() => new TipMemory(store));
   const toastId = useRef(0);
 
   const notify = (kind: ToastKind, message: string) => setToasts((t) => [...t, { id: `tp-${toastId.current++}`, kind, message }]);
@@ -66,6 +70,10 @@ export function ThroughputScreen({ seed, onQuit, store, resume }: BrowserGamePro
     action();
     if (run.phase === 'won' || run.phase === 'lost') autosave.clear();
     else autosave.record(entry);
+    // Doing what a tip explains retires it.
+    if (entry.verb === 'load') tips.finish('load');
+    if (entry.verb === 'run') tips.finish('load', 'run');
+    if (entry.verb === 'continue') tips.finish('shop');
     setMode(IDLE);
     setVersion((v) => v + 1);
   };
@@ -160,6 +168,16 @@ export function ThroughputScreen({ seed, onQuit, store, resume }: BrowserGamePro
   };
 
   const preview = inShift ? run.preview() : null;
+  const tip = currentTip(run, preview, tips.done);
+  const tipFor = (id: TipId) =>
+    tip === id && (
+      <Tip
+        id={id}
+        text={tipText(id, run)}
+        onDone={() => tips.finish(id) && setVersion((v) => v + 1)}
+        onTurnOff={() => tips.finishAll() && setVersion((v) => v + 1)}
+      />
+    );
   const pendingFixture = mode.kind === 'fixture' ? run.line[mode.slot]?.fixture : null;
 
   return (
@@ -174,12 +192,14 @@ export function ThroughputScreen({ seed, onQuit, store, resume }: BrowserGamePro
         <div className="tp-desk">
           <section className="hand tp-hand" aria-label="Hand">
             <p className="tp-hint">{shiftHint(run, mode)}</p>
+            {tipFor('load')}
             <div className="hand__cards">
               {run.hand.map((card, i) => {
                 const selected = (mode.kind === 'place' && mode.uid === card.uid) || (mode.kind === 'retool' && mode.uids.includes(card.uid));
                 return <Card key={card.uid} card={cardView(card, undefined, run.demandLeft)} index={i} selected={selected} onClick={() => tapHand(i)} />;
               })}
             </div>
+            {tipFor('run')}
             <div className="hand__controls tp-controls">
               {mode.kind === 'retool' ? (
                 <>
@@ -244,6 +264,7 @@ export function ThroughputScreen({ seed, onQuit, store, resume }: BrowserGamePro
             </div>
           )}
           {mode.kind === 'install' && <p className="tp-hint tp-hint--shop">Tap a bay without a Fixture to install it.</p>}
+          {tipFor('shop')}
           <Shelf
             run={run}
             pending={mode.kind === 'install' || mode.kind === 'contract' || mode.kind === 'grant' ? mode.offer : null}
