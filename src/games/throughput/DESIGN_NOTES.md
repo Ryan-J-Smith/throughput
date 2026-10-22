@@ -41,6 +41,7 @@ These notes record where the docs were silent or ambiguous, and what was chosen.
 | Saturated | That Category's Ship caps ×0.5 (stacks with Gun), unless Loyal (Equity ≥ 3). | Spec. |
 | Wholesale Club | "Ships all Units" ignores cap cuts (Gun, Saturation). | "All" has no cap to halve; keeps it the volume dump it is meant to be. |
 | Ending a round | The round clears as soon as Sales ≥ target after a Shift; unused Shifts pay 2C each. | Doc's "+2C per unused Shift". |
+| Overkill pay | When a round clears, +1C per full 25% of the target sold beyond it, at most 5C (`config.overkill`). Paid after unused Shifts, before Interest. | BoM graft (convergence plan): overshoot was wasted (playtest N6). See "BoM grafts" below. |
 | Interest | +1C per 5C held *before* the round's income, max 5C. | Balatro convention. |
 | Selling | Fixtures and *bought* cards sell for half (floored). Starter cards can't be sold. | Selling starters for 0 would make Downsizing pointless. "Sell its pieces in Year 2" (Mass Market) needs bought cards to be sellable. |
 | Fixture placement | Buying needs a slot with no Fixture; moving costs 1C, shop only, and swaps if the target has one. | Doc: "placed free; moving costs 1C". |
@@ -177,3 +178,37 @@ Results over 500 seeds per bot:
    - Consider a bigger Emerging payoff if trends should drive builds.
 3. **Supply Shock is the hardest Board** (about 40% clears at r9/r12 versus 50–80% for the others).
    Losing a fifth of the Line is steep even when the bot dodges the weld.
+
+## BoM grafts (convergence plan)
+
+The user chose THROUGHPUT and approved three Bill of Materials ideas to graft onto it
+(`docs/ai_docs/throughput-plan.md`). Playtest round 1 is the yardstick:
+- 6/7 testers converged on parked Designs over Quality Labs plus Influencers;
+- holding cash never paid;
+- R1–R5 were cleared with 1.5–3× overkill;
+- Downsizing, Price Gun and Assembly Line were never bought.
+
+### Overkill pay (tempo lever)
+
+- **Rule:** when a round clears, +1C per full `step` × target of Sales beyond the target, capped at `cap`C.
+  - Starting point is BoM's Overtime formula: step 0.25, cap 5.
+  - Because the round ends at the target, the overshoot is the clearing Shift's surplus. Clearing in Shift 1 for the
+    unused-Shift bonus now competes with a setup Shift followed by a bigger blow-out.
+- **Bot overshoot on the default curve:** R1 averages +50–60% over target (p90 about +100%) and R2–R5 +30–45%,
+  which pays about 1–2C a round early and 0–1C late. Testers on seed-03 overshot by 50–200% early, which pays 2–5C.
+
+1000 seeds per bot (`npm run sim -- --scenario throughput --runs 1000`):
+
+| Bot | Off: win | Off: clears r3/6/9/12 | step 0.25, cap 5: win | step 0.25, cap 5: clears r3/6/9/12 | step 0.1, cap 5: win |
+|---|---|---|---|---|---|
+| greedy | 20.7% | 92/68/38/21 | 26.4% | 95/74/50/26 | 28.6% |
+| mass-market | 3.5% | 97/79/32/4 | 5.2% | 98/84/44/5 | 6.6% |
+| rnd-compounder | 30.0% | 83/73/53/30 | 32.7% | 88/80/61/33 | 39.4% |
+| trend-surfer | 2.1% | 97/69/16/2 | 2.8% | 97/72/17/3 | 2.6% |
+
+- **It is a cash injection for everyone, not a tempo-only lever.** Every bot gains, and greedy gains most, because
+  overshoot comes from whichever engine is ahead of the curve. Mass Market's mid and late overshoot is the smallest
+  (+10–20%), so it gains little.
+- **Kept at step 0.25 / cap 5.** The target re-fit absorbs the extra power, and step 0.1 mostly feeds the
+  compounder.
+
