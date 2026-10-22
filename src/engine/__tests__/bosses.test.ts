@@ -140,3 +140,59 @@ describe('Boss rules', () => {
     expect(run.boss).toBeNull();
   });
 });
+
+describe('Run.peekNextRound', () => {
+  it('is null outside the shop', () => {
+    const run = makeRun({ rounds: 4, bossEvery: 2, bossPool: pool(def('squeeze', () => new SqueezeBoss())) });
+    expect(run.peekNextRound()).toBeNull();
+    run.start();
+    expect(run.peekNextRound()).toBeNull();
+    run.startRound();
+    expect(run.peekNextRound()).toBeNull();
+    run.play(run.deck.hand.slice(0, 3));
+    expect(run.phase).toBe('roundEnd');
+    expect(run.peekNextRound()).toBeNull();
+  });
+
+  it('shows the upcoming boss round in the shop and leaveShop adopts exactly it', () => {
+    const run = makeRun({ rounds: 4, bossEvery: 2, target: () => 10, bossPool: pool(def('squeeze', () => new SqueezeBoss())) });
+    run.start();
+    run.startRound();
+    run.play(run.deck.hand.slice(0, 3));
+    run.enterShop();
+    const peek = run.peekNextRound();
+    expect(peek?.info).toEqual({ number: 2, isBoss: true, target: 20 });
+    expect(peek?.rules).toEqual({ target: 20, plays: 1, discards: 1, handSize: 3 });
+    expect(peek?.boss?.id).toBe('squeeze');
+    expect(run.round.number).toBe(1); // existing getters still describe the cleared round
+    expect(run.boss).toBeNull();
+    run.leaveShop();
+    expect(run.round).toEqual(peek?.info);
+    expect(run.roundRules).toEqual(peek?.rules);
+    expect(run.boss).toBe(peek?.boss);
+  });
+
+  it('matches every following round and does not disturb the boss stream', () => {
+    const bossPool = (): Registry<BossDef<TestCard>> => pool(...['a', 'b', 'c', 'd'].map((id) => def(id, () => new NamedBoss(id))));
+    const play = (peek: boolean): (string | undefined)[] => {
+      const run = makeRun({ rounds: 9, bossEvery: 1, target: () => 1, bossPool: bossPool() }, 11);
+      const ids: (string | undefined)[] = [];
+      run.start();
+      for (let i = 0; i < 6; i++) {
+        run.startRound();
+        run.play(run.deck.hand.slice(0, 1));
+        run.enterShop();
+        const preview = peek ? run.peekNextRound() : null;
+        if (peek) expect(run.peekNextRound()?.boss).toBe(preview?.boss);
+        run.leaveShop();
+        if (peek) {
+          expect(run.round).toEqual(preview?.info);
+          expect(run.boss).toBe(preview?.boss);
+        }
+        ids.push(run.boss?.id);
+      }
+      return ids;
+    };
+    expect(play(true)).toEqual(play(false));
+  });
+});

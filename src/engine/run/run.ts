@@ -15,6 +15,13 @@ export type PlayResult = {
   readonly total: number;
 };
 
+/** The next round as planned while in the shop; see Run.peekNextRound. */
+export type RoundPreview<TCard> = {
+  readonly info: RoundInfo;
+  readonly rules: RoundRules;
+  readonly boss: BossRule<TCard> | null;
+};
+
 /** Everything decided about a round before it starts. */
 type RoundPlan<TCard> = {
   readonly info: RoundInfo;
@@ -45,6 +52,8 @@ export class Run<TCard> {
   private phase_: RunPhase = 'setup';
   private readonly bossRng: Rng;
   private plan: RoundPlan<TCard>;
+  /** The following round, planned when the shop opens and adopted by leaveShop. */
+  private nextPlan: RoundPlan<TCard> | null = null;
   private bossActive = false;
   private roundScore_ = 0;
   private payout_: Payout | null = null;
@@ -67,17 +76,20 @@ export class Run<TCard> {
     return this.phase_;
   }
 
-  /** The current round, or the upcoming one while in the shop or before it starts. */
+  /**
+   * The round being played, about to start (roundStart), or just finished (roundEnd, shop,
+   * won, lost). In the shop this is still the cleared round; use peekNextRound for the next one.
+   */
   get round(): RoundInfo {
     return this.plan.info;
   }
 
-  /** Rules for the current/upcoming round, after any boss adjustment. */
+  /** Rules for the same round as `round`, after any boss adjustment. */
   get roundRules(): RoundRules {
     return this.plan.rules;
   }
 
-  /** Boss rule for the current/upcoming round, or null. */
+  /** Boss rule for the same round as `round`, or null. */
   get boss(): BossRule<TCard> | null {
     return this.plan.boss;
   }
@@ -119,12 +131,26 @@ export class Run<TCard> {
     this.requirePhase('roundEnd');
     this.phase_ = 'shop';
     this.shop.restock(this.shopFilter());
+    this.nextPlan = this.makeRound(this.plan.info.number + 1);
     this.emit({ type: 'shopEnter', run: this });
+  }
+
+  /**
+   * While in the shop, the upcoming round exactly as leaveShop will adopt it (target includes
+   * any boss adjustment; the boss is the same instance). Null outside the shop.
+   * It is planned when the shop opens, so `rules.handSize` reflects the hand size at that moment;
+   * the boss's hand size change itself is applied relative to the hand size at round start.
+   */
+  peekNextRound(): RoundPreview<TCard> | null {
+    if (this.phase_ !== 'shop' || this.nextPlan === null) return null;
+    const { info, rules, boss } = this.nextPlan;
+    return { info, rules, boss };
   }
 
   leaveShop(): void {
     this.requirePhase('shop');
-    this.plan = this.makeRound(this.plan.info.number + 1);
+    this.plan = this.nextPlan ?? this.makeRound(this.plan.info.number + 1);
+    this.nextPlan = null;
     this.phase_ = 'roundStart';
   }
 
