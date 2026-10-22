@@ -1,20 +1,23 @@
 import type { ReactNode } from 'react';
-import type { CardView } from '../types';
+import type { CardView, Rarity } from '../types';
+import { Tooltip } from './Tooltip';
 
 export type CardProps = {
   card: CardView;
   selected?: boolean;
   disabled?: boolean;
   compact?: boolean;
+  rarity?: Rarity;
   onClick?: () => void;
   footer?: ReactNode;
 };
 
-export function Card({ card, selected = false, disabled = false, compact = false, onClick, footer }: CardProps) {
+export function Card({ card, selected = false, disabled = false, compact = false, rarity, onClick, footer }: CardProps) {
   const isDisabled = disabled || card.disabled === true;
   const className = [
     'card',
     compact && 'card--compact',
+    rarity && `card--rarity-${rarity}`,
     selected && 'card--selected',
     isDisabled && 'card--disabled',
     onClick && !isDisabled && 'card--interactive',
@@ -44,19 +47,17 @@ export function Card({ card, selected = false, disabled = false, compact = false
     </>
   );
 
-  if (onClick) {
-    return (
-      <div className="card-wrap">
-        <button type="button" className={className} aria-pressed={selected} disabled={isDisabled} onClick={onClick}>
-          {body}
-        </button>
-        {footer}
-      </div>
-    );
-  }
+  const face = onClick ? (
+    <button type="button" className={className} aria-pressed={selected} disabled={isDisabled} onClick={onClick}>
+      {body}
+    </button>
+  ) : (
+    <div className={className}>{body}</div>
+  );
+
   return (
     <div className="card-wrap">
-      <div className={className}>{body}</div>
+      {card.tooltip ? <Tooltip tooltip={card.tooltip}>{face}</Tooltip> : face}
       {footer}
     </div>
   );

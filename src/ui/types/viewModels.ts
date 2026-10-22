@@ -1,6 +1,17 @@
 // Display-only view models. The UI renders these and reports intent through callbacks;
 // whatever owns game state (placeholder now, engine later) is responsible for producing them.
 
+export type GlossaryEntryView = {
+  term: string;
+  definition: string;
+};
+
+/** Long-form detail shown on hover/tap. Glossary entries arrive already resolved. */
+export type TooltipView = {
+  body: string;
+  glossary: readonly GlossaryEntryView[];
+};
+
 export type CardView = {
   id: string;
   title: string;
@@ -9,6 +20,7 @@ export type CardView = {
   cost?: number;
   value?: number;
   disabled?: boolean;
+  tooltip?: TooltipView;
 };
 
 export type ModifierView = {
@@ -16,14 +28,65 @@ export type ModifierView = {
   title: string;
   description: string;
   tags: readonly string[];
+  tooltip?: TooltipView;
 };
+
+export type Rarity = 'common' | 'uncommon' | 'rare' | 'legendary';
 
 export type ShopOfferView = {
   id: string;
   card: CardView;
   price: number;
+  /** Styling hint only; Buy stays clickable so the state owner can explain a refusal. */
   canBuy: boolean;
   sold: boolean;
+  rarity?: Rarity;
+};
+
+export type ScoreContributionKind = 'add' | 'mult' | 'xmult' | 'note';
+
+/**
+ * One step of a score breakdown, in the order it should be revealed. Running values are
+ * whatever the state owner says they are after this step; the UI never recomputes them.
+ */
+export type ScoreContributionView = {
+  id: string;
+  sourceLabel: string;
+  kind: ScoreContributionKind;
+  amount: number;
+  runningA?: number;
+  runningB?: number;
+  total?: number;
+};
+
+export type ScoreTallyView = {
+  /** Changes per play so the animation restarts. */
+  id: string;
+  contributions: readonly ScoreContributionView[];
+  finalTotal: number;
+  labelA?: string;
+  labelB?: string;
+};
+
+export type TallySpeed = 'slow' | 'normal' | 'fast';
+
+export type SummaryLineView = {
+  label: string;
+  amount: number;
+};
+
+export type RoundSummaryView = {
+  heading: string;
+  lines: readonly SummaryLineView[];
+  total: number;
+};
+
+export type ToastKind = 'success' | 'error' | 'info';
+
+export type ToastView = {
+  id: string;
+  kind: ToastKind;
+  message: string;
 };
 
 export type HudView = {
@@ -51,6 +114,10 @@ export type ShellView =
       maxSelected: number;
       canPlay: boolean;
       canDiscard: boolean;
+      /** True while a tally or summary is showing; hand selection is ignored. */
+      handLocked: boolean;
+      tally?: ScoreTallyView;
+      summary?: RoundSummaryView;
     }
   | {
       screen: 'shop';
@@ -58,6 +125,7 @@ export type ShellView =
       modifierRow: ModifierRowView;
       offers: readonly ShopOfferView[];
       rerollCost: number;
+      /** Styling hint only, like ShopOfferView.canBuy. */
       canReroll: boolean;
     }
   | { screen: 'gameOver'; hud: HudView }
@@ -74,4 +142,7 @@ export type ShellActions = {
   onReroll: () => void;
   onContinue: () => void;
   onRestart: () => void;
+  onTallyComplete: () => void;
+  onCashOut: () => void;
+  onDismissToast: (toastId: string) => void;
 };

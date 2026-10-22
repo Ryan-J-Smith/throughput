@@ -1,13 +1,26 @@
+import { ToastStack } from '../components';
 import { EndScreen, RoundScreen, ShopScreen, TitleScreen } from '../screens';
-import type { ShellActions, ShellView } from '../types';
+import type { ShellActions, ShellView, TallySpeed, ToastView } from '../types';
 
 export type GameShellProps = {
   view: ShellView;
+  toasts: readonly ToastView[];
   actions: ShellActions;
+  tallySpeed: TallySpeed;
+  onTallySpeedChange: (speed: TallySpeed) => void;
 };
 
 /** Screen router: picks a screen from `view.screen`. Holds no state of its own. */
-export function GameShell({ view, actions }: GameShellProps) {
+export function GameShell({ view, toasts, actions, tallySpeed, onTallySpeedChange }: GameShellProps) {
+  return (
+    <>
+      <ToastStack toasts={toasts} onDismiss={actions.onDismissToast} />
+      <Screen view={view} actions={actions} tallySpeed={tallySpeed} onTallySpeedChange={onTallySpeedChange} />
+    </>
+  );
+}
+
+function Screen({ view, actions, tallySpeed, onTallySpeedChange }: Omit<GameShellProps, 'toasts'>) {
   switch (view.screen) {
     case 'title':
       return <TitleScreen onStart={actions.onStart} />;
@@ -21,6 +34,13 @@ export function GameShell({ view, actions }: GameShellProps) {
           maxSelected={view.maxSelected}
           canPlay={view.canPlay}
           canDiscard={view.canDiscard}
+          handLocked={view.handLocked}
+          tally={view.tally}
+          summary={view.summary}
+          tallySpeed={tallySpeed}
+          onTallySpeedChange={onTallySpeedChange}
+          onTallyComplete={actions.onTallyComplete}
+          onCashOut={actions.onCashOut}
           onToggleSelect={actions.onToggleSelect}
           onPlay={actions.onPlay}
           onDiscard={actions.onDiscard}
