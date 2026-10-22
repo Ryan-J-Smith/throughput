@@ -265,6 +265,41 @@ export const ART_ASSETS = [
   { id: 'token-hero-robot', kind: 'token', template: 'illustration', batch: 2, size: 256, transparent: true, subject: 'The small white robot toy with glowing cyan eyes, standing, seen from the front three-quarter.' },
   { id: 'end-win', kind: 'title', template: 'illustration', batch: 2, size: 768, accent: 'gold and teal', subject: "The small white robot toy standing on a winner's podium holding a golden trophy, with confetti falling." },
   { id: 'end-loss', kind: 'title', template: 'illustration', batch: 2, size: 768, accent: 'muted blue and grey', subject: 'The small white robot toy sitting alone on a stopped conveyor belt beside an unopened box, a single spotlight overhead.' },
+
+  // ---- Batch 3: THROUGHPUT content wave 1 (asst-b's subjects). Shop cards share one picture across Categories. ----
+  { id: 'card-prototype', kind: 'card', template: 'illustration', batch: 3, size: CARD, accent: 'violet', subject: 'A hand-built product prototype on a workbench beside pencil sketches and calipers.' },
+  { id: 'card-rebrand', kind: 'card', template: 'illustration', batch: 3, size: CARD, accent: 'violet', subject: 'An old shop sign being lowered by a small crane while a shiny new sign swings into place on a storefront.' },
+  { id: 'card-3d-printer', kind: 'card', template: 'illustration', batch: 3, size: CARD, accent: 'steel blue with orange sparks', subject: 'A chunky 3D printer mid-print with a glowing nozzle, a finished part sitting on the build plate.' },
+  { id: 'card-contract-manufacturer', kind: 'card', template: 'illustration', batch: 3, size: CARD, accent: 'steel blue with orange sparks', subject: 'A large outsourced factory floor with rows of identical machines and stacked pallets.' },
+  { id: 'card-pop-up-shop', kind: 'card', template: 'illustration', batch: 3, size: CARD, accent: 'teal', subject: 'A small temporary pop-up storefront kiosk with an awning and a short queue of toy-like shoppers.' },
+  { id: 'card-marketplace', kind: 'card', template: 'illustration', batch: 3, size: CARD, accent: 'teal', subject: 'A big glossy smartphone showing an online product listing of the small white robot toy with a glowing buy button.' },
+  { id: 'card-subscription-box', kind: 'card', template: 'illustration', batch: 3, size: CARD, accent: 'teal', subject: 'An open subscription box with curated products nestled in tissue paper.' },
+  { id: 'card-export-deal', kind: 'card', template: 'illustration', batch: 3, size: CARD, accent: 'teal', subject: 'Colourful shipping containers being lifted by a port crane onto a cargo ship.' },
+
+  { id: 'fixture-design-studio', kind: 'fixture', template: 'illustration', batch: 3, size: FIXTURE, accent: 'soft satin teal', subject: 'A design studio desk with a drawing tablet, a mood board and fanned colour swatches.' },
+  { id: 'fixture-packaging-line', kind: 'fixture', template: 'illustration', batch: 3, size: FIXTURE, accent: 'soft satin teal', subject: 'A packaging machine sealing products into boxes on a conveyor.' },
+  { id: 'fixture-conveyor-belt', kind: 'fixture', template: 'illustration', batch: 3, size: FIXTURE, accent: 'soft satin teal', subject: 'A long roller conveyor belt carrying parts between two machines.' },
+  { id: 'fixture-signature-line', kind: 'fixture', template: 'illustration', batch: 3, size: FIXTURE, accent: 'soft satin teal', subject: 'A branded display shelf of matching products all in one bold colourway.' },
+  { id: 'fixture-cross-dock', kind: 'fixture', template: 'illustration', batch: 3, size: FIXTURE, accent: 'soft satin teal', subject: 'A loading dock where pallets roll straight from one truck into another.' },
+  { id: 'fixture-logistics-hub', kind: 'fixture', template: 'illustration', batch: 3, size: FIXTURE, accent: 'brushed silver and cyan', subject: 'A large logistics hub with sorting lanes and stacks of parcels.' },
+  { id: 'fixture-luxury-counter', kind: 'fixture', template: 'illustration', batch: 3, size: FIXTURE, accent: 'brushed silver and cyan', subject: 'A glass luxury display counter with a single spot-lit product inside.' },
+  { id: 'fixture-express-lane', kind: 'fixture', template: 'illustration', batch: 3, size: FIXTURE, accent: 'brushed silver and cyan', subject: 'A dedicated express delivery lane with a delivery van passing through a fast-pass gate.' },
+  { id: 'fixture-lean-cell', kind: 'fixture', template: 'illustration', batch: 3, size: FIXTURE, accent: 'brushed silver and cyan', subject: 'A compact lean manufacturing cell with a kanban board of coloured cards and a few tidy workstations.' },
+  { id: 'fixture-megafactory', kind: 'fixture', template: 'illustration', batch: 3, size: FIXTURE, accent: 'brushed silver and cyan', subject: 'A vast automated megafactory hall with long production lines.' },
+  { id: 'fixture-patent-office', kind: 'fixture', template: 'illustration', batch: 3, size: FIXTURE, accent: 'rich gold', subject: 'A patent certificate with an embossed gold seal beside a rolled product blueprint.' },
+  { id: 'fixture-superstore', kind: 'fixture', template: 'illustration', batch: 3, size: FIXTURE, accent: 'rich gold', subject: 'A huge superstore aisle stretching into the distance, packed with stock.' },
+  { id: 'fixture-robotics-cell', kind: 'fixture', template: 'illustration', batch: 3, size: FIXTURE, accent: 'rich gold', subject: 'A caged robotics cell where three robot arms work together on one part.' },
+
+  { id: 'contract-clone', kind: 'contract', template: 'illustration', batch: 3, size: CARD, accent: 'crimson red', subject: 'A product (the small white robot toy) and its exact duplicate side by side under a glowing scanner beam.' },
+  { id: 'contract-ad-campaign', kind: 'contract', template: 'illustration', batch: 3, size: CARD, accent: 'crimson red', subject: 'A large digital billboard showing a product ad of the small white robot toy over a city square.' },
+  { id: 'contract-training-program', kind: 'contract', template: 'illustration', batch: 3, size: CARD, accent: 'crimson red', subject: 'Toy-like factory workers in hard hats gathered around a machine while an instructor points at it.' },
+  { id: 'contract-treasury-bond', kind: 'contract', template: 'illustration', batch: 3, size: CARD, accent: 'crimson red', subject: 'An ornate bond certificate with a ribbon seal beside a tall stack of gold coins.' },
+  { id: 'contract-rnd-grant', kind: 'contract', template: 'illustration', batch: 3, size: CARD, accent: 'crimson red', subject: 'A research lab bench with a prototype gadget and a big approval stamp coming down on a grant folder.' },
+
+  { id: 'boss-bottleneck', kind: 'boss', template: 'illustration', batch: 3, size: CARD, accent: 'ominous red and deep purple', subject: 'A production line jammed at a narrow chokepoint, parts piling up behind it.' },
+  { id: 'boss-recession', kind: 'boss', template: 'illustration', batch: 3, size: CARD, accent: 'ominous red and deep purple', subject: 'An empty shopping street with sale banners and a screen showing a falling red chart.' },
+  { id: 'boss-ethics-review', kind: 'boss', template: 'illustration', batch: 3, size: CARD, accent: 'ominous red and deep purple', subject: 'A stern review panel at a long table examining a product, with a gavel.' },
+  { id: 'boss-short-week', kind: 'boss', template: 'illustration', batch: 3, size: CARD, accent: 'ominous red and deep purple', subject: 'A wall calendar with the last day crossed out in red above a half-empty office.' },
 ] as const satisfies readonly ArtAsset[];
 
 export type ArtId = (typeof ART_ASSETS)[number]['id'];

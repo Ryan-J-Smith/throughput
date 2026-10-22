@@ -3,16 +3,31 @@
     "bg-factory-hall": [
       "plain"
     ],
+    "boss-bottleneck": [
+      "plain"
+    ],
+    "boss-ethics-review": [
+      "plain"
+    ],
     "boss-jit-auditor": [
       "plain"
     ],
     "boss-line-shift": [
       "plain"
     ],
+    "boss-recession": [
+      "plain"
+    ],
+    "boss-short-week": [
+      "plain"
+    ],
     "boss-supply-shock": [
       "plain"
     ],
     "boss-turnover": [
+      "plain"
+    ],
+    "card-3d-printer": [
       "plain"
     ],
     "card-apparel-design": [
@@ -25,6 +40,12 @@
       "plain"
     ],
     "card-boutique": [
+      "plain"
+    ],
+    "card-contract-manufacturer": [
+      "plain"
+    ],
+    "card-export-deal": [
       "plain"
     ],
     "card-factory-floor": [
@@ -60,7 +81,28 @@
     "card-influencer": [
       "plain"
     ],
+    "card-marketplace": [
+      "plain"
+    ],
+    "card-pop-up-shop": [
+      "plain"
+    ],
+    "card-prototype": [
+      "plain"
+    ],
+    "card-rebrand": [
+      "plain"
+    ],
+    "card-subscription-box": [
+      "plain"
+    ],
     "card-wholesale-club": [
+      "plain"
+    ],
+    "contract-ad-campaign": [
+      "plain"
+    ],
+    "contract-clone": [
       "plain"
     ],
     "contract-downsizing": [
@@ -69,7 +111,16 @@
     "contract-floor-expansion": [
       "plain"
     ],
+    "contract-rnd-grant": [
+      "plain"
+    ],
     "contract-tooling-upgrade": [
+      "plain"
+    ],
+    "contract-training-program": [
+      "plain"
+    ],
+    "contract-treasury-bond": [
       "plain"
     ],
     "end-loss": [
@@ -87,10 +138,40 @@
     "fixture-brand-manager": [
       "plain"
     ],
+    "fixture-conveyor-belt": [
+      "plain"
+    ],
+    "fixture-cross-dock": [
+      "plain"
+    ],
+    "fixture-design-studio": [
+      "plain"
+    ],
+    "fixture-express-lane": [
+      "plain"
+    ],
     "fixture-flagship-store": [
       "plain"
     ],
+    "fixture-lean-cell": [
+      "plain"
+    ],
+    "fixture-logistics-hub": [
+      "plain"
+    ],
+    "fixture-luxury-counter": [
+      "plain"
+    ],
+    "fixture-megafactory": [
+      "plain"
+    ],
     "fixture-overtime-crew": [
+      "plain"
+    ],
+    "fixture-packaging-line": [
+      "plain"
+    ],
+    "fixture-patent-office": [
       "plain"
     ],
     "fixture-price-gun": [
@@ -105,7 +186,16 @@
     "fixture-robot-arm": [
       "plain"
     ],
+    "fixture-robotics-cell": [
+      "plain"
+    ],
     "fixture-showroom": [
+      "plain"
+    ],
+    "fixture-signature-line": [
+      "plain"
+    ],
+    "fixture-superstore": [
       "plain"
     ],
     "fixture-warehouse": [
