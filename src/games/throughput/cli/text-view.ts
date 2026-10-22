@@ -208,11 +208,11 @@ export function legalActions(run: ThroughputRun): string[] {
   return out;
 }
 
-/** " · Restock ready" / " · Restocked 9 cards" for the Shift header ('' when the config has no Restock). */
+/** " · Restock ready" / " · Restock used (9 cards): …" for the Shift header ('' when the config has no Restock). */
 function restockText(run: ThroughputRun): string {
   if (run.config.restocksPerRound <= 0) return '';
   if (run.restocksLeft > 0) return run.restocked > 0 ? ` · Restocked ${run.restocked} cards, ${run.restocksLeft} Restock left` : ' · Restock ready';
-  return ` · Restocked ${run.restocked} cards (no Restock left)`;
+  return ` · Restock used (${run.restocked} cards): an empty draw pile stays empty this round`;
 }
 
 /** What happens to the card in a Line slot when the Shift runs, for the Line listing (worded as in the browser). */
@@ -283,12 +283,12 @@ export function formatView(run: ThroughputRun, context: ViewContext): string {
     const fixture = run.isWelded(i) && run.phase === 'shift' ? 'WELDED SHUT' : slot.fixture === null ? 'no Fixture' : fixtureText(slot.fixture);
     const card = slot.card?.card;
     const idle = card !== undefined && slot.fixture !== null && slot.fixture.def.kind === 'mod' && !slot.fixture.def.effect.appliesTo(card) ? ` (${slot.fixture.def.name} is idle for it)` : '';
-    const held = card === undefined ? '' : ` | ${cardText(card)}${soldOutNote(run, card)} ${lineCardNote(run, i)}${idle}`;
+    const held = card === undefined ? '' : ` | ${cardText(card)}${demandNote(run, card)} ${lineCardNote(run, i)}${idle}`;
     lines.push(`  ${i + 1}. ${fixture}${held}`);
   });
 
   if (run.phase === 'shift') {
-    const hand = run.handSlots.flatMap((card, i) => (card === null ? [] : [`  ${i + 1}. ${cardText(card)}${soldOutNote(run, card)}`]));
+    const hand = run.handSlots.flatMap((card, i) => (card === null ? [] : [`  ${i + 1}. ${cardText(card)}${demandNote(run, card)}`]));
     lines.push('', `Hand (${run.hand.length}; a card keeps its number until it leaves the hand):`, ...hand);
     const preview = run.preview();
     const clears = overkillNote(run, Math.max(0, run.sales + preview.total));
@@ -303,7 +303,7 @@ export function formatView(run: ThroughputRun, context: ViewContext): string {
     lines.push('', `Shop (reroll ${run.rerollCost}C; holding ${run.wallet.cash}C → +${computeInterest(run.wallet.cash, run.interestRule)}C interest):`);
     run.offers.forEach((offer, i) => {
       const blocker = offerBlocker(run, i);
-      lines.push(`  ${i + 1}. ${offer === null ? '(bought)' : offerText(offer)}${blocker === null ? '' : ` [can't buy: ${blocker}]`}`);
+      lines.push(`  ${i + 1}. ${offer === null ? '(bought; a reroll or the next shop refills it)' : offerText(offer)}${blocker === null ? '' : ` [can't buy: ${blocker}]`}`);
     });
     // Deck numbers matter in the shop only for a Contract that targets a card; otherwise keep the screen short.
     const picksCard = run.offers.some((o) => o?.kind === 'contract' && o.def.targetsCard);
@@ -388,10 +388,14 @@ export function demandUseText(result: ShiftResult, run: ThroughputRun): string {
   }).join(', ');
 }
 
-/** " (Gadgets sold out: sells 0)" for a Ship card whose Category has no Demand left this Shift, else ''. */
-export function soldOutNote(run: ThroughputRun, card: Card): string {
+/**
+ * During a Shift, a Ship card's Category Demand left: " (Home 2 left)", or " (Gadgets sold out:
+ * sells 0)" when none is left; '' for a Ship that ignores Demand, and for other cards.
+ */
+export function demandNote(run: ThroughputRun, card: Card): string {
   if (run.phase !== 'shift' || card.def.stage !== 'ship' || shipCap(card) === 'all') return '';
-  return run.demandLeft[card.category] === 0 ? ` (${card.category} sold out: sells 0)` : '';
+  const left = run.demandLeft[card.category];
+  return left === 0 ? ` (${card.category} sold out: sells 0)` : ` (${card.category} ${left} left)`;
 }
 
 /** Ship cards left in the draw pile. */

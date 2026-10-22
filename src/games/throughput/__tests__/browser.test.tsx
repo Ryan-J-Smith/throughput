@@ -185,7 +185,7 @@ describe('THROUGHPUT browser screen', () => {
     expect(offer(picked, 2)).not.toContain('shop__note');
     expect(shelf(null)).not.toContain('shop__note');
     // The bought offer's Sold plate can hold focus, so a keyboard buy doesn't drop focus to the page.
-    expect(shelf(null)).toContain('<div class="shop__item tp-shop__sold" tabindex="-1"');
+    expect(shelf(null)).toContain('<div class="shop__item tp-shop__sold" tabindex="-1" title="Bought. A reroll or the next shop refills this spot."');
     // Unpicked, the offer is still affordable: it can go over the Fixture in slot 1.
     expect(offer(shelf(null), 1)).toContain('data-afford="yes"');
     run.wallet.spend(1);
@@ -299,12 +299,12 @@ describe('THROUGHPUT browser screen', () => {
     expect(demandUseText({ ...both, soldOut: [], demandGrowth: { Home: emerging } }, notLast)).toBe(`Home 5 (Emerging sale: +${emerging} from next round)`);
   });
 
-  it('during a Shift a Ship card whose Category sold out says it sells nothing', () => {
+  it("during a Shift a Ship card stamps its Category's Demand left, or Sold out", () => {
     const truck = card(TRUCK, 'Home');
     const left = { Apparel: 5, Gadgets: 5, Home: 0, Food: 5 };
-    expect(cardView(truck, 'x', left).tags).toContain('Sold out: sells 0');
-    expect(cardView(truck, 'x', { ...left, Home: 3 }).tags).not.toContain('Sold out: sells 0');
-    expect(cardView(truck).tags).not.toContain('Sold out: sells 0');
+    expect(cardView(truck, 'x', left).tags).toEqual(['Home', 'Ship', 'Sold out']);
+    expect(cardView(truck, 'x', { ...left, Home: 3 }).tags).toEqual(['Home', 'Ship', '3 left']);
+    expect(cardView(truck).tags).toEqual(['Home', 'Ship']);
   });
 
   it('growth reads by card type: R&D Margin on a Design, Automation Units on a Make', () => {

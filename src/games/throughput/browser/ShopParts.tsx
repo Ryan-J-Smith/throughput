@@ -116,7 +116,7 @@ function ShelfItem({
 }) {
   if (offer === null) {
     return (
-      <div className="shop__item tp-shop__sold" ref={soldRef} tabIndex={-1} style={{ '--i': index } as CSSProperties}>
+      <div className="shop__item tp-shop__sold" ref={soldRef} tabIndex={-1} title="Bought. A reroll or the next shop refills this spot." style={{ '--i': index } as CSSProperties}>
         <span className="stamp stamp--sold">Sold</span>
       </div>
     );

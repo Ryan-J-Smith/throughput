@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { SaveFile, TurnResult } from '../../../play/session';
-import { ThroughputTextGame, formatAction, formatView, interestTrade, legalActions, noShipNote, offerBlocker, overkillNote, offerText, parseAction, perksText, rulesText, shipsToDraw, soldOutNote, traceLines } from '../cli';
+import { ThroughputTextGame, cardText, demandNote, formatAction, formatView, interestTrade, legalActions, noShipNote, offerBlocker, overkillNote, offerText, parseAction, perksText, rulesText, shipsToDraw, traceLines } from '../cli';
 import { BOSSES, CONTRACTS, DEFAULT_CONFIG, INFLUENCER, TRUCK, WHOLESALE_CLUB, WORKSHOP } from '../content';
 import { CATEGORIES } from '../model';
-import type { Category, Perks } from '../model';
+import type { Card, Category, Perks } from '../model';
 import { ThroughputRun, scoreLine } from '../rules';
 import { boss, card, context, easyConfig, quotaCapRun, shopWithFixture, slot } from './fixtures';
 
@@ -238,6 +238,17 @@ describe('Demand text', () => {
 
 /** A run with Contract perks already bought. */
 /** A run whose `soldOut` Category has no Demand left this round. */
+/** A run whose Restock this round is already used, on 9 cards. */
+class RestockedRun extends ThroughputRun {
+  override get restocksLeft(): number {
+    return 0;
+  }
+
+  override get restocked(): number {
+    return 9;
+  }
+}
+
 class SoldOutRun extends ThroughputRun {
   private readonly soldOut: Category;
 
@@ -261,14 +272,31 @@ describe('playtest-2 clarity', () => {
     expect(legalActions(run)).toContain('retool <hand> … — discard 1–2 hand cards (up to 3; you hold 2) and draw as many into their places (2 left this round)');
   });
 
-  it('flags a Ship card whose Category has sold out', () => {
+  it('the Shift header says when the Restock is used and what that means', () => {
+    const view = (run: ThroughputRun) => formatView(run, { game: 'throughput', seed: 1, actionsTaken: 0 });
+    expect(view(new ThroughputRun(1))).toContain(' · Restock ready');
+    expect(view(new RestockedRun(1))).toContain(' · Restock used (9 cards): an empty draw pile stays empty this round');
+  });
+
+  it('a bought shop offer says what refills it', () => {
+    const run = new ThroughputRun(1, easyConfig({ targets: [0, 0, 0], startingCapital: 100 }));
+    run.runShift();
+    const offer = run.offers.findIndex((o) => o?.kind === 'card');
+    run.buy(offer);
+    expect(formatView(run, { game: 'throughput', seed: 1, actionsTaken: 2 })).toContain(`  ${offer + 1}. (bought; a reroll or the next shop refills it)`);
+  });
+
+  it("gives each Ship card its Category's Demand left, and flags one that has sold out", () => {
     const run = new SoldOutRun('Gadgets');
     const ship = run.hand.find((c) => c.def.stage === 'ship');
     if (ship === undefined) throw new Error('no Ship in the opening hand');
     const other = CATEGORIES.find((c) => c !== ship.category) as Category;
-    expect(soldOutNote(new SoldOutRun(ship.category), ship)).toBe(` (${ship.category} sold out: sells 0)`);
-    expect(soldOutNote(new SoldOutRun(other), ship)).toBe('');
-    expect(soldOutNote(new SoldOutRun(ship.category), { ...ship, def: WHOLESALE_CLUB })).toBe('');
+    expect(demandNote(new SoldOutRun(ship.category), ship)).toBe(` (${ship.category} sold out: sells 0)`);
+    const open = new SoldOutRun(other);
+    expect(demandNote(open, ship)).toBe(` (${ship.category} ${open.demandLeft[ship.category]} left)`);
+    expect(formatView(open, { game: 'throughput', seed: 1, actionsTaken: 0 })).toContain(`${cardText(ship)} (${ship.category} ${open.demandLeft[ship.category]} left)`);
+    expect(demandNote(new SoldOutRun(ship.category), { ...ship, def: WHOLESALE_CLUB })).toBe('');
+    expect(demandNote(open, run.hand.find((c) => c.def.stage !== 'ship') as Card)).toBe('');
   });
 });
 

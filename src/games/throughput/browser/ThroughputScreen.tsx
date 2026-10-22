@@ -342,9 +342,11 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
   };
 
   const preview = inShift ? run.preview() : null;
-  const restockNote = run.config.restocksPerRound === 0 ? null : run.restocksLeft > 0 ? 'Restock ready' : 'Restocked';
+  const restockNote = run.config.restocksPerRound === 0 ? null : run.restocksLeft > 0 ? 'Restock ready' : 'Restock used';
   const restockHelp =
-    run.restocksLeft > 0 ? 'Restock: once a round, when the draw pile runs out, your discards are shuffled into a new draw pile.' : "This round's Restock is used; it comes back next round.";
+    run.restocksLeft > 0
+      ? 'Restock: once a round, when the draw pile runs out, your discards are shuffled into a new draw pile.'
+      : "This round's Restock is used: an empty draw pile stays empty until next round.";
   const tip = currentTip(run, preview, tips.done);
   const tipFor = (id: TipId) =>
     tip === id && (
