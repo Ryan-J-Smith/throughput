@@ -9,6 +9,8 @@ export type ShipReceiptProps = {
   target: number;
   /** Demand a sell-out adds for good. */
   sellOutGrowth: number;
+  /** Cash this Ship pays in Overtime; undefined outside Overtime. */
+  overtimePay?: number;
 };
 
 const STAT_NAME: Readonly<Record<string, string>> = { units: 'Units', price: 'Price', demand: 'Demand', markup: 'Markup' };
@@ -27,7 +29,7 @@ function amountText(c: ScoreContribution): string {
  * A Ship's ScoreContext log printed as a register receipt: the Product's base, each part, each
  * Facility or disruption, then min(Units, Demand) × Price × Markup.
  */
-export function ShipReceipt({ quote, heading, revenueBefore, target, sellOutGrowth }: ShipReceiptProps) {
+export function ShipReceipt({ quote, heading, revenueBefore, target, sellOutGrowth, overtimePay }: ShipReceiptProps) {
   const name = quote.blueprint.def.name;
   const log = quote.score.log;
   // The first entries set the blueprint's base Units, Price and Demand; print them as one line.
@@ -68,10 +70,14 @@ export function ShipReceipt({ quote, heading, revenueBefore, target, sellOutGrow
         </div>
         {quote.sellsOut && <p className="bom-receipt__note is-good">Sold out: Demand +{sellOutGrowth} for good</p>}
         {!quote.sellsOut && units > demand && <p className="bom-receipt__note">{units - demand} Units over Demand earn nothing</p>}
-        <p className={`bom-receipt__round ${after >= target ? 'is-cleared' : ''}`}>
-          Round ${after} of ${target}
-          {after >= target ? `: target hit${over > 0 ? ` ($${over} over is not paid)` : ''}` : `: $${target - after} to go`}
-        </p>
+        {overtimePay !== undefined ? (
+          <p className="bom-receipt__round is-cleared">Overtime Ship: +${overtimePay} cash, paid with the round&rsquo;s payout</p>
+        ) : (
+          <p className={`bom-receipt__round ${after >= target ? 'is-cleared' : ''}`}>
+            Round ${after} of ${target}
+            {after >= target ? `: target hit${over > 0 ? ` ($${over} over is not paid)` : ''}` : `: $${target - after} to go`}
+          </p>
+        )}
       </div>
     </section>
   );

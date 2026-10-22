@@ -43,8 +43,8 @@ export function rulesSections(config: BomConfig): RulesSection[] {
       lines: [
         `The Bench holds ${config.benchSlots} fabricated parts and keeps them between rounds. If it is full, a Fabricate must trash a Bench part.`,
         `Scrap discards up to ${config.maxSelection} hand parts and redraws. It does not cost a Build.`,
-        'Once revenue reaches the target, Ship locks: Overtime. Each Build left can Fabricate onto the Bench for next round, or be collected as $1.',
-        'Revenue over the target is not paid.',
+        `Once revenue reaches the target you are in Overtime. Each Build left can Ship for cash ($1 per ${Math.round(config.overtimeShip.step * 100)}% of the target its revenue reaches, at most $${config.overtimeShip.cap} a round), Fabricate onto the Bench for next round, or be collected as $1. Scraps are locked, and using the last Build clears the round.`,
+        'Revenue over the target counts for nothing else: only Overtime Ships pay for going past it.',
       ],
     },
     {

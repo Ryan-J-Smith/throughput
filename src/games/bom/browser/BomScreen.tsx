@@ -28,7 +28,7 @@ type Mode =
 
 const IDLE: Mode = { kind: 'idle' };
 
-type ShipRecord = { readonly quote: ShipQuote; readonly heading: string; readonly revenueBefore: number; readonly target: number };
+type ShipRecord = { readonly quote: ShipQuote; readonly heading: string; readonly revenueBefore: number; readonly target: number; readonly overtimePay?: number };
 
 /** BILL OF MATERIALS in the browser: select parts, then Ship them as a Product or Fabricate a Sub. */
 export function BomScreen({ seed, onQuit }: BrowserGameProps) {
@@ -72,7 +72,7 @@ export function BomScreen({ seed, onQuit }: BrowserGameProps) {
   /** Toasts for the end of a Build: Overtime, a clear, or a loss (the end screen follows). */
   const announce = (wasOvertime: boolean, roundEnd: RoundEnd | null) => {
     if (roundEnd?.cleared) notify('success', `${label} cleared! Revenue $${roundEnd.revenue} of $${roundEnd.target}`);
-    else if (run.phase === 'overtime' && !wasOvertime) notify('success', `Target reached: Overtime. Fabricate for next round, or collect $${run.buildsLeft}.`);
+    else if (run.phase === 'overtime' && !wasOvertime) notify('success', `Target reached: Overtime. Ship for cash, stock the Bench, or collect $${run.buildsLeft}.`);
   };
 
   // ---- Round ----
@@ -96,8 +96,8 @@ export function BomScreen({ seed, onQuit }: BrowserGameProps) {
     attempt(run.whyCannotShip(live, productId), () => {
       const result = run.ship(live, productId);
       const name = result.quote.blueprint.def.name;
-      setLastShip({ quote: result.quote, heading: `${name}, ${label}`, ...record });
-      notify('success', `Shipped ${name}: $${result.quote.revenue}`);
+      setLastShip({ quote: result.quote, heading: `${name}, ${label}`, ...record, ...(wasOvertime ? { overtimePay: result.overtimePay } : {}) });
+      notify('success', wasOvertime ? `Shipped ${name} in Overtime: +$${result.overtimePay} cash` : `Shipped ${name}: $${result.quote.revenue}`);
       if (result.growth > 0) notify('info', `Sold out: ${name} Demand +${result.growth} for good`);
       announce(wasOvertime, result.roundEnd);
     });
@@ -118,6 +118,17 @@ export function BomScreen({ seed, onQuit }: BrowserGameProps) {
       if (result.copiesBenched.length > 0) notify('info', `Kitting Station: a ${result.copiesBenched.map((p) => `${categoryName(p.category)} ${p.grade}`).join(', ')} copy → Bench`);
       if (result.copiesLost > 0) notify('info', 'Kitting Station copy lost: the Bench is full');
       announce(wasOvertime, result.roundEnd);
+    });
+  };
+
+  /** The `stock` shortcut: Fabricate the Sub part a Product lacks from the best hand parts. */
+  const stock = () => {
+    const plan = run.stockPlan();
+    if (plan === null) return notify('info', 'Nothing to stock: no Sub part a Product needs can be made from this hand');
+    attempt(run.whyCannotFabricate(plan.parts), () => {
+      const result = run.fabricate(plan.parts);
+      notify('success', `Stocked ${categoryName(result.output.category)} ${result.output.grade} for ${plan.product.def.name} → Bench`);
+      announce(true, result.roundEnd);
     });
   };
 
@@ -166,25 +177,29 @@ export function BomScreen({ seed, onQuit }: BrowserGameProps) {
 
       {inRound && (
         <>
-          {run.phase === 'overtime' && (
-            <div className="bom-overtime" role="status">
-              <p>
-                <strong>Overtime.</strong> Target reached, so Ship is locked. Fabricate to stock the Bench for next round, or collect ${run.buildsLeft} for your
-                unused Builds.
-              </p>
-              <button type="button" className="btn btn--play" onClick={collect}>
-                Collect ${run.buildsLeft}
-              </button>
-            </div>
-          )}
+          {run.phase === 'overtime' && <OvertimeBanner run={run} onStock={stock} onCollect={collect} />}
           <div className="bom-floor">
             <ProductBoard run={run} products={view.products} round={{ selection: live, onShip: ship, onFabricate: fabricate }} />
             <BenchTray run={run} selection={live} trashable={trashable} onTap={tapPart} />
             <aside className="bom-floor__receipt">
               {best !== null ? (
-                <ShipReceipt quote={best} heading={`If shipped as ${best.blueprint.def.name}`} revenueBefore={run.revenue} target={run.round.target} sellOutGrowth={run.mods.sellOutGrowth} />
+                <ShipReceipt
+                  quote={best}
+                  heading={`If shipped as ${best.blueprint.def.name}`}
+                  revenueBefore={run.revenue}
+                  target={run.round.target}
+                  sellOutGrowth={run.mods.sellOutGrowth}
+                  {...(run.phase === 'overtime' ? { overtimePay: run.overtimePayFor(best.revenue) } : {})}
+                />
               ) : lastShip !== null ? (
-                <ShipReceipt quote={lastShip.quote} heading={`Last Ship: ${lastShip.heading}`} revenueBefore={lastShip.revenueBefore} target={lastShip.target} sellOutGrowth={run.mods.sellOutGrowth} />
+                <ShipReceipt
+                  quote={lastShip.quote}
+                  heading={`Last Ship: ${lastShip.heading}`}
+                  revenueBefore={lastShip.revenueBefore}
+                  target={lastShip.target}
+                  sellOutGrowth={run.mods.sellOutGrowth}
+                  {...(lastShip.overtimePay !== undefined ? { overtimePay: lastShip.overtimePay } : {})}
+                />
               ) : (
                 <p className="bom-floor__empty">Select parts and every Product they fit shows what that Ship would earn. The best one is itemised here.</p>
               )}
@@ -193,8 +208,13 @@ export function BomScreen({ seed, onQuit }: BrowserGameProps) {
               <p className="bom-hint">{hint(run, live.length, mode)}</p>
               <PartsHand hand={sortedHand(run)} selection={live} onTap={tapPart} disabled={mode.kind === 'trash'} />
               <div className="hand__controls bom-controls">
-                <button type="button" className="btn btn--discard" disabled={!allHand || run.scrapsLeft <= 0 || mode.kind === 'trash'} onClick={scrap}>
-                  Scrap {live.length > 0 ? live.length : ''} ({run.scrapsLeft} left)
+                <button
+                  type="button"
+                  className="btn btn--discard"
+                  disabled={!allHand || run.scrapsLeft <= 0 || mode.kind === 'trash' || run.phase === 'overtime'}
+                  onClick={scrap}
+                >
+                  {run.phase === 'overtime' ? 'Scraps locked' : `Scrap ${live.length > 0 ? live.length : ''} (${run.scrapsLeft} left)`}
                 </button>
                 <span className="hand__count">
                   Draw {view.piles.draw} · Used {view.piles.discard}
@@ -243,9 +263,30 @@ export function BomScreen({ seed, onQuit }: BrowserGameProps) {
   );
 }
 
+/** Overtime choices: Ship for cash (on the Product tickets), stock the Bench, or collect the unused Builds. */
+export function OvertimeBanner({ run, onStock, onCollect }: { run: BomRun; onStock: () => void; onCollect: () => void }) {
+  const plan = run.stockPlan();
+  return (
+    <div className="bom-overtime" role="status">
+      <p>
+        <strong>Overtime.</strong> Target reached. Each Build left can Ship for cash (${run.overtimeCash} of ${run.config.overtimeShip.cap} earned), Fabricate to stock
+        the Bench for next round, or be collected for $1. Scraps are locked.
+      </p>
+      {plan !== null && (
+        <button type="button" className="btn" onClick={onStock}>
+          Stock Bench: {categoryName(plan.output.category)} {plan.output.grade} for {plan.product.def.name}
+        </button>
+      )}
+      <button type="button" className="btn btn--play" onClick={onCollect}>
+        Collect ${run.buildsLeft}
+      </button>
+    </div>
+  );
+}
+
 function hint(run: BomRun, selected: number, mode: Mode): string {
   if (mode.kind === 'trash') return 'Tap the Bench part to trash for this Fabricate, or Cancel.';
-  if (run.phase === 'overtime') return 'Overtime: select exactly a Sub-assembly recipe to Fabricate, or collect your unused Builds.';
+  if (run.phase === 'overtime') return 'Overtime: select parts to Ship for cash or Fabricate onto the Bench, or collect your unused Builds.';
   if (selected === 0) return `Tap up to ${run.config.maxSelection} parts from your hand and Bench, then a Product to Ship them or a Sub-assembly to Fabricate.`;
   return `${selected} selected. Each Product shows what this Ship would earn.`;
 }

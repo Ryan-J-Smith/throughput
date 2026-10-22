@@ -134,10 +134,12 @@ function ProductRow({ run, blueprint, view, scale, round, shop }: { run: BomRun;
 
   let action: ReactNode = null;
   if (round !== undefined) {
-    const why = run.phase === 'overtime' ? 'Ship locked' : selection.length === 0 ? (ready ? 'Select its parts' : 'Parts not in hand') : run.whyCannotShip(selection, blueprint.id);
+    const why = selection.length === 0 ? (ready ? 'Select its parts' : 'Parts not in hand') : run.whyCannotShip(selection, blueprint.id);
+    // In Overtime a Ship earns cash rather than revenue toward the target.
+    const cash = quote !== null && run.phase === 'overtime' ? run.overtimePayFor(quote.revenue) : null;
     action = (
       <button type="button" className="btn bom-product__ship" disabled={quote === null} onClick={() => round.onShip(blueprint.id)}>
-        {quote !== null ? `Ship $${quote.revenue}` : shortReason(why)}
+        {quote === null ? shortReason(why) : cash !== null ? `Ship: +$${cash} cash` : `Ship $${quote.revenue}`}
       </button>
     );
   } else if (shop !== undefined) {

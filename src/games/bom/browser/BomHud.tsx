@@ -49,6 +49,11 @@ export function BomHud({ run, interestNext }: BomHudProps) {
         <span className="hud__label">Cash</span>
         <span className="hud__value">${run.wallet.cash}</span>
         {interestNext > 0 && <span className="bom-hud__interest">+${interestNext} interest on clear</span>}
+        {run.phase === 'overtime' && (
+          <span className="bom-hud__interest">
+            Overtime cash ${run.overtimeCash} of ${run.config.overtimeShip.cap}
+          </span>
+        )}
       </div>
       {memo !== null && (
         <div className="hud__boss">

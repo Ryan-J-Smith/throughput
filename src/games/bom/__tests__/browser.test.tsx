@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { BROWSER_GAMES } from '../../../browser-games';
 import { TUNED_TARGETS } from '../content';
-import { BomBrowserGame, BomScreen, NextRoundMemo, ProductBoard, Shelf, ShipReceipt, ShredPanel, rulesSections } from '../browser';
+import { BomBrowserGame, BomScreen, NextRoundMemo, OvertimeBanner, ProductBoard, Shelf, ShipReceipt, ShredPanel, rulesSections } from '../browser';
 import { makePart } from '../model';
 import type { Part } from '../model';
 import type { BomRun } from '../rules';
@@ -98,6 +98,30 @@ describe('BoM browser screen', () => {
       .join(' ');
     expect(text).toContain('You get 5 Builds');
     expect(text).toContain('The Bench holds 3 fabricated parts');
+  });
+
+  it('in Overtime the tickets Ship for cash, the banner offers Stock and Collect, and Scraps are locked', () => {
+    const run = runWith({ targets: flatTargets(1), startingDeck: deckOf(['shell', 3], ['shell', 4], ['chip', 2], ['chip', 3], ['bolt', 2]) });
+    run.ship([pick(run, 'shell', 3), pick(run, 'chip', 2)], 'gizmo');
+    expect(run.phase).toBe('overtime');
+    expect(board(run, [])).not.toContain('Ship locked');
+
+    const again = [pick(run, 'shell', 4), pick(run, 'chip', 3)];
+    const quote = run.quoteFor('gizmo', again);
+    const banner = renderToStaticMarkup(<OvertimeBanner run={run} onStock={() => {}} onCollect={() => {}} />);
+    expect(banner).toContain('Scraps are locked');
+    expect(banner).toContain(`Collect $${run.buildsLeft}`);
+    expect(banner).toContain('Stock Bench: Motor');
+    expect(banner).toContain('for Desk Fan');
+    if (quote === null) throw new Error('no Gizmo quote');
+    const cash = run.overtimePayFor(quote.revenue);
+    expect(cash).toBeGreaterThan(0);
+    expect(board(run, again)).toContain(`Ship: +$${cash} cash`);
+    const receipt = renderToStaticMarkup(<ShipReceipt quote={quote} heading="Preview" revenueBefore={run.revenue} target={1} sellOutGrowth={5} overtimePay={cash} />);
+    expect(receipt).toContain(`Overtime Ship: +$${cash} cash`);
+    const rules = rulesSections(config()).flatMap((x) => x.lines).join(' ');
+    expect(rules).toContain('can Ship for cash ($1 per 25% of the target');
+    expect(rules).not.toContain('Ship locks');
   });
 
   it('is registered on the game picker', () => {

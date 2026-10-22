@@ -1,7 +1,7 @@
 // Browser screen for Bill of Materials. Not re-exported from the bom barrel, to keep React and CSS
 // out of the CLI and sim.
 export { BomBrowserGame } from './BomBrowserGame';
-export { BomScreen } from './BomScreen';
+export { BomScreen, OvertimeBanner } from './BomScreen';
 export { BomHud } from './BomHud';
 export { FacilitiesRow } from './FacilitiesRow';
 export { ProductBoard } from './ProductBoard';
