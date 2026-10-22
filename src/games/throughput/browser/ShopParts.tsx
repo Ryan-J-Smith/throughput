@@ -73,7 +73,12 @@ function ShelfItem({ run, offer, index, pending, onBuy }: { run: ThroughputRun; 
   const affordable = run.wallet.canAfford(offer.price);
   const rarity = offer.kind === 'fixture' ? offer.def.rarity : undefined;
   return (
-    <div className={`shop__item ${pending ? 'tp-shop__pending' : ''}`} style={{ '--i': index } as CSSProperties}>
+    <div
+      className={`shop__item ${pending ? 'tp-shop__pending' : ''}`}
+      data-kind={offer.kind}
+      data-afford={affordable ? 'yes' : 'no'}
+      style={{ '--i': index } as CSSProperties}
+    >
       <Card card={offerView(offer, `offer-${index}`)} rarity={rarity} />
       <span className="price-tag" aria-label={`Price ${offer.price}C`}>
         <span className="price-tag__now">{offer.price}C</span>
