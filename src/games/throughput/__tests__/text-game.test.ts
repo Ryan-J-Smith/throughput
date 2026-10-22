@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { SaveFile, TurnResult } from '../../../play/session';
-import { ThroughputTextGame, formatAction, offerText, parseAction, perksText, rulesText } from '../cli';
+import { ThroughputTextGame, formatAction, legalActions, offerText, parseAction, perksText, rulesText, soldOutNote } from '../cli';
 import { BOSSES, CONTRACTS, DEFAULT_CONFIG, INFLUENCER, WHOLESALE_CLUB } from '../content';
 import { CATEGORIES } from '../model';
-import type { Perks } from '../model';
+import type { Category, Perks } from '../model';
 import { ThroughputRun } from '../rules';
 import { easyConfig } from './fixtures';
 
@@ -165,9 +165,11 @@ describe('ThroughputTextGame', () => {
     const ship = numberOf(hand, 'ship');
     const shop = ok(game.take(play(game, 1, [`load ${make}:1 ${ship}:2`]), 'run'));
     expect(shop.log.at(-1)).toMatch(/^Target hit! Y1 Q1 cleared\. Payout: Q1 cleared 4C, 3 unused Shifts 6C\.$/);
-    expect(shop.view.text).toContain('Shop (reroll 2C):');
+    expect(shop.view.text).toMatch(/Shop \(reroll 2C; holding \d+C → \+\d+C interest\):/);
+    expect(shop.view.text).toMatch(/reroll — new offers for 2C \(then holding \d+C → \+\d+C interest, now \+\d+C\)/);
     expect(shop.view.text).toMatch(/Interest: holding \d+C when the next round clears pays \+\d+C/);
     expect(shop.view.legalActions.at(-3)).toBe('continue — start Y1 Q2 (round 2, target $10)');
+    expect(ok(game.take(shop.save, 'reroll')).log).toEqual([expect.stringMatching(/^Rerolled for 2C \(Capital (\d+)C → \d+C\)\. Next reroll 3C\.$/)]);
     const next = ok(game.take(shop.save, 'continue'));
     expect(next.view.state).toMatchObject({ phase: 'shift', round: 2 });
   });
@@ -183,7 +185,7 @@ describe('ThroughputTextGame', () => {
     const shop = toShop(seed);
     const n = grantOffer(shop) + 1;
     expect(game.show(shop).legalActions).toContain(
-      `buy ${n} <category> scale|premium — R&D Grant for 5C: Scale gives that Category +10 Demand and +3 Units at its Ships; Premium +25% on its sale price`,
+      `buy ${n} <category> scale|premium — R&D Grant for 5C: Scale gives that Category's Demand +10 for good, and each of its Ship cards adds +3 Units to the Batch just before it sells; Premium: its sales +25% price`,
     );
     expect(game.take(shop, `buy ${n}`)).toMatchObject({ ok: false, reason: `Say which Category and scale or premium (buy ${n} <category> scale|premium)` });
     expect(game.take(shop, `buy ${n} 2`)).toMatchObject({ ok: false, reason: `R&D Grant needs a Category and scale or premium, e.g. "buy ${n} home scale"` });
@@ -216,6 +218,41 @@ describe('Demand text', () => {
 });
 
 /** A run with Contract perks already bought. */
+/** A run whose `soldOut` Category has no Demand left this round. */
+class SoldOutRun extends ThroughputRun {
+  private readonly soldOut: Category;
+
+  constructor(soldOut: Category) {
+    super(1);
+    this.soldOut = soldOut;
+  }
+
+  override get demandLeft(): Record<Category, number> {
+    return { ...super.demandLeft, [this.soldOut]: 0 };
+  }
+}
+
+describe('playtest-2 clarity', () => {
+  it('the header says Retools are per round, and retool says how many it could take', () => {
+    const game = new ThroughputTextGame();
+    expect(ok(game.take(game.newSave(1), 'deck')).view.text).toContain('Retools left this round 2');
+    const run = new ThroughputRun(1);
+    run.load([0, 1, 2, 3, 4].map((i) => ({ hand: i, slot: i })));
+    expect(run.hand).toHaveLength(2);
+    expect(legalActions(run)).toContain('retool <hand> … — discard 1–2 hand cards (up to 3; you hold 2) and draw as many into their places (2 left this round)');
+  });
+
+  it('flags a Ship card whose Category has sold out', () => {
+    const run = new SoldOutRun('Gadgets');
+    const ship = run.hand.find((c) => c.def.stage === 'ship');
+    if (ship === undefined) throw new Error('no Ship in the opening hand');
+    const other = CATEGORIES.find((c) => c !== ship.category) as Category;
+    expect(soldOutNote(new SoldOutRun(ship.category), ship)).toBe(` (${ship.category} sold out: sells 0)`);
+    expect(soldOutNote(new SoldOutRun(other), ship)).toBe('');
+    expect(soldOutNote(new SoldOutRun(ship.category), { ...ship, def: WHOLESALE_CLUB })).toBe('');
+  });
+});
+
 class PerkRun extends ThroughputRun {
   private readonly fixedPerks: Perks;
 
@@ -241,7 +278,7 @@ describe('content wave 1 text', () => {
     for (const boss of BOSSES.filter((b) => b.id !== 'line-shift')) expect(flat).toContain(`${boss.name}: ${boss.text}`);
     expect(flat).toContain('Line Shift: Shift 1 runs on your layout.');
     for (const contract of CONTRACTS) expect(flat).toContain(`- ${contract.name}${contract.targetsCard ? ' (pick a deck card)' : ''}: ${contract.text}`);
-    expect(flat).toContain('by half of itself (at least +10) when a Shift sells the last of it');
+    expect(flat).toContain('by half of its full Demand (before Saturated or Recession halving; at least +10) when a Shift sells the last of it');
     expect(flat).toContain('Wholesale Club and Export Deal ignore Demand');
   });
 

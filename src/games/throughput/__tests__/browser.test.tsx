@@ -126,6 +126,7 @@ describe('THROUGHPUT browser screen', () => {
     const shelf = () => renderToStaticMarkup(<Shelf run={run} pending={null} onBuy={() => {}} onReroll={() => {}} onContinue={() => {}} />);
     const items = () => [...shelf().matchAll(/<div class="shop__item ?" data-kind="(\w+)" data-afford="(yes|no)"/g)].map((m) => [m[1], m[2]]);
     expect(items()).toEqual(run.offers.flatMap((o) => (o === null ? [] : [[o.kind, run.wallet.canAfford(o.price) ? 'yes' : 'no']])));
+    expect(shelf()).toMatch(/<span class="tp-shop__interest"[^>]*>Holding \d+C → \+\d+C interest<\/span>/);
     run.wallet.spend(run.wallet.cash);
     expect(items().map(([, afford]) => afford)).toEqual(run.offers.flatMap((o) => (o === null ? [] : [o.price > 0 ? 'no' : 'yes'])));
   });
@@ -161,12 +162,26 @@ describe('THROUGHPUT browser screen', () => {
 
   it('the last round shows no Demand growth "from next round"', () => {
     const last = new ThroughputRun(1, easyConfig({ targets: [100_000] }));
-    const preview = { ...last.preview(), demandSold: { Home: 5 }, demandGrowth: { Home: 10 }, soldOut: ['Home'] as Category[] };
-    expect(demandUseText(preview)).toBe('Home 5 (sells out: +10 from next round)');
-    expect(demandUseText(preview, false)).toBe('Home 5');
-    expect(demandViews(last, preview).find((v) => v.category === 'Home')).toMatchObject({ earned: 0, wouldEarn: 0, sellsOut: true });
     const notLast = new ThroughputRun(1, easyConfig({ targets: [100_000, 100_000] }));
+    const preview = { ...last.preview(), demandSold: { Home: 5 }, demandGrowth: { Home: 10 }, soldOut: ['Home'] as Category[] };
+    expect(demandUseText(preview, notLast)).toBe('Home 5 (sells out: +10 from next round)');
+    expect(demandUseText(preview, last)).toBe('Home 5');
+    expect(demandViews(last, preview).find((v) => v.category === 'Home')).toMatchObject({ earned: 0, wouldEarn: 0, sellsOut: true });
     expect(demandViews(notLast, preview).find((v) => v.category === 'Home')?.wouldEarn).toBe(10);
+
+    // Both causes at once are split, so a sell-out's share can be checked.
+    const emerging = notLast.config.demand.emergingGrowth;
+    const both = { ...preview, demandGrowth: { Home: 15 + emerging }, emergingSold: ['Home'] as Category[] };
+    expect(demandUseText(both, notLast)).toBe(`Home 5 (+${15 + emerging} from next round: sell-out +15, Emerging +${emerging})`);
+    expect(demandUseText({ ...both, soldOut: [], demandGrowth: { Home: emerging } }, notLast)).toBe(`Home 5 (Emerging sale: +${emerging} from next round)`);
+  });
+
+  it('during a Shift a Ship card whose Category sold out says it sells nothing', () => {
+    const truck = card(TRUCK, 'Home');
+    const left = { Apparel: 5, Gadgets: 5, Home: 0, Food: 5 };
+    expect(cardView(truck, 'x', left).tags).toContain('Sold out: sells 0');
+    expect(cardView(truck, 'x', { ...left, Home: 3 }).tags).not.toContain('Sold out: sells 0');
+    expect(cardView(truck).tags).not.toContain('Sold out: sells 0');
   });
 
   it('growth reads by card type: R&D Margin on a Design, Automation Units on a Make', () => {
@@ -295,7 +310,7 @@ describe('THROUGHPUT Demand in the browser', () => {
     const run = new ThroughputRun(1);
     const html = renderToStaticMarkup(<GrantPicker run={run} onPick={() => {}} onCancel={() => {}} />);
     expect(html.match(/data-option="scale"/g)).toHaveLength(4);
-    expect(html).toContain('Demand 20 → 30, and each Home Ship adds +3 Units');
-    expect(html).toContain('Food sales ×1 → ×1.25');
+    expect(html).toContain('Demand 20 → 30 for good, and each Home Ship card adds +3 Units just before it sells');
+    expect(html).toContain('Food sells at +0% → +25% price');
   });
 });

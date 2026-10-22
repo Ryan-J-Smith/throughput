@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
 import type { CSSProperties } from 'react';
+import { computeInterest } from '../../../engine/economy';
 import { Card } from '../../../ui/components';
-import { rulesText } from '../cli';
+import { interestTrade, rulesText } from '../cli';
 import { CATEGORIES, cardName, formatAmount } from '../model';
 import type { Category, GrantOption } from '../model';
 import type { Offer, ThroughputRun } from '../rules';
@@ -45,7 +46,15 @@ export function Shelf({ run, pending, onBuy, onReroll, onContinue }: ShelfProps)
       <div className="shop__header">
         <span className="section-label">Shop</span>
         <div className="shop__actions">
-          <button type="button" className={`btn btn--reroll ${run.whyCannotReroll() === null ? '' : 'btn--unaffordable'}`} onClick={onReroll}>
+          <span className="tp-shop__interest" title="Interest is paid when the next round clears; spending lowers it">
+            Holding {run.wallet.cash}C → +{computeInterest(run.wallet.cash, run.interestRule)}C interest
+          </span>
+          <button
+            type="button"
+            className={`btn btn--reroll ${run.whyCannotReroll() === null ? '' : 'btn--unaffordable'}`}
+            title={`Reroll for ${run.rerollCost}C: ${interestTrade(run, run.rerollCost)}`}
+            onClick={onReroll}
+          >
             Reroll {run.rerollCost}C
           </button>
           <button type="button" className="btn btn--play" onClick={onContinue}>
@@ -130,13 +139,13 @@ export function GrantPicker({ run, onPick, onCancel }: GrantPickerProps) {
               <button type="button" className="btn tp-grant__option" data-option="scale" onClick={() => onPick(c, 'scale')}>
                 <span className="tp-grant__option-name">Scale</span>
                 <span className="tp-grant__option-effect">
-                  Demand {run.demand[c]} → {run.demand[c] + g.scaleDemand}, and each {c} Ship adds +{g.scaleUnits * (scale + 1)} Units
+                  Demand {run.demand[c]} → {run.demand[c] + g.scaleDemand} for good, and each {c} Ship card adds +{g.scaleUnits * (scale + 1)} Units just before it sells
                 </span>
               </button>
               <button type="button" className="btn tp-grant__option" data-option="premium" onClick={() => onPick(c, 'premium')}>
                 <span className="tp-grant__option-name">Premium</span>
                 <span className="tp-grant__option-effect">
-                  {c} sales ×{formatAmount(premiumNow)} → ×{formatAmount(premiumNow + g.premiumStep)}
+                  {c} sells at +{Math.round(100 * (premiumNow - 1))}% → +{Math.round(100 * (premiumNow - 1 + g.premiumStep))}% price
                 </span>
               </button>
             </li>

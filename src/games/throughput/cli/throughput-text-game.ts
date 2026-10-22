@@ -166,9 +166,12 @@ function apply(run: ThroughputRun, action: ThroughputAction): string[] {
     case 'move':
       run.moveFixture(action.from, action.to);
       return [`Moved the Fixture in slot ${action.from + 1} to slot ${action.to + 1}. Capital ${run.wallet.cash}C.`, ...weldWarning(run, action.to)];
-    case 'reroll':
+    case 'reroll': {
+      const cost = run.rerollCost;
+      const before = run.wallet.cash;
       run.reroll();
-      return [`Rerolled. Next reroll ${run.rerollCost}C.`];
+      return [`Rerolled for ${cost}C (Capital ${before}C → ${run.wallet.cash}C). Next reroll ${run.rerollCost}C.`];
+    }
     case 'continue':
       run.continueToNextRound();
       return [`${quarterLabel(run, run.round)} begins: target $${run.target}.`, ...movesLog(run)];
@@ -189,7 +192,7 @@ function runLog(run: ThroughputRun): string[] {
   const lines = [`Shift ${shift}:`, ...traceLines(result)];
   const extras: string[] = [];
   if (result.hotPipUsed) extras.push('a Hot buzz pip was used');
-  const demand = demandUseText(result, round < run.rounds);
+  const demand = demandUseText(result, run);
   if (demand !== '') extras.push(`Demand used: ${demand}`);
   if (result.grown.length > 0) extras.push(`grew for good: ${grownText(result.grown)}`);
   if (extras.length > 0) lines.push(`  ${extras.join('; ')}.`);

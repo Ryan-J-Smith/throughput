@@ -84,7 +84,8 @@ A SHIFT
 
 HOW A SALE IS PRICED
   At each slot, in this order:
-    a. Handoff: +$1 Margin if the previous slot holds a card of the same Category.
+    a. Handoff: +$1 Margin if the previous slot holds a card of the same Category (any type:
+       Design, Make or Ship, with or without a Fixture).
        Empty slots and Stations break the chain.
     b. The slot's Fixture applies.
     c. The card resolves. A Design adds its +$ and then applies its ×. A Make adds Units.
@@ -98,8 +99,8 @@ HOW A SALE IS PRICED
   These sale bonuses apply to that one sale only and do not carry on. Fixtures that change Margin
   itself (Logistics Hub, Superstore, Price Gun, Quality Lab and the like) carry on to later slots.
   Caps: a Truck sells up to its Category's Demand left; Boutique sells up to ${boutiqueCap} (and Demand left).
-  Price Gun halves what later Ships may sell. Wholesale Club and Export Deal sell every Unit and
-  ignore Demand.
+  Price Gun: every later Ship card sells at most half its cap (a Truck: half the Demand left).
+  Wholesale Club and Export Deal sell every Unit and ignore Demand.
   Revenue is rounded down once per sale. Margin itself is kept exact and shown to 2 decimals.
 
 DEMAND
@@ -107,9 +108,11 @@ DEMAND
   together (${c.demand.start} to start). It refills at the start of each round; a Saturated Category gets
   ×${c.demand.saturatedMul} of it that round. The Market shows what is left.
   Demand grows for good, counting from the next round:
-  - by ${sellOutShare} of itself (at least +${c.demand.sellOutGrowth}) when a Shift sells the last of it (sells out);
+  - by ${sellOutShare} of its full Demand (before Saturated or Recession halving; at least +${c.demand.sellOutGrowth})
+    when a Shift sells the last of it (sells out);
   - +${c.demand.emergingGrowth} for each Shift that sells it while it is Emerging;
-  - +${c.grant.scaleDemand} for each R&D Grant Scale, which also adds +${c.grant.scaleUnits} Units at each of its Ship cards.
+  - +${c.grant.scaleDemand} for each R&D Grant Scale, which also makes each of that Category's Ship cards add
+    +${c.grant.scaleUnits} Units to the Batch just before it sells.
   An R&D Grant Premium instead raises that Category's sale price +${Math.round(c.grant.premiumStep * 100)}% per level.
   Wholesale Club and Export Deal ignore Demand and don't use it up.
 
@@ -118,7 +121,8 @@ MARKET (trends)
   Emerging → Hot → Saturated → Neutral, and a Neutral Category becomes Emerging (it may be the one
   that just left Saturated). The Market shows this round and the next 3.
   - Hot: the Hot Category has ${pips} per round. A Shift in which a Hot Ship card sells at least
-    1 Unit spends 1 pip, and every Hot sale that Shift gets Margin ×${c.hotMultiplier}. A Shift with no Hot sale
+    1 Unit spends 1 pip, and every sale that Shift by a Ship card of the Hot Category (Wholesale Club
+    and Export Deal included) gets Margin ×${c.hotMultiplier}. A Shift with no Hot sale
     keeps the pips, so you can save them for your best Shift. Pips don't carry over to the next round.
   - Emerging: each Shift in which a Ship card of that Category sells at least 1 Unit grows its
     Demand +${c.demand.emergingGrowth} for good. Units have no Category; the Ship card's Category counts.

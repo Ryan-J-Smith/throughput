@@ -35,7 +35,9 @@ function valueLabel(card: Card, demandLeft?: Readonly<Record<Category, number>>)
 
 /** `demandLeft` (during a Shift) lets a Demand-capped Ship show how much it can still sell. */
 export function cardView(card: Card, id = `card-${card.uid}`, demandLeft?: Readonly<Record<Category, number>>): CardView {
-  const extras = [card.upgrades > 0 ? `Tooled ×${card.upgrades}` : '', growthText(card)].filter(Boolean);
+  // During a Shift, a Ship whose Category has sold out says it will sell nothing.
+  const soldOut = demandLeft !== undefined && card.def.stage === 'ship' && shipCap(card) !== 'all' && demandLeft[card.category] === 0;
+  const extras = [card.upgrades > 0 ? `Tooled ×${card.upgrades}` : '', growthText(card), soldOut ? 'Sold out: sells 0' : ''].filter(Boolean);
   return {
     id,
     title: card.def.name,

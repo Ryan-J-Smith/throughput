@@ -18,7 +18,7 @@ export const CONTRACTS: readonly ContractDef[] = [
     effect: 'grant',
     targetsCard: false,
     targetsCategory: true,
-    text: 'Pick a Category. Scale: +10 Demand and +3 Units at its Ships. Premium: its sales +25% price.',
+    text: 'Pick a Category. Scale: Demand +10 for good; its Ships each add +3 Units before selling. Premium: sales +25% price.',
   },
   {
     id: 'floor-expansion',

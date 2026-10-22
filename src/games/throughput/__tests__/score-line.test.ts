@@ -178,7 +178,7 @@ describe('scoreLine: Demand', () => {
     const result = scoreLine(big(card(TRUCK, 'Home'), card(TRUCK, 'Gadgets'), card(TRUCK, 'Home')), context({ demandLeft: demandLeft({ Home: 15 }) }));
     expect(result.steps.slice(2).map((s) => s.units)).toEqual([13, 0, 0]);
     expect(result.demandSold).toEqual({ Home: 15, Gadgets: 13 });
-    expect(result.steps[2]?.events.at(-1)).toMatch(/Ship sells 15 × \$2 = \$30 \(Home Demand sold out\)/);
+    expect(result.steps[2]?.events.at(-1)).toMatch(/Ship sells 15 × \$2 = \$30 \(Home Demand 15→0 sold out\)/);
   });
 
   it('selling the last of a Category’s Demand grows it for good', () => {

@@ -224,7 +224,8 @@ function ship(card: Card, marginMul: number, fixture: Fixture | null, batch: Bat
   const notes: string[] = [];
   if (typeof base === 'number' && cap !== base) notes.push(`cap ${base}→${cap}`);
   if (base === 'demand' && batch.capMul !== 1) notes.push(`cap ×${formatAmount(batch.capMul)} of Demand`);
-  if (usesDemand) notes.push(`${category} Demand ${sold === left && sold > 0 ? 'sold out' : `${left - sold} left`}`);
+  // Demand before → after this sale, so "2" can't be read as what was there before it sold.
+  if (usesDemand) notes.push(`${category} Demand ${left}→${left - sold}${sold === left && sold > 0 ? ' sold out' : ''}`);
   if (marginMul !== 1) notes.push(`×${formatAmount(marginMul)}`);
   if (hot) notes.push(`Hot ×${formatAmount(config.hotMultiplier)}`);
   if (flagship !== 1 && fixture !== null) notes.push(`${fixture.def.name} ×${formatAmount(flagship)}`);

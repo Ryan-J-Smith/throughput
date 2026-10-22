@@ -1,5 +1,5 @@
 import { Icon } from '../../../ui/icons';
-import { CATEGORIES, formatAmount } from '../model';
+import { CATEGORIES } from '../model';
 import type { TrendStage } from '../model';
 import type { ShiftResult, ThroughputRun } from '../rules';
 import { CATEGORY_ICON, bossArt } from './art';
@@ -95,7 +95,7 @@ function DemandBars({ views, inShop, premiumStep }: { views: readonly DemandView
             v.halved ? 'Saturated: halved' : '',
             v.bossCut ?? '',
             v.scale > 0 ? `Scale ${v.scale}` : '',
-            v.premium > 0 ? `Premium ×${formatAmount(1 + premiumStep * v.premium)}` : '',
+            v.premium > 0 ? `sells +${Math.round(100 * premiumStep * v.premium)}% (Premium)` : '',
             v.earned > 0 ? `+${v.earned} from next round` : '',
             v.sellsOut ? `this Shift sells out${v.wouldEarn > 0 ? `: +${v.wouldEarn}` : ''}` : v.wouldEarn > 0 ? `this Shift: +${v.wouldEarn}` : '',
           ].filter(Boolean);

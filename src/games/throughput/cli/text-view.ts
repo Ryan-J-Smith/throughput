@@ -1,6 +1,6 @@
 import { computeInterest } from '../../../engine/economy';
 import { TRUCK } from '../content';
-import { CATEGORIES, cardEffect, cardName, formatAmount, growthText } from '../model';
+import { CATEGORIES, cardEffect, cardName, formatAmount, growthText, shipCap } from '../model';
 import type { Card, CardDef, Category, Fixture, TrendStage } from '../model';
 import type { BuyTarget, FixtureMove, Offer, ShiftResult, ThroughputRun, Trends } from '../rules';
 
@@ -150,7 +150,8 @@ export function legalActions(run: ThroughputRun): string[] {
     if (run.whyCannotRetool([0]) === null) {
       const most = Math.min(run.config.retoolMax, run.hand.length);
       const cards = most === 1 ? '1 hand card' : `1–${most} hand cards`;
-      out.push(`retool <hand> … — discard ${cards} and draw as many into their places (${run.retoolsLeft} left this round)`);
+      const limit = most < run.config.retoolMax ? ` (up to ${run.config.retoolMax}; you hold ${run.hand.length})` : '';
+      out.push(`retool <hand> … — discard ${cards}${limit} and draw as many into their places (${run.retoolsLeft} left this round)`);
     }
     const preview = run.preview();
     const after = Math.max(0, run.sales + preview.total);
@@ -170,7 +171,7 @@ export function legalActions(run: ThroughputRun): string[] {
         const g = run.config.grant;
         if (run.whyCannotBuy(i, sampleTarget(offer)) === null) {
           out.push(
-            `buy ${n} <category> scale|premium — ${offer.def.name} for ${offer.price}C: Scale gives that Category +${g.scaleDemand} Demand and +${g.scaleUnits} Units at its Ships; Premium +${Math.round(g.premiumStep * 100)}% on its sale price`,
+            `buy ${n} <category> scale|premium — ${offer.def.name} for ${offer.price}C: Scale gives that Category's Demand +${g.scaleDemand} for good, and each of its Ship cards adds +${g.scaleUnits} Units to the Batch just before it sells; Premium: its sales +${Math.round(g.premiumStep * 100)}% price`,
           );
         }
       } else if (run.whyCannotBuy(i) === null) {
@@ -187,7 +188,7 @@ export function legalActions(run: ThroughputRun): string[] {
     if (movable.length > 0 && run.wallet.canAfford(run.config.moveCost)) {
       out.push(`move <from> <to> — move a Fixture for ${run.config.moveCost}C, swapping with any Fixture there (Fixtures in ${list(movable)})`);
     }
-    if (run.whyCannotReroll() === null) out.push(`reroll — new offers for ${run.rerollCost}C`);
+    if (run.whyCannotReroll() === null) out.push(`reroll — new offers for ${run.rerollCost}C (${interestTrade(run, run.rerollCost)})`);
     out.push(`continue — start ${quarterLabel(run, run.round + 1)} (round ${run.round + 1}, target $${run.config.targets[run.round] ?? 0})`);
   }
   if (run.phase === 'shift' || run.phase === 'shop') out.push('deck — list your cards and what is left to draw (free)');
@@ -231,7 +232,7 @@ export function formatView(run: ThroughputRun, context: ViewContext): string {
     case 'shift':
       lines.push(
         `${where} · Shift ${run.shift} of ${run.shiftsThisRound} · Sales $${run.sales} of $${run.target} target · Capital ${run.wallet.cash}C`,
-        `Retools left ${run.retoolsLeft} · Draw pile ${run.drawPile.length} · Discard pile ${run.discardPile.length}${restockText(run)}${run.stored > 0 ? ` · Stored ${run.stored} Units` : ''}`,
+        `Retools left this round ${run.retoolsLeft} · Draw pile ${run.drawPile.length} · Discard pile ${run.discardPile.length}${restockText(run)}${run.stored > 0 ? ` · Stored ${run.stored} Units` : ''}`,
       );
       if (perksText(run) !== '') lines.push(perksText(run));
       if (run.boss !== null) lines.push(`BOARD REVIEW: ${run.boss.name}: ${run.boss.text}`);
@@ -268,22 +269,22 @@ export function formatView(run: ThroughputRun, context: ViewContext): string {
     const fixture = run.isWelded(i) && run.phase === 'shift' ? 'WELDED SHUT' : slot.fixture === null ? 'no Fixture' : fixtureText(slot.fixture);
     const card = slot.card?.card;
     const idle = card !== undefined && slot.fixture !== null && slot.fixture.def.kind === 'mod' && !slot.fixture.def.effect.appliesTo(card) ? ` (${slot.fixture.def.name} is idle for it)` : '';
-    const held = card === undefined ? '' : ` | ${cardText(card)} ${lineCardNote(run, i)}${idle}`;
+    const held = card === undefined ? '' : ` | ${cardText(card)}${soldOutNote(run, card)} ${lineCardNote(run, i)}${idle}`;
     lines.push(`  ${i + 1}. ${fixture}${held}`);
   });
 
   if (run.phase === 'shift') {
-    const hand = run.handSlots.flatMap((card, i) => (card === null ? [] : [`  ${i + 1}. ${cardText(card)}`]));
+    const hand = run.handSlots.flatMap((card, i) => (card === null ? [] : [`  ${i + 1}. ${cardText(card)}${soldOutNote(run, card)}`]));
     lines.push('', `Hand (${run.hand.length}; a card keeps its number until it leaves the hand):`, ...hand);
     const preview = run.preview();
     const clears = overkillNote(run, Math.max(0, run.sales + preview.total));
     lines.push('', 'If you run now:', ...traceLines(preview));
-    const demand = demandUseText(preview, run.round < run.rounds);
+    const demand = demandUseText(preview, run);
     if (demand !== '') lines.push(`  Demand used: ${demand}.`);
     if (clears !== '') lines.push(`  This Shift ${clears}.`);
   } else {
     lines.push(...nextBoardLayout(run));
-    lines.push('', `Shop (reroll ${run.rerollCost}C):`);
+    lines.push('', `Shop (reroll ${run.rerollCost}C; holding ${run.wallet.cash}C → +${computeInterest(run.wallet.cash, run.interestRule)}C interest):`);
     run.offers.forEach((offer, i) => {
       const blocker = offerBlocker(run, i);
       lines.push(`  ${i + 1}. ${offer === null ? '(bought)' : offerText(offer)}${blocker === null ? '' : ` [can't buy: ${blocker}]`}`);
@@ -341,29 +342,47 @@ function demandLine(run: ThroughputRun): string {
     if (boss != null && boss.demandMul() !== 1 && (shop ? next : run.round) <= run.rounds) notes.push(`${boss.name} ×${formatAmount(boss.demandMul())}`);
     if (!shop && run.demandEarned[c] > 0 && run.round < run.rounds) notes.push(`+${run.demandEarned[c]} from next round`);
     if (scale > 0) notes.push(`Scale ${scale}`);
-    if (premium > 0) notes.push(`Premium ×${formatAmount(1 + run.config.grant.premiumStep * premium)}`);
+    const pricier = premium > 0 ? `, sells +${Math.round(100 * run.config.grant.premiumStep * premium)}% (Premium ${premium})` : '';
     const amount = shop
       ? String(next <= run.rounds ? run.demandIn(next, c) : run.demand[c])
       : run.demandLeft[c] === 0
         ? 'sold out'
         : `${run.demandLeft[c]} of ${run.roundDemand[c]}`;
-    return `${c} ${amount}${notes.length > 0 ? ` (${notes.join(', ')})` : ''}`;
+    return `${c} ${amount}${notes.length > 0 ? ` (${notes.join(', ')})` : ''}${pricier}`;
   });
   return `  Demand ${shop ? 'next round' : 'left this round'}: ${parts.join(' · ')}`;
 }
 
 /**
- * What a Shift sold into Demand and the Demand it grows, e.g. "Home 12 (sells out: +10 from next
- * round)". Without a next round (`growsNext` false) the growth isn't mentioned.
+ * What `result` (a Shift of `run`'s current round) sells into Demand and the Demand it grows, e.g.
+ * "Home 12 (sells out: +10 from next round)", or with both causes "Home 12 (+20 from next round:
+ * sell-out +10, Emerging +10)". The last round grows nothing that counts, so it isn't mentioned.
  */
-export function demandUseText(result: ShiftResult, growsNext = true): string {
+export function demandUseText(result: ShiftResult, run: ThroughputRun): string {
+  const growsNext = run.round < run.rounds;
   return CATEGORIES.flatMap((c) => {
     const sold = result.demandSold[c] ?? 0;
     const grows = growsNext ? (result.demandGrowth[c] ?? 0) : 0;
     if (sold === 0 && grows === 0) return [];
-    const why = [result.soldOut.includes(c) ? 'sells out' : '', result.emergingSold.includes(c) ? 'Emerging sale' : ''].filter(Boolean).join(', ');
-    return [`${c} ${sold}${grows > 0 ? ` (${why}: +${grows} from next round)` : ''}`];
+    if (grows === 0) return [`${c} ${sold}`];
+    const emerging = result.emergingSold.includes(c) ? run.config.demand.emergingGrowth : 0;
+    const sellOut = grows - emerging;
+    if (sellOut > 0 && emerging > 0) return [`${c} ${sold} (+${grows} from next round: sell-out +${sellOut}, Emerging +${emerging})`];
+    return [`${c} ${sold} (${sellOut > 0 ? 'sells out' : 'Emerging sale'}: +${grows} from next round)`];
   }).join(', ');
+}
+
+/** " (Gadgets sold out: sells 0)" for a Ship card whose Category has no Demand left this Shift, else ''. */
+export function soldOutNote(run: ThroughputRun, card: Card): string {
+  if (run.phase !== 'shift' || card.def.stage !== 'ship' || shipCap(card) === 'all') return '';
+  return run.demandLeft[card.category] === 0 ? ` (${card.category} sold out: sells 0)` : '';
+}
+
+/** What spending `cost` does to next round's interest, e.g. "then holding 7C → +1C interest, now +1C". */
+export function interestTrade(run: ThroughputRun, cost: number): string {
+  const now = computeInterest(run.wallet.cash, run.interestRule);
+  const after = computeInterest(Math.max(0, run.wallet.cash - cost), run.interestRule);
+  return `then holding ${run.wallet.cash - cost}C → +${after}C interest, now +${now}C`;
 }
 
 /** Free `deck` query: every card and what is left to draw this round. */
