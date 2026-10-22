@@ -17,46 +17,49 @@ export class Batch {
   storing = false;
   /** Designs that grew (R&D Lab) this Shift, one entry per growth. */
   readonly grown: Card[] = [];
+  /** False when only the numbers matter (bots): events are not recorded. */
+  readonly tracing: boolean;
   private events: string[] = [];
 
-  constructor(baseMargin: number, stored: number, warehouseOpen: boolean) {
+  constructor(baseMargin: number, stored: number, warehouseOpen: boolean, tracing = true) {
     this.margin = baseMargin;
     this.stored = stored;
     this.warehouseOpen = warehouseOpen;
+    this.tracing = tracing;
   }
 
   addMargin(amount: number, source: string): void {
     this.margin += amount;
-    this.note(`${source} ${amount < 0 ? '-' : '+'}$${formatAmount(Math.abs(amount))}`);
+    if (this.tracing) this.note(`${source} ${amount < 0 ? '-' : '+'}$${formatAmount(Math.abs(amount))}`);
   }
 
   mulMargin(factor: number, source: string): void {
     this.margin *= factor;
-    this.note(`${source} Margin ×${formatAmount(factor)}`);
+    if (this.tracing) this.note(`${source} Margin ×${formatAmount(factor)}`);
   }
 
   addUnits(amount: number, source: string): void {
     this.units += amount;
-    this.note(`${source} +${amount} Units`);
+    if (this.tracing) this.note(`${source} +${amount} Units`);
   }
 
   mulUnits(factor: number, source: string): void {
     this.units *= factor;
-    this.note(`${source} Units ×${formatAmount(factor)}`);
+    if (this.tracing) this.note(`${source} Units ×${formatAmount(factor)}`);
   }
 
   mulCaps(factor: number, source: string): void {
     this.capMul *= factor;
-    this.note(`${source} later Ship caps ×${formatAmount(factor)}`);
+    if (this.tracing) this.note(`${source} later Ship caps ×${formatAmount(factor)}`);
   }
 
   grow(card: Card, source: string): void {
     this.grown.push(card);
-    this.note(`${source}: ${card.def.name} grows +$1`);
+    if (this.tracing) this.note(`${source}: ${card.def.name} grows +$1`);
   }
 
   note(event: string): void {
-    this.events.push(event);
+    if (this.tracing) this.events.push(event);
   }
 
   /** Events since the last call, for one slot's trace. */

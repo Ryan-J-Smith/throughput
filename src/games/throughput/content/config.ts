@@ -33,8 +33,12 @@ export type ThroughputConfig = {
   readonly storagePerCapital: number;
 };
 
+/** seed-03's original curve, kept for comparison; it assumes multiplicative late builds the bots don't reach. */
+export const SEED_03_TARGETS: readonly number[] = [150, 250, 400, 600, 900, 1300, 1800, 2600, 3600, 5000, 7000, 10000];
+
 export const DEFAULT_CONFIG: ThroughputConfig = {
-  targets: [150, 250, 400, 600, 900, 1300, 1800, 2600, 3600, 5000, 7000, 10000],
+  // First-pass sim tune (DESIGN_NOTES "Sim tuning"): best bot wins ~30%, tempo and slow-burn cross at Y2.
+  targets: [150, 250, 350, 450, 600, 800, 1000, 1250, 1500, 1750, 2050, 2350],
   roundsPerYear: 3,
   shiftsPerRound: 4,
   retoolsPerRound: 2,

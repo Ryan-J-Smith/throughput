@@ -12,13 +12,14 @@ export function initialTrends(rng: Rng): Trends {
 }
 
 /**
- * One quarter of the conveyor: Emerging → Hot → Saturated → Neutral, then a random Category that
- * was already Neutral (never the one just leaving Saturated) becomes Emerging.
+ * One quarter of the conveyor: Emerging → Hot → Saturated → Neutral, then a random Neutral Category
+ * becomes Emerging. That may be the one just leaving Saturated, so a trend can come straight back.
  */
 export function advanceTrends(trends: Trends, rng: Rng): Trends {
-  const wasNeutral = CATEGORIES.filter((c) => trends[c] === 'neutral');
-  const emerging = wasNeutral.length > 0 ? rng.pick(wasNeutral) : null;
-  return build((c) => (c === emerging ? 'emerging' : AFTER[trends[c]]));
+  const moved = build((c) => AFTER[trends[c]]);
+  const neutral = CATEGORIES.filter((c) => moved[c] === 'neutral');
+  const emerging = neutral.length > 0 ? rng.pick(neutral) : null;
+  return build((c) => (c === emerging ? 'emerging' : moved[c]));
 }
 
 /** Trends for every round, fixed at the start of the run so the Market forecast is exact. */

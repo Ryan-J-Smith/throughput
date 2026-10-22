@@ -2,5 +2,5 @@ export { BOUTIQUE, FACTORY_FLOOR, INFLUENCER, SHOP_CARDS, SKETCH, STARTER_CARDS,
 export { FIXTURES, fixtureById, flagshipMultiplier } from './fixtures';
 export { CONTRACTS } from './contracts';
 export { BOSSES } from './bosses';
-export { DEFAULT_CONFIG } from './config';
+export { DEFAULT_CONFIG, SEED_03_TARGETS } from './config';
 export type { ThroughputConfig } from './config';
