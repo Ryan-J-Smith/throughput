@@ -427,11 +427,6 @@ body:has(.screen--tp-shop[data-year])::before {
   line-clamp: 2;
 }
 
-.screen--tp-shift .tp-bay__fixture-text {
-  -webkit-line-clamp: 1;
-  line-clamp: 1;
-}
-
 .screen--tp-shift .tp-bay__plate[data-accent] {
   min-height: 44px;
   padding-block: 5px 6px;
