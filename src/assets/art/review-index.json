@@ -162,7 +162,13 @@
     "fixture-brand-manager": [
       "plain"
     ],
+    "fixture-conglomerate": [
+      "plain"
+    ],
     "fixture-conveyor-belt": [
+      "plain"
+    ],
+    "fixture-creative-director": [
       "plain"
     ],
     "fixture-cross-dock": [
@@ -175,6 +181,9 @@
       "plain"
     ],
     "fixture-flagship-store": [
+      "plain"
+    ],
+    "fixture-global-brand": [
       "plain"
     ],
     "fixture-lean-cell": [
