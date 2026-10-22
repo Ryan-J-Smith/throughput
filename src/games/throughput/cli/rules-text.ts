@@ -1,7 +1,7 @@
 import { interestCeiling } from '../../../engine/economy';
-import { BOSSES, BOUTIQUE, CONTRACTS, FIXTURES, SHOP_CARDS, STARTER_CARDS } from '../content';
+import { BOSSES, BOUTIQUE, CONTRACTS, EXPRESS_LANE_MUL, FIXTURES, REPEAT_STATION_MUL, SHOP_CARDS, STARTER_CARDS } from '../content';
 import type { ThroughputConfig } from '../content';
-import { CATEGORIES, repeatRule } from '../model';
+import { CATEGORIES, formatAmount, repeatRule } from '../model';
 import { designOnlyMod } from '../rules';
 
 /** Line Shift needs more than its one-line text to play well, so the rules spell it out. */
@@ -24,6 +24,11 @@ function wrap(text: string, indent: string): string {
   return [...lines, line].join('\n');
 }
 
+/** "A", "A and B", "A, B and C". */
+function andList(names: readonly string[]): string {
+  return names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names.at(-1) ?? ''}`;
+}
+
 /**
  * Full rules, shown by the free `rules` command and the browser's How to play. Written so a new
  * player needs nothing else; tunable numbers come from `config`.
@@ -31,6 +36,9 @@ function wrap(text: string, indent: string): string {
 export function rulesText(config: ThroughputConfig): string {
   const c = config;
   const boutiqueCap = BOUTIQUE.stage === 'ship' ? String(BOUTIQUE.cap) : '?';
+  // From the shop's cards, so a card leaving the shop leaves the rules too.
+  const shipMuls = SHOP_CARDS.flatMap((d) => (d.stage === 'ship' && d.marginMul !== 1 ? [`${d.name} ×${formatAmount(d.marginMul)}`] : [])).join(', ');
+  const sellAll = andList(SHOP_CARDS.flatMap((d) => (d.stage === 'ship' && d.cap === 'all' ? [d.name] : [])));
   // Rebrand: a repeat this Shift (another copy, or the same card under Robot Arm) gets a smaller ×.
   const repeatDesigns = SHOP_CARDS.flatMap((d) => {
     const rule = repeatRule(d);
@@ -113,13 +121,18 @@ HOW A SALE IS PRICED
   slots. So order matters: Quality Lab's +$4 under an Influencer lands before the Influencer's ×1.5,
   and a Tooling Upgrade's +$1 on an Influencer is added before its ×1.5.
   A Ship sells each Unit at:
-    Margin × the Ship card's own × (Boutique ×2, Wholesale Club ×0.5, Export Deal ×0.75)
-      × Hot ×${c.hotMultiplier} (while a buzz pip is left) × Flagship Store × Luxury Counter × R&D Premium
+    ${wrap(`Margin × the Ship card's own × (${shipMuls})`, '      ')}
+      × Hot ×${c.hotMultiplier} (while a buzz pip is left) × Flagship Store × Luxury Counter
+      × Express Lane × R&D Premium
+  Express Lane doesn't stack with Hot: its Ship gets the larger of ×${EXPRESS_LANE_MUL} (in Shift 1) and Hot ×${c.hotMultiplier}, and
+  spends a buzz pip only when Hot is the larger.
   These sale bonuses apply to that one sale only and do not carry on. Fixtures that change Margin
   itself (Logistics Hub, Superstore, Price Gun, Quality Lab and the like) carry on to later slots.
   Caps: a Truck sells up to its Category's Demand left; Boutique sells up to ${boutiqueCap} (and Demand left).
-  Price Gun: every later Ship card sells at most half its cap (a Truck: half the Demand left).
-  Wholesale Club and Export Deal sell every Unit and ignore Demand.
+  Price Gun: the Ship here and every later one sells at most half its cap (a Truck: half the Demand
+  left; a sell-all Ship: half the Batch).
+  A sell-all Ship (${sellAll}) sells every Unit in the Batch and ignores Demand, so a later Ship
+  that Shift gets none.
   Revenue is rounded down once per sale. Margin itself is kept exact and shown to 2 decimals.
 
 DEMAND
@@ -133,15 +146,15 @@ DEMAND
   - +${c.grant.scaleDemand} for each R&D Grant Scale, which also makes each of that Category's Ship cards add
     +${c.grant.scaleUnits} Units to the Batch just before it sells.
   An R&D Grant Premium instead raises that Category's sale price +${Math.round(c.grant.premiumStep * 100)}% per level.
-  Wholesale Club and Export Deal ignore Demand and don't use it up.
+  A sell-all Ship (${sellAll}) ignores Demand and doesn't use it up.
 
 MARKET (trends)
   Each round every Category has a trend stage. Each new round the conveyor moves
   Emerging → Hot → Saturated → Neutral, and a Neutral Category becomes Emerging (it may be the one
   that just left Saturated). The Market shows this round and the next 3.
   - Hot: the Hot Category has ${pips} per round. A Shift in which a Hot Ship card sells at least
-    1 Unit spends 1 pip, and every sale that Shift by a Ship card of the Hot Category (Wholesale Club
-    and Export Deal included) gets Margin ×${c.hotMultiplier}. A Shift with no Hot sale
+    1 Unit spends 1 pip, and every sale that Shift by a Ship card of the Hot Category (sell-all Ships
+    included) gets Margin ×${c.hotMultiplier}. A Shift with no Hot sale
     keeps the pips, so you can save them for your best Shift. Pips don't carry over to the next round.
   - Emerging: each Shift in which a Ship card of that Category sells at least 1 Unit grows its
     Demand +${c.demand.emergingGrowth} for good. Units have no Category; the Ship card's Category counts.
@@ -168,7 +181,8 @@ FIXTURES
   - A Mod sits under a card and acts on that card. Most act on one card type (Quality Lab: Designs;
     Overtime Crew and Automation: Makes; Showroom and Flagship Store: Ships). The trace marks a Mod
     "idle" when its card is the wrong type.
-  - A Station fills the slot itself: no card goes there, and it breaks Handoffs.
+  - A Station fills the slot itself: no card goes there, and it breaks Handoffs. A Station after
+    another Station on the Line multiplies Units by ×${formatAmount(REPEAT_STATION_MUL)} instead of its own ×.
   - Warehouse (Mod): a Make card on it also copies its own Units into stock (they stay in the Batch
     too), and the stock builds up across rounds. In every Shift of a Board Review, when the Batch
     reaches the Warehouse (even with no card there), the whole stock sells at the Margin reaching that

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Card } from '../../../ui/components';
 import { Icon } from '../../../ui/icons';
-import { fixtureText } from '../cli';
+import { fixtureText, shiftOneOnly } from '../cli';
 import { cardName } from '../model';
 import type { ThroughputRun } from '../rules';
 import { fixtureArt } from './art';
@@ -32,6 +32,8 @@ export function LineView({ run, bayState, onBay, onScrap, bayLabel, canDrop, onD
   /** The bay a dragged card is over, if it can be dropped there. */
   const [over, setOver] = useState<number | null>(null);
   const inShift = run.phase === 'shift';
+  // During a Shift, a Shift-1-only Fixture (Express Lane) says on hover whether it works now.
+  const shift = inShift ? run.shift : undefined;
   const notice = lineNotice(run);
   const movedFrom = new Map(inShift ? run.fixtureMoves.map((m) => [m.to, m.from]) : []);
   return (
@@ -45,6 +47,8 @@ export function LineView({ run, bayState, onBay, onScrap, bayLabel, canDrop, onD
           const parked = held !== null && held.loadedShift < run.shift;
           // A Mod under a card it never acts on (Quality Lab under a Truck).
           const idle = held !== null && slot.fixture !== null && !welded && !slot.fixture.def.effect.appliesTo(held.card);
+          // A Fixture that works in Shift 1 only (Express Lane), after Shift 1.
+          const resting = !idle && slot.fixture !== null && !welded && inShift && run.shift > 1 && shiftOneOnly(slot.fixture) !== null;
           const from = movedFrom.get(i);
           const state = bayState(i);
           // Between rounds only bays that hold a Fixture (to move or sell) or accept one can be tapped.
@@ -76,9 +80,9 @@ export function LineView({ run, bayState, onBay, onScrap, bayLabel, canDrop, onD
               }}
             >
               <div
-                className={`tp-bay__plate ${idle ? 'is-idle' : ''}`}
+                className={`tp-bay__plate ${idle || resting ? 'is-idle' : ''}`}
                 data-accent={slot.fixture === null ? undefined : station ? 'mustard' : 'teal'}
-                title={slot.fixture === null || welded ? undefined : fixtureText(slot.fixture)}
+                title={slot.fixture === null || welded ? undefined : fixtureText(slot.fixture, shift)}
               >
                 {slot.fixture !== null && !welded && (
                   <span className={`tp-bay__fixture-art ${art === undefined ? 'tp-bay__fixture-art--icon' : ''}`} aria-hidden="true">
@@ -93,8 +97,8 @@ export function LineView({ run, bayState, onBay, onScrap, bayLabel, canDrop, onD
                 {slot.fixture !== null && !welded && (
                   <span className="tp-bay__fixture-text">{plateText(slot.fixture)}</span>
                 )}
-                {idle && (
-                  <span className="tp-bay__idle" title="Idle for this card">
+                {(idle || resting) && (
+                  <span className="tp-bay__idle" title={resting ? `${slot.fixture?.def.name ?? ''} works in Shift 1 only` : 'Idle for this card'}>
                     Idle
                   </span>
                 )}

@@ -1,6 +1,6 @@
 import { computeInterest, interestCeiling } from '../../../engine/economy';
 import { TRUCK } from '../content';
-import { CATEGORIES, cardEffect, cardName, formatAmount, growthText, shipCap } from '../model';
+import { Batch, CATEGORIES, cardEffect, cardName, formatAmount, growthText, shipCap } from '../model';
 import type { Card, CardDef, Category, Fixture, TrendStage } from '../model';
 import type { BuyTarget, FixtureMove, Offer, ShiftResult, ThroughputRun, Trends } from '../rules';
 
@@ -21,14 +21,29 @@ function freshCard(def: CardDef, category: Category): Card {
   return { uid: -1, def, category, paid: 0, upgrades: 0, growth: 0 };
 }
 
-/** "Now ×1.6." for a Fixture whose sale × grows (Flagship Store), else ''. */
-export function fixtureNow(fixture: Fixture): string {
-  const multiplier = fixture.def.effect.saleMultiplier(freshCard(TRUCK, 'Food'), fixture);
-  return multiplier === 1 ? '' : `Now ×${formatAmount(multiplier)}.`;
+/**
+ * "Now ×1.6." for a Fixture whose sale × grows (Flagship Store), else ''. Given the Shift during a
+ * round, a Fixture whose × works in Shift 1 only (Express Lane) says "Now ×3 (Shift 1 only)." in
+ * Shift 1 and "Shift 1 only: ×3; idle now." after it.
+ */
+export function fixtureNow(fixture: Fixture, shift?: number): string {
+  const standing = fixture.def.effect.saleMultiplier(freshCard(TRUCK, 'Food'), fixture);
+  if (standing !== 1) return `Now ×${formatAmount(standing)}.`;
+  const first = shiftOneOnly(fixture);
+  if (shift === undefined || first === null) return '';
+  return shift === 1 ? `Now ×${formatAmount(first)} (Shift 1 only).` : `Shift 1 only: ×${formatAmount(first)}; idle now.`;
 }
 
-export function fixtureText(fixture: Fixture): string {
-  const now = fixtureNow(fixture);
+/** The sale × of a Fixture that works in a round's Shift 1 only (Express Lane), else null. */
+export function shiftOneOnly(fixture: Fixture): number | null {
+  const inShift = (shift: number) =>
+    fixture.def.effect.saleMultiplier(freshCard(TRUCK, 'Food'), fixture, new Batch({ baseMargin: 0, stored: 0, warehouseOpen: false, boardReview: false, shift, tracing: false }));
+  const first = inShift(1);
+  return first !== 1 && inShift(2) === 1 ? first : null;
+}
+
+export function fixtureText(fixture: Fixture, shift?: number): string {
+  const now = fixtureNow(fixture, shift);
   return `${fixture.def.name} (${fixture.def.kind === 'station' ? 'Station' : 'Mod'}): ${fixture.def.text}${now === '' ? '' : ` ${now}`}`;
 }
 
@@ -280,7 +295,7 @@ export function formatView(run: ThroughputRun, context: ViewContext): string {
 
   lines.push('', run.phase === 'shift' ? `Line (the Batch runs left to right from 0 Units, Margin $${run.config.baseMargin}):` : 'Line Fixtures:');
   run.line.forEach((slot, i) => {
-    const fixture = run.isWelded(i) && run.phase === 'shift' ? 'WELDED SHUT' : slot.fixture === null ? 'no Fixture' : fixtureText(slot.fixture);
+    const fixture = run.isWelded(i) && run.phase === 'shift' ? 'WELDED SHUT' : slot.fixture === null ? 'no Fixture' : fixtureText(slot.fixture, run.phase === 'shift' ? run.shift : undefined);
     const card = slot.card?.card;
     const idle = card !== undefined && slot.fixture !== null && slot.fixture.def.kind === 'mod' && !slot.fixture.def.effect.appliesTo(card) ? ` (${slot.fixture.def.name} is idle for it)` : '';
     const held = card === undefined ? '' : ` | ${cardText(card)}${demandNote(run, card)} ${lineCardNote(run, i)}${idle}`;

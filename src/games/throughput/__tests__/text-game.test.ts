@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { SaveFile, TurnResult } from '../../../play/session';
-import { ThroughputTextGame, cardText, demandNote, formatAction, formatView, interestTrade, legalActions, noShipNote, offerBlocker, overkillNote, offerText, parseAction, perksText, rulesText, shipsToDraw, traceLines } from '../cli';
-import { BOSSES, CONTRACTS, DEFAULT_CONFIG, INFLUENCER, TRUCK, WHOLESALE_CLUB, WORKSHOP } from '../content';
+import { ThroughputTextGame, cardText, demandNote, fixtureNow, fixtureText, formatAction, formatView, interestTrade, legalActions, noShipNote, offerBlocker, overkillNote, offerText, parseAction, perksText, rulesText, shipsToDraw, traceLines } from '../cli';
+import { BOSSES, CONTRACTS, DEFAULT_CONFIG, EXPORT_DEAL, INFLUENCER, TRUCK, WORKSHOP } from '../content';
 import { CATEGORIES } from '../model';
 import type { Card, Category, Perks } from '../model';
 import { ThroughputRun, scoreLine } from '../rules';
-import { boss, card, context, easyConfig, quotaCapRun, shopWithFixture, slot } from './fixtures';
+import { boss, card, context, easyConfig, fixture, quotaCapRun, shopWithFixture, slot } from './fixtures';
 
 type HandEntry = { readonly n: number; readonly name: string; readonly stage: string };
 
@@ -295,7 +295,7 @@ describe('playtest-2 clarity', () => {
     const open = new SoldOutRun(other);
     expect(demandNote(open, ship)).toBe(` (${ship.category} ${open.demandLeft[ship.category]} left)`);
     expect(formatView(open, { game: 'throughput', seed: 1, actionsTaken: 0 })).toContain(`${cardText(ship)} (${ship.category} ${open.demandLeft[ship.category]} left)`);
-    expect(demandNote(new SoldOutRun(ship.category), { ...ship, def: WHOLESALE_CLUB })).toBe('');
+    expect(demandNote(new SoldOutRun(ship.category), { ...ship, def: EXPORT_DEAL })).toBe('');
     expect(demandNote(open, run.hand.find((c) => c.def.stage !== 'ship') as Card)).toBe('');
   });
 });
@@ -403,7 +403,11 @@ describe('content wave 1 text', () => {
     expect(flat).toContain('Line Shift: Shift 1 runs on your layout.');
     for (const contract of CONTRACTS) expect(flat).toContain(`- ${contract.name}${contract.targetsCard ? ' (pick a deck card)' : ''}: ${contract.text}`);
     expect(flat).toContain(`by ${Math.round(DEFAULT_CONFIG.demand.sellOutRate * 100)}% of its full Demand (before Saturated or Recession halving; at least +${DEFAULT_CONFIG.demand.sellOutGrowth}) when a Shift sells the last of it`);
-    expect(flat).toContain('Wholesale Club and Export Deal ignore Demand');
+    expect(flat).toContain('A sell-all Ship (Export Deal) ignores Demand and doesn\'t use it up.');
+    expect(flat).not.toContain('Wholesale Club');
+    expect(flat).toContain("Express Lane doesn't stack with Hot: its Ship gets the larger of ×3 (in Shift 1) and Hot ×2");
+    expect(flat).toContain('Price Gun: the Ship here and every later one sells at most half its cap');
+    expect(flat).toContain('A Station after another Station on the Line multiplies Units by ×1.5 instead of its own ×.');
   });
 
   it('a Short Week Board shows 3 Shifts in the state and the run action', () => {
@@ -461,10 +465,21 @@ describe('rules and shop text', () => {
     expect(text).toContain(`each full ${DEFAULT_CONFIG.overkill.step * 100}% of the target you sold beyond it pays +1C`);
   });
 
+  it('Express Lane on the Line says it works in Shift 1 only, and is idle after', () => {
+    const lane = fixture('express-lane');
+    expect(fixtureNow(lane)).toBe('');
+    expect(fixtureNow(lane, 1)).toBe('Now ×3 (Shift 1 only).');
+    expect(fixtureNow(lane, 2)).toBe('Shift 1 only: ×3; idle now.');
+    expect(fixtureText(lane, 3)).toMatch(/^Express Lane \(Mod\): .+ Shift 1 only: ×3; idle now\.$/);
+    // A Fixture whose × doesn't depend on the Shift is unchanged.
+    expect(fixtureNow(fixture('flagship-store'), 2)).toBe(fixtureNow(fixture('flagship-store')));
+    expect(fixtureNow(fixture('quality-lab'), 2)).toBe('');
+  });
+
   it('a shop card offer names its Category and type, in the same words the deck uses', () => {
     expect(offerText({ kind: 'card', def: INFLUENCER, category: 'Food', price: 5 })).toBe('Card · Influencer-F (Food Design) · 5C: Margin ×1.5');
-    expect(offerText({ kind: 'card', def: WHOLESALE_CLUB, category: 'Home', price: 4 })).toBe(
-      'Card · Wholesale Club-H (Home Ship) · 4C: sell all Units at half Margin (ignores Demand and cap cuts)',
+    expect(offerText({ kind: 'card', def: EXPORT_DEAL, category: 'Home', price: 5 })).toBe(
+      'Card · Export Deal-H (Home Ship) · 5C: sell all Units at Margin ×0.75 (ignores Demand; leaves none for a later Ship)',
     );
   });
 });

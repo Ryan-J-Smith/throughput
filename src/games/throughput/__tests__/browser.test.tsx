@@ -153,6 +153,21 @@ describe('THROUGHPUT browser screen', () => {
     expect(renderLine(run)).toContain('<span class="tp-bay__idle" title="Idle for this card">Idle</span>');
   });
 
+  it('Express Lane shows Idle on its bay after Shift 1, and says why on hover', () => {
+    const run = new ThroughputRun(1, easyConfig({ startingCapital: 1000, targets: [0, 100_000, 100_000] }));
+    run.runShift();
+    for (let i = 0; i < 300 && !run.offers.some((o) => o?.kind === 'fixture' && o.def.id === 'express-lane'); i++) run.reroll();
+    run.buy(run.offers.findIndex((o) => o?.kind === 'fixture' && o.def.id === 'express-lane'), { slot: 0 });
+    run.continueToNextRound();
+    const badge = '<span class="tp-bay__idle" title="Express Lane works in Shift 1 only">Idle</span>';
+    expect(renderLine(run)).toContain('Now ×3 (Shift 1 only).');
+    expect(renderLine(run)).not.toContain(badge);
+    run.runShift();
+    expect(run.shift).toBe(2);
+    expect(renderLine(run)).toContain(badge);
+    expect(renderLine(run)).toContain('Shift 1 only: ×3; idle now.');
+  });
+
   it('shop offers say what kind they are and whether you can afford them', () => {
     const run = new ThroughputRun(1, easyConfig());
     run.load([

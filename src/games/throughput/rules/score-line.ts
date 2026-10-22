@@ -73,7 +73,7 @@ export type ShiftResult = {
   /** Designs that grew (R&D Lab), one entry per +$1. */
   readonly grown: readonly Card[];
   readonly hotPipUsed: boolean;
-  /** Units each Category's Ship cards sold against its Demand this Shift (Wholesale Club's don't count). */
+  /** Units each Category's Ship cards sold against its Demand this Shift (a sell-all Ship's, e.g. Export Deal's, don't count). */
   readonly demandSold: Readonly<Partial<Record<Category, number>>>;
   /** Categories whose Demand this Shift sold the last of. */
   readonly soldOut: readonly Category[];
@@ -229,18 +229,23 @@ function ship(card: Card, marginMul: number, fixture: Fixture | null, batch: Bat
   const grant = sale.ctx.grants[category];
   if (grant.scale > 0) batch.addUnits(config.grant.scaleUnits * grant.scale, 'Scale');
   const base = shipCap(card);
-  // Every Ship but Wholesale Club's "all" draws on the Category's Demand, shared across the round.
+  // Every Ship but a sell-all ("all", e.g. Export Deal) draws on the Category's Demand, shared across the round.
   const usesDemand = base !== 'all';
   const left = usesDemand ? Math.max(0, sale.ctx.demandLeft[category] - sale.demandSoldOf(category)) : Infinity;
-  const cap = base === 'all' ? batch.units : Math.floor((base === 'demand' ? left : base) * batch.capMul);
+  // Cap cuts (Price Gun) apply to a sell-all too: it sells that share of the Batch.
+  const cap = Math.floor((base === 'all' ? batch.units : base === 'demand' ? left : base) * batch.capMul);
   const wanted = Math.min(batch.units, cap, left);
   const hotReady = stage === 'hot' && sale.ctx.hotPipsLeft > 0 && wanted > 0;
   const flagship = fixture?.def.effect.saleMultiplier(card, fixture, batch) ?? 1;
+  // A Fixture that doesn't stack with Hot (Express Lane) gives the larger of the two; the pip is spent only when Hot is the larger.
+  const stacks = fixture?.def.effect.stacksWithHot() ?? true;
+  const hotApplies = hotReady && (stacks || config.hotMultiplier > flagship);
+  const fixtureApplies = stacks || !hotApplies;
   const premium = 1 + config.grant.premiumStep * grant.premium;
-  const price = batch.margin * marginMul * (hotReady ? config.hotMultiplier : 1) * flagship * premium;
+  const price = batch.margin * marginMul * (hotApplies ? config.hotMultiplier : 1) * (fixtureApplies ? flagship : 1) * premium;
   // Under a Shift cap the sale stops at the cap; the Units it doesn't reach stay in the Batch.
   const { units: sold, revenue } = batch.sell(wanted, price);
-  const hot = hotReady && sold > 0;
+  const hot = hotApplies && sold > 0;
 
   batch.units -= sold;
   if (hot) sale.hotUsed = true;
@@ -258,11 +263,13 @@ function ship(card: Card, marginMul: number, fixture: Fixture | null, batch: Bat
   const notes: string[] = [];
   if (typeof base === 'number' && cap !== base) notes.push(`cap ${base}→${cap}`);
   if (base === 'demand' && batch.capMul !== 1) notes.push(`cap ×${formatAmount(batch.capMul)} of Demand`);
+  if (base === 'all' && batch.capMul !== 1) notes.push(`cap ×${formatAmount(batch.capMul)} of the Batch`);
   // Demand before → after this sale, so "2" can't be read as what was there before it sold.
   if (usesDemand) notes.push(`${category} Demand ${left}→${left - sold}${sold === left && sold > 0 ? ' sold out' : ''}`);
   if (marginMul !== 1) notes.push(`×${formatAmount(marginMul)}`);
   if (hot) notes.push(`Hot ×${formatAmount(config.hotMultiplier)}`);
-  if (flagship !== 1 && fixture !== null) notes.push(`${fixture.def.name} ×${formatAmount(flagship)}`);
+  if (flagship !== 1 && fixture !== null && fixtureApplies) notes.push(`${fixture.def.name} ×${formatAmount(flagship)}`);
+  if (hotReady && !hotApplies && fixture !== null) notes.push(`Hot ×${formatAmount(config.hotMultiplier)} not used: ${fixture.def.name} ×${formatAmount(flagship)} is larger`);
   if (premium !== 1) notes.push(`Premium ×${formatAmount(premium)}`);
   const made = Math.floor(sold * price);
   const stopped = sold < wanted ? `${made > revenue ? ` ($${revenue} counts)` : ''}, reaching the $${batch.salesCap} Shift cap; ${wanted - sold} Units unsold` : '';

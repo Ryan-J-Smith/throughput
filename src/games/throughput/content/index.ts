@@ -17,7 +17,7 @@ export {
   WHOLESALE_CLUB,
   WORKSHOP,
 } from './cards';
-export { FIXTURES, fixtureById, flagshipMultiplier } from './fixtures';
+export { EXPRESS_LANE_MUL, FIXTURES, REPEAT_STATION_MUL, fixtureById, flagshipMultiplier } from './fixtures';
 export { CONTRACTS } from './contracts';
 export { BOSSES } from './bosses';
 export { DEFAULT_CONFIG, SEED_03_TARGETS } from './config';

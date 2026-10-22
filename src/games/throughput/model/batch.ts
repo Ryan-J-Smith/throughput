@@ -73,7 +73,7 @@ export class Batch {
 
   mulCaps(factor: number, source: string): void {
     this.capMul *= factor;
-    if (this.tracing) this.note(`${source} later Ship caps ×${formatAmount(factor)}`);
+    if (this.tracing) this.note(`${source}: Ship caps ×${formatAmount(factor)} from here`);
   }
 
   /**

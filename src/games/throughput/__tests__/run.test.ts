@@ -559,7 +559,7 @@ describe('ThroughputRun: payout and shop', () => {
     expect(run.line).toHaveLength(6);
   });
 
-  it('Tooling Upgrade refuses Trucks and Wholesale Clubs, which have no cap to raise', () => {
+  it('Tooling Upgrade refuses Trucks, which have no cap to raise', () => {
     const run = new ThroughputRun(1, easyConfig({ startingCapital: 1000 }));
     makeAndShip(run);
     for (let i = 0; i < 200 && !(run.offers[4]?.kind === 'contract' && run.offers[4].def.effect === 'tooling'); i++) run.reroll();
