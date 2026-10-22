@@ -45,6 +45,30 @@ export function buildQaScene(bossId = 'supply-shock', config: ThroughputConfig =
   return { run, notes };
 }
 
+/**
+ * A finished run for the run summary: `won` plays every round against $1 targets; otherwise the
+ * Y1 Board's target is out of reach, so the run ends there (and the summary shows the Board).
+ */
+export function buildQaEnding(won: boolean): QaScene {
+  const targets = DEFAULT_CONFIG.targets.map((t, i) => (won || i < 2 ? 1 : t * 1000));
+  const run = new ThroughputRun(7, { ...DEFAULT_CONFIG, startingCapital: 60, targets });
+  for (let guard = 0; (run.phase === 'shift' || run.phase === 'shop') && guard < 200; guard++) {
+    if (run.phase === 'shift') {
+      loadEverywhere(run);
+      if (run.whyCannotRun() !== null) break;
+      run.runShift();
+    } else {
+      run.offers.forEach((offer, i) => {
+        const slot = freeFixtureSlot(run);
+        if (offer?.kind === 'fixture' && slot >= 0 && run.whyCannotBuy(i, { slot }) === null) run.buy(i, { slot });
+      });
+      if (run.whyCannotContinue() !== null) break;
+      run.continueToNextRound();
+    }
+  }
+  return { run, notes: [`seed 7, ${run.phase} after round ${run.round} of ${run.rounds}`] };
+}
+
 function freeFixtureSlot(run: ThroughputRun): number {
   return run.line.findIndex((s) => s.fixture === null);
 }
