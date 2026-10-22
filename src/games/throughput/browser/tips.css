@@ -1,0 +1,40 @@
+/* First-run tips: layout only, coloured from theme tokens. Hook: .tp-tip[data-tip="load" | "run" | "shop"]. */
+
+.tp-tip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 10px 14px;
+  border-left: 4px solid var(--focus);
+  border-radius: var(--radius-panel);
+  background: var(--panel);
+  color: var(--chalk);
+}
+
+.tp-tip__text {
+  flex: 1 1 18rem;
+  margin: 0;
+  font: 500 0.95rem/1.45 var(--font-body);
+}
+
+.tp-tip__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tp-tip__off {
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--chalk-dim);
+  font: 500 0.85rem var(--font-body);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.tp-tip__off:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
