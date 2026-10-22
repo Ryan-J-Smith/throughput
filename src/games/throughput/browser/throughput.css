@@ -333,10 +333,10 @@
 .tp-bay__fixture-art {
   position: absolute;
   inset: 0 0 0 auto;
-  width: 64%;
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 65%);
-  mask-image: linear-gradient(90deg, transparent, #000 65%);
-  opacity: 0.55;
+  width: 72%;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 60%);
+  mask-image: linear-gradient(90deg, transparent, #000 60%);
+  opacity: 0.6;
   pointer-events: none;
 }
 
@@ -368,19 +368,42 @@
   color: var(--accent, var(--chalk-dim));
 }
 
+/* A compact badge: the name and a short effect over the art, each kept to its own line(s). */
 .tp-bay__fixture {
+  overflow: hidden;
   font-family: var(--font-display);
   font-size: var(--text-md);
   font-weight: 700;
-  line-height: 1.1;
-  text-shadow: 0 1px 6px rgb(0 0 0 / 0.6);
+  line-height: 1.15;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 6px rgb(0 0 0 / 0.7);
 }
 
 .tp-bay__fixture-text {
+  display: -webkit-box;
+  overflow: hidden;
   font-size: var(--text-xs);
   line-height: 1.3;
   color: #c3cde2;
-  text-shadow: 0 1px 4px rgb(0 0 0 / 0.7);
+  text-shadow: 0 1px 4px rgb(0 0 0 / 0.8);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.screen--tp-shift .tp-bay__fixture-text {
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+}
+
+.screen--tp-shift .tp-bay__plate[data-accent] {
+  min-height: 44px;
+  padding-block: 5px 6px;
+}
+
+.screen--tp-shift .tp-bay__fixture {
+  font-size: var(--text-sm);
 }
 
 /* No Fixture: the plate is an empty inset slot waiting for one. */
@@ -419,17 +442,34 @@
   transform: translateY(-50%);
 }
 
-/* A Mod under a card it never acts on: the plate goes dull, with a note. */
+/* A Mod under a card it never acts on: the plate dims, its name is struck through, and a tag says why. */
 .tp-bay__plate.is-idle {
   border-style: dashed;
-  filter: saturate(0.3);
-  opacity: 0.75;
 }
 
-.tp-bay__idle {
-  font-size: var(--text-xs);
+.tp-bay__plate.is-idle > :not(.tp-bay__idle) {
+  filter: saturate(0.2) brightness(0.7);
+}
+
+.tp-bay__plate.is-idle .tp-bay__fixture {
+  text-decoration: line-through;
+  text-decoration-color: rgb(255 255 255 / 0.5);
+}
+
+.tp-bay__plate > .tp-bay__idle {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  padding: 1px 6px;
+  font-size: 0.5625rem;
   font-weight: 700;
-  color: var(--floor-paint);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--chalk-dim);
+  background: rgb(10 16 29 / 0.85);
+  border: 1px solid rgb(255 255 255 / 0.18);
+  border-radius: var(--radius-pill);
 }
 
 .tp-bay__moved {

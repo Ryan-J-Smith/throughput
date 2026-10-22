@@ -409,6 +409,76 @@ button {
   content: '‹ ';
 }
 
+/* Settings sits at the far end of the bar, styled like Menu. */
+.launcher-bar__settings {
+  margin-left: auto;
+  padding: 5px 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--chalk);
+  background: var(--glass), var(--glass-solid);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  cursor: pointer;
+}
+
+.launcher-bar__settings:hover {
+  border-color: rgb(255 255 255 / 0.25);
+}
+
+.launcher-bar__settings:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* ---------- Settings dialog (layout in settings/settings.css) ---------- */
+
+.settings {
+  background: rgb(4 7 14 / 0.6);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+.settings .settings__panel {
+  background: var(--glass), rgb(14 21 36 / 0.96);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight), 0 24px 70px rgb(0 0 0 / 0.6);
+  animation: stock-in var(--dur-med) var(--ease-out) both;
+}
+
+.settings .settings__title {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+}
+
+.settings .settings__label {
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--chalk-dim);
+}
+
+.settings .settings__choice {
+  background: rgb(255 255 255 / 0.04);
+  border-color: var(--glass-border);
+  border-radius: var(--radius-button);
+  transition:
+    border-color var(--dur-fast) linear,
+    background-color var(--dur-fast) linear;
+}
+
+.settings .settings__choice:hover {
+  border-color: rgb(255 255 255 / 0.25);
+}
+
+.settings .settings__choice:has(input:checked) {
+  color: var(--focus);
+  background: rgb(255 209 102 / 0.12);
+  box-shadow: inset 0 0 0 1px var(--focus), 0 0 16px -6px rgb(255 209 102 / 0.8);
+}
+
 .launcher-bar__title {
   font-family: var(--font-display);
   font-size: var(--text-md);

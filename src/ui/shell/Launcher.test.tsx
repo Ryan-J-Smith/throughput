@@ -84,8 +84,8 @@ describe('title', () => {
   });
 
   it('registers THROUGHPUT as the headline, Bill of Materials as a prototype and the demo as dev-only', () => {
-    // The Art gallery is registered on the dev server only (tests run as dev).
-    expect(BROWSER_GAMES.map((g) => `${g.id}:${g.listing}`)).toEqual(['throughput:featured', 'bom:prototype', 'demo:dev', 'art-gallery:dev']);
+    // The Art gallery and THROUGHPUT QA are registered on the dev server only (tests run as dev).
+    expect(BROWSER_GAMES.map((g) => `${g.id}:${g.listing}`)).toEqual(['throughput:featured', 'bom:prototype', 'demo:dev', 'art-gallery:dev', 'throughput-qa:dev']);
     const html = renderToStaticMarkup(<Launcher games={BROWSER_GAMES} nextSeed={() => 7} store={new MemoryStore()} />);
     expect(html).toContain('<h1 class="home__title">Throughput</h1>');
     expect(html).toContain('Prototype: Bill of Materials');

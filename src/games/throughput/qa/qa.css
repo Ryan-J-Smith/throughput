@@ -1,0 +1,33 @@
+/* THROUGHPUT visual QA (dev only). */
+
+.qa__notes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin: 0 0 12px;
+  font-size: var(--text-sm);
+  color: var(--chalk-dim);
+}
+
+.qa__notes [aria-pressed='true'] {
+  color: var(--focus);
+  border-color: var(--focus);
+}
+
+.qa__shelf {
+  margin-top: 24px;
+}
+
+.qa__bosses {
+  display: grid;
+  gap: 8px;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.qa__bosses .hud__boss {
+  border: 1px solid rgb(255 84 112 / 0.3);
+  border-radius: var(--radius-button);
+}
