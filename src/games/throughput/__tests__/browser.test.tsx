@@ -1,9 +1,9 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { GrantPicker, HowToPlay, LineView, ThroughputBrowserGame, ThroughputScreen, TpHud, TraceReceipt, demandBossCut, demandViews, lineNotice, plateText } from '../browser';
-import { DEFAULT_CONFIG, SKETCH, TRUCK, WORKSHOP } from '../content';
+import { GrantPicker, HowToPlay, LineView, ThroughputBrowserGame, ThroughputScreen, TpHud, TraceReceipt, cardView, demandBossCut, demandViews, lineNotice, plateText } from '../browser';
+import { DEFAULT_CONFIG, REBRAND, SKETCH, TRUCK, WORKSHOP } from '../content';
 import type { BayState } from '../browser';
-import { CATEGORIES } from '../model';
+import { CATEGORIES, cardEffect } from '../model';
 import type { Category, Stage } from '../model';
 import { ThroughputRun, scoreLine } from '../rules';
 import { MemoryStore } from '../../../ui/storage';
@@ -136,6 +136,12 @@ describe('THROUGHPUT browser screen', () => {
     expect(score(hit)).toBe('<div class="hud__stat hud__stat--score" data-reveal="done" data-hit="true">');
     expect(hit).toContain('aria-valuenow="100"');
     expect(hit).toContain('style="width:100%"');
+  });
+
+  it('a Design that takes Margin away reads -$, not +$-', () => {
+    const rebrand = card(REBRAND, 'Home');
+    expect(cardView(rebrand).valueLabel).toBe('-$2');
+    expect(cardEffect(rebrand)).toBe('Design: -$2 Margin, then Margin ×2');
   });
 
   it('a plate shows the short gist (or the rule) and keeps what the Fixture does now', () => {

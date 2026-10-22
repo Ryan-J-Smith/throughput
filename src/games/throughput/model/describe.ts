@@ -31,7 +31,7 @@ export function cardEffect(card: Card): string {
   switch (def.stage) {
     case 'design': {
       const add = designAdd(card);
-      const parts = [add !== 0 ? `+$${formatAmount(add)} Margin` : '', def.marginMul !== 1 ? `Margin ×${formatAmount(def.marginMul)}` : ''];
+      const parts = [add !== 0 ? `${add < 0 ? '-' : '+'}$${formatAmount(Math.abs(add))} Margin` : '', def.marginMul !== 1 ? `Margin ×${formatAmount(def.marginMul)}` : ''];
       return `${STAGE_LABEL.design}: ${parts.filter(Boolean).join(', then ') || 'no effect'}`;
     }
     case 'make':

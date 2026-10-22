@@ -21,7 +21,7 @@ function valueLabel(card: Card, demandLeft?: Readonly<Record<Category, number>>)
   switch (def.stage) {
     case 'design': {
       const add = designAdd(card);
-      return add !== 0 ? `+$${formatAmount(add)}` : `×${formatAmount(def.marginMul)}`;
+      return add !== 0 ? `${add < 0 ? '-' : '+'}$${formatAmount(Math.abs(add))}` : `×${formatAmount(def.marginMul)}`;
     }
     case 'make':
       return `+${makeUnits(card)}`;
