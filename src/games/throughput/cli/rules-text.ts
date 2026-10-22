@@ -1,3 +1,4 @@
+import { BOUTIQUE } from '../content';
 import type { ThroughputConfig } from '../content';
 
 /**
@@ -6,6 +7,7 @@ import type { ThroughputConfig } from '../content';
  */
 export function rulesText(config: ThroughputConfig): string {
   const c = config;
+  const boutiqueCap = BOUTIQUE.stage === 'ship' ? String(BOUTIQUE.cap) : '?';
   const rounds = c.targets.length;
   const years = Math.ceil(rounds / c.roundsPerYear);
   const quarters = Array.from({ length: c.roundsPerYear - 1 }, (_, i) => `Q${i + 1}`).join(', ');
@@ -71,15 +73,20 @@ HOW A SALE IS PRICED
     Margin × the Ship card's own × (Boutique ×2, Wholesale Club ×0.5)
       × Hot ×${c.hotMultiplier} (while a buzz pip is left) × Flagship Store × R&D Premium
   These sale bonuses apply to that one sale only and do not carry on.
-  Caps: a Truck sells up to its Category's Demand left; Boutique sells up to 8 (and Demand left).
+  Caps: a Truck sells up to its Category's Demand left; Boutique sells up to ${boutiqueCap} (and Demand left).
   Price Gun halves what later Ships may sell. Wholesale Club sells every Unit and ignores Demand.
+  Revenue is rounded down once per sale. Margin itself is kept exact and shown to 2 decimals.
 
 DEMAND
-  Each Category has Demand: the Units it buys per round, shared by all its Ship cards (start
-  ${c.demand.start}). It refills each round. A Shift that sells the last of it grows it +${c.demand.sellOutGrowth} for good
-  (from next round). An R&D Grant can Scale it (+${c.grant.scaleDemand} Demand and +${c.grant.scaleUnits} Units at each of its Ships)
-  or make it Premium (+${Math.round(c.grant.premiumStep * 100)}% sale price per level).
-  Revenue is rounded down once per sale. Margin itself is kept exact and shown to 2 decimals.
+  Each Category has Demand: how many Units its Ship cards can sell in a round, all of them
+  together (${c.demand.start} to start). It refills at the start of each round; a Saturated Category gets
+  ×${c.demand.saturatedMul} of it that round. The Market shows what is left.
+  Demand grows for good, counting from the next round:
+  - +${c.demand.sellOutGrowth} when a Shift sells the last of it (sells out);
+  - +${c.demand.emergingGrowth} for each Shift that sells it while it is Emerging;
+  - +${c.grant.scaleDemand} for each R&D Grant Scale, which also adds +${c.grant.scaleUnits} Units at each of its Ship cards.
+  An R&D Grant Premium instead raises that Category's sale price +${Math.round(c.grant.premiumStep * 100)}% per level.
+  Wholesale Club ignores Demand and doesn't use it up.
 
 MARKET (trends)
   Each round every Category has a trend stage. Each new round the conveyor moves
@@ -90,7 +97,7 @@ MARKET (trends)
     keeps the pips, so you can save them for your best Shift. Pips don't carry over to the next round.
   - Emerging: each Shift in which a Ship card of that Category sells at least 1 Unit grows its
     Demand +${c.demand.emergingGrowth} for good. Units have no Category; the Ship card's Category counts.
-  - Saturated: that Category has ×${c.demand.saturatedMul} of its Demand this round.
+  - Saturated: that Category has ×${c.demand.saturatedMul} of its Demand this round (rounded down).
 
 CAPITAL AND THE SHOP
   Capital (C) is separate from Sales. When a round clears you earn ${income},

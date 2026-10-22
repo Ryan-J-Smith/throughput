@@ -12,7 +12,7 @@ import type { BayState } from './LineView';
 import { MarketBoard } from './MarketBoard';
 import { cardView } from './present';
 import { RunAutosave, handNumber } from './run-autosave';
-import { DeckDrawer, PayoutSlip, RulesSheet, Shelf } from './ShopParts';
+import { DeckDrawer, GrantPicker, PayoutSlip, RulesSheet, Shelf } from './ShopParts';
 import { TpHud } from './TpHud';
 import { TraceReceipt } from './TraceReceipt';
 import './throughput.css';
@@ -24,6 +24,7 @@ type Mode =
   | { readonly kind: 'retool'; readonly uids: readonly number[] }
   | { readonly kind: 'install'; readonly offer: number }
   | { readonly kind: 'contract'; readonly offer: number }
+  | { readonly kind: 'grant'; readonly offer: number }
   | { readonly kind: 'fixture'; readonly slot: number };
 
 const IDLE: Mode = { kind: 'idle' };
@@ -129,6 +130,7 @@ export function ThroughputScreen({ seed, onQuit, store, resume }: BrowserGamePro
     if (!run.wallet.canAfford(item.price)) return notify('error', `Not enough Capital (${item.price}C)`);
     if (item.kind === 'fixture') return setMode(mode.kind === 'install' && mode.offer === offer ? IDLE : { kind: 'install', offer });
     if (item.kind === 'contract' && item.def.targetsCard) return setMode(mode.kind === 'contract' && mode.offer === offer ? IDLE : { kind: 'contract', offer });
+    if (item.kind === 'contract' && item.def.targetsCategory) return setMode(mode.kind === 'grant' && mode.offer === offer ? IDLE : { kind: 'grant', offer });
     attempt(run.whyCannotBuy(offer), { verb: 'buy', offer, target: null }, () => run.buy(offer));
   };
 
@@ -164,7 +166,7 @@ export function ThroughputScreen({ seed, onQuit, store, resume }: BrowserGamePro
       <ToastStack toasts={toasts} onDismiss={dismiss} />
       <TpHud run={run} />
       {!inShift && <PayoutSlip run={run} />}
-      <MarketBoard run={run} />
+      <MarketBoard run={run} preview={preview} />
       <LineView run={run} bayState={bayState} onBay={inShift ? tapBayInShift : tapBayInShop} onScrap={inShift ? (s) => attempt(run.whyCannotScrap([s]), { verb: 'scrap', slots: [s] }, () => run.scrap([s])) : undefined} bayLabel={bayLabel} />
 
       {inShift && preview !== null && (
@@ -174,7 +176,7 @@ export function ThroughputScreen({ seed, onQuit, store, resume }: BrowserGamePro
             <div className="hand__cards">
               {run.hand.map((card, i) => {
                 const selected = (mode.kind === 'place' && mode.uid === card.uid) || (mode.kind === 'retool' && mode.uids.includes(card.uid));
-                return <Card key={card.uid} card={cardView(card)} index={i} selected={selected} onClick={() => tapHand(i)} />;
+                return <Card key={card.uid} card={cardView(card, undefined, run.demandLeft)} index={i} selected={selected} onClick={() => tapHand(i)} />;
               })}
             </div>
             <div className="hand__controls tp-controls">
@@ -243,7 +245,7 @@ export function ThroughputScreen({ seed, onQuit, store, resume }: BrowserGamePro
           {mode.kind === 'install' && <p className="tp-hint tp-hint--shop">Tap a bay without a Fixture to install it.</p>}
           <Shelf
             run={run}
-            pending={mode.kind === 'install' || mode.kind === 'contract' ? mode.offer : null}
+            pending={mode.kind === 'install' || mode.kind === 'contract' || mode.kind === 'grant' ? mode.offer : null}
             onBuy={buy}
             onReroll={() => attempt(run.whyCannotReroll(), { verb: 'reroll' }, () => run.reroll())}
             onContinue={() =>
@@ -253,6 +255,18 @@ export function ThroughputScreen({ seed, onQuit, store, resume }: BrowserGamePro
               })
             }
           />
+          {mode.kind === 'grant' && (
+            <GrantPicker
+              run={run}
+              onPick={(category, option) =>
+                attempt(run.whyCannotBuy(mode.offer, { category, option }), { verb: 'buy', offer: mode.offer, target: null, grant: { category, option } }, () => {
+                  run.buy(mode.offer, { category, option });
+                  notify('success', `R&D Grant: ${category} ${option === 'scale' ? `Scale ${run.grants[category].scale}` : `Premium ${run.grants[category].premium}`}`);
+                })
+              }
+              onCancel={() => setMode(IDLE)}
+            />
+          )}
           <DeckDrawer
             run={run}
             picking={mode.kind === 'contract' ? (run.offers[mode.offer]?.def.name ?? null) : null}

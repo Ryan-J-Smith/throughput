@@ -73,6 +73,8 @@ export class ThroughputRun {
   /** Each Category's Demand (grows for good) and what is left of it this round. */
   private readonly demand_: Record<Category, number>;
   private readonly demandLeft_: Record<Category, number>;
+  private readonly roundDemand_: Record<Category, number>;
+  private readonly demandAtStart_: Record<Category, number>;
   private readonly grants_: Record<Category, { scale: number; premium: number }>;
   private readonly history_: RoundRecord[] = [];
   private phase_: Phase = 'shift';
@@ -116,6 +118,8 @@ export class ThroughputRun {
     this.wallet = new Wallet(config.startingCapital);
     this.demand_ = Object.fromEntries(CATEGORIES.map((c) => [c, config.demand.start])) as Record<Category, number>;
     this.demandLeft_ = { ...this.demand_ };
+    this.roundDemand_ = { ...this.demand_ };
+    this.demandAtStart_ = { ...this.demand_ };
     this.grants_ = Object.fromEntries(CATEGORIES.map((c) => [c, { scale: 0, premium: 0 }])) as Record<Category, { scale: number; premium: number }>;
     this.slots_ = Array.from({ length: config.startSlots }, () => ({ fixture: null, card: null }));
     for (const category of CATEGORIES) {
@@ -176,6 +180,22 @@ export class ThroughputRun {
   /** Demand left this round per Category (in the shop: what the round just played left). */
   get demandLeft(): Readonly<Record<Category, number>> {
     return this.demandLeft_;
+  }
+
+  /** Demand at the start of this round, after any Saturated halving: what `demandLeft` counts down from. */
+  get roundDemand(): Readonly<Record<Category, number>> {
+    return this.roundDemand_;
+  }
+
+  /** Permanent Demand earned this round (sell-outs, Emerging sales); it counts from next round. */
+  get demandEarned(): Readonly<Record<Category, number>> {
+    return Object.fromEntries(CATEGORIES.map((c) => [c, this.demand_[c] - this.demandAtStart_[c]])) as Record<Category, number>;
+  }
+
+  /** What `category` buys in `round` at its current Demand: halved while Saturated. */
+  demandIn(round: number, category: Category): number {
+    const saturated = this.trends[round - 1]?.[category] === 'saturated';
+    return Math.floor(this.demand_[category] * (saturated ? this.config.demand.saturatedMul : 1));
   }
 
   /** R&D Grant levels bought per Category. */
@@ -568,7 +588,11 @@ export class ThroughputRun {
     this.shift_ = 1;
     this.retools_ = this.config.retoolsPerRound;
     this.hotPips_ = this.config.hotPips;
-    for (const c of CATEGORIES) this.demandLeft_[c] = Math.floor(this.demand_[c] * (this.trendsNow[c] === 'saturated' ? this.config.demand.saturatedMul : 1));
+    for (const c of CATEGORIES) {
+      this.demandAtStart_[c] = this.demand_[c];
+      this.demandLeft_[c] = this.demandIn(this.round_, c);
+      this.roundDemand_[c] = this.demandLeft_[c];
+    }
     this.lastShift_ = null;
     this.lastPayout_ = null;
     this.storageNotice_ = null;

@@ -1,8 +1,9 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { HowToPlay, LineView, ThroughputBrowserGame, ThroughputScreen, TraceReceipt, lineNotice } from '../browser';
+import { GrantPicker, HowToPlay, LineView, ThroughputBrowserGame, ThroughputScreen, TraceReceipt, demandViews, lineNotice } from '../browser';
 import type { BayState } from '../browser';
-import type { Stage } from '../model';
+import { CATEGORIES } from '../model';
+import type { Category, Stage } from '../model';
 import { ThroughputRun } from '../rules';
 import { MemoryStore } from '../../../ui/storage';
 import { easyConfig } from './fixtures';
@@ -116,5 +117,53 @@ describe('THROUGHPUT browser screen', () => {
   it('registers as a browser game', () => {
     const game = new ThroughputBrowserGame();
     expect([game.id, game.title, game.accent]).toEqual(['throughput', 'Throughput', 'blue']);
+  });
+});
+
+/** A seed whose round 1 has a Saturated Category and an opening hand with 2 Makes and a Ship of it. */
+function saturatedSellOut(): { run: ThroughputRun; category: Category } {
+  for (let seed = 1; seed < 300; seed++) {
+    const run = new ThroughputRun(seed, easyConfig({ targets: [1000, 1000, 1000] }));
+    const category = CATEGORIES.find((c) => run.trendsNow[c] === 'saturated');
+    const makes = run.hand.filter((c) => c.def.stage === 'make').length;
+    if (category !== undefined && makes >= 2 && run.hand.some((c) => c.def.id === 'truck' && c.category === category)) return { run, category };
+  }
+  throw new Error('no seed fits');
+}
+
+describe('THROUGHPUT Demand in the browser', () => {
+  it('bars show this round\'s Demand (halved when Saturated), what this Shift would use, and the growth it earns', () => {
+    const { run, category } = saturatedSellOut();
+    const full = Math.floor(run.demand[category] * run.config.demand.saturatedMul);
+    expect(run.roundDemand[category]).toBe(full);
+    expect(run.demandIn(1, category)).toBe(full);
+    const make = () => run.hand.findIndex((c) => c.def.stage === 'make');
+    run.load([{ hand: make(), slot: 0 }]);
+    run.load([{ hand: make(), slot: 1 }]);
+    run.load([{ hand: run.hand.findIndex((c) => c.def.id === 'truck' && c.category === category), slot: 2 }]);
+    const view = demandViews(run, run.preview()).find((v) => v.category === category);
+    expect(view).toMatchObject({ left: full, full, using: full, halved: true, sellsOut: true, wouldEarn: run.config.demand.sellOutGrowth, earned: 0 });
+
+    run.runShift();
+    expect(run.demandLeft[category]).toBe(0);
+    expect(run.demandEarned[category]).toBe(run.config.demand.sellOutGrowth);
+    expect(demandViews(run, run.preview()).find((v) => v.category === category)).toMatchObject({ left: 0, full, earned: run.config.demand.sellOutGrowth });
+  });
+
+  it('the Market renders a Demand bar per Category with its cues', () => {
+    const { run, category } = saturatedSellOut();
+    const html = renderToStaticMarkup(<ThroughputScreen seed={run.seed} onQuit={() => {}} store={new MemoryStore()} resume={false} />);
+    expect(html).toContain('Demand left');
+    expect(html.match(/class="tp-demand__row"/g)).toHaveLength(4);
+    expect(html).toContain(`data-category="${category}"`);
+    expect(html).toContain('Saturated: halved');
+  });
+
+  it('the R&D Grant picker shows each option\'s effect per Category', () => {
+    const run = new ThroughputRun(1);
+    const html = renderToStaticMarkup(<GrantPicker run={run} onPick={() => {}} onCancel={() => {}} />);
+    expect(html.match(/data-option="scale"/g)).toHaveLength(4);
+    expect(html).toContain('Demand 20 → 30, and each Home Ship adds +3 Units');
+    expect(html).toContain('Food sales ×1 → ×1.25');
   });
 });

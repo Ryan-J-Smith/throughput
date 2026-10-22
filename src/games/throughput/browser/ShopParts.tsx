@@ -1,9 +1,12 @@
+import { useEffect, useRef } from 'react';
 import type { CSSProperties } from 'react';
 import { Card } from '../../../ui/components';
 import { rulesText } from '../cli';
-import { cardName } from '../model';
+import { CATEGORIES, cardName, formatAmount } from '../model';
+import type { Category, GrantOption } from '../model';
 import type { Offer, ThroughputRun } from '../rules';
-import { cardView, offerView } from './present';
+import { CATEGORY_ACCENT, cardView, offerView } from './present';
+import './demand.css';
 
 /** The payout for the round just cleared, as a remittance slip. */
 export function PayoutSlip({ run }: { run: ThroughputRun }) {
@@ -77,9 +80,65 @@ function ShelfItem({ run, offer, index, pending, onBuy }: { run: ThroughputRun; 
       </span>
       <div className="shop__ledge" aria-hidden="true" />
       <button type="button" className={`btn btn--buy ${affordable ? '' : 'btn--unaffordable'}`} onClick={() => onBuy(index)}>
-        {pending ? (offer.kind === 'contract' ? 'Pick a card' : 'Pick a bay') : `Buy ${offer.price}C`}
+        {pending ? pendingLabel(offer) : `Buy ${offer.price}C`}
       </button>
     </div>
+  );
+}
+
+/** What a bought-but-unplaced offer waits for. */
+function pendingLabel(offer: Offer): string {
+  if (offer.kind !== 'contract') return 'Pick a bay';
+  return offer.def.targetsCategory ? 'Pick a Category' : 'Pick a card';
+}
+
+export type GrantPickerProps = {
+  run: ThroughputRun;
+  onPick: (category: Category, option: GrantOption) => void;
+  onCancel: () => void;
+};
+
+/** The R&D Grant's choice: a Category, then Scale or Premium, each showing what it would change. */
+export function GrantPicker({ run, onPick, onCancel }: GrantPickerProps) {
+  const g = run.config.grant;
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => ref.current?.scrollIntoView?.({ block: 'nearest' }), []);
+  return (
+    <section ref={ref} className="tp-grant" aria-labelledby="tp-grant-title">
+      <div className="tp-grant__header">
+        <h2 id="tp-grant-title" className="tp-grant__title">
+          R&amp;D Grant: pick a Category, then Scale or Premium
+        </h2>
+        <button type="button" className="btn" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+      <ul className="tp-grant__list">
+        {CATEGORIES.map((c) => {
+          const { scale, premium } = run.grants[c];
+          const premiumNow = 1 + g.premiumStep * premium;
+          const now = [`Demand ${run.demand[c]}`, scale > 0 ? `Scale ${scale}` : '', premium > 0 ? `Premium ×${formatAmount(premiumNow)}` : ''].filter(Boolean).join(' · ');
+          return (
+            <li key={c} className="tp-grant__category" data-category={c} data-accent={CATEGORY_ACCENT[c]}>
+              <span className="tp-grant__name">{c}</span>
+              <span className="tp-grant__now">{now}</span>
+              <button type="button" className="btn tp-grant__option" data-option="scale" onClick={() => onPick(c, 'scale')}>
+                <span className="tp-grant__option-name">Scale</span>
+                <span className="tp-grant__option-effect">
+                  Demand {run.demand[c]} → {run.demand[c] + g.scaleDemand}, and each {c} Ship adds +{g.scaleUnits * (scale + 1)} Units
+                </span>
+              </button>
+              <button type="button" className="btn tp-grant__option" data-option="premium" onClick={() => onPick(c, 'premium')}>
+                <span className="tp-grant__option-name">Premium</span>
+                <span className="tp-grant__option-effect">
+                  {c} sales ×{formatAmount(premiumNow)} → ×{formatAmount(premiumNow + g.premiumStep)}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 

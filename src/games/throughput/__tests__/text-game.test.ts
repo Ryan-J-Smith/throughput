@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { SaveFile, TurnResult } from '../../../play/session';
 import { ThroughputTextGame, formatAction, offerText, parseAction, rulesText } from '../cli';
 import { DEFAULT_CONFIG, INFLUENCER, WHOLESALE_CLUB } from '../content';
+import { CATEGORIES } from '../model';
 import { ThroughputRun } from '../rules';
 import { easyConfig } from './fixtures';
 
@@ -189,6 +190,27 @@ describe('ThroughputTextGame', () => {
     expect(bought.log[0]).toMatch(/^Bought R&D Grant for 5C: Home Scale 1\. Capital \d+C\.$/);
     expect(bought.save.actions.at(-1)).toBe(`buy ${n} home scale`);
     expect((game.show(bought.save).state as { demand: Record<string, unknown> }).demand.Home).toMatchObject({ scale: 1, premium: 0 });
+  });
+});
+
+describe('Demand text', () => {
+  it('lists Demand left (halved when Saturated), what running now would use, and next round\'s Demand in the shop', () => {
+    const game = new ThroughputTextGame(easyConfig());
+    const seed = Array.from({ length: 100 }, (_, i) => i + 1).find((s) => CATEGORIES.some((c) => new ThroughputRun(s, easyConfig()).trendsNow[c] === 'saturated'));
+    if (seed === undefined) throw new Error('no seed with a Saturated Category in round 1');
+    const run = new ThroughputRun(seed, easyConfig());
+    const saturated = CATEGORIES.find((c) => run.trendsNow[c] === 'saturated') as string;
+    const full = Math.floor(run.config.demand.start * run.config.demand.saturatedMul);
+    const start = game.newSave(seed);
+    expect(game.show(start).text).toContain(`${saturated} ${full} of ${full} (Saturated: halved)`);
+
+    const hand = handOf(game, start);
+    const ship = hand.find((c) => c.stage === 'ship') as HandEntry & { category: string };
+    const loaded = play(game, seed, [`load ${numberOf(hand, 'make')}:1 ${ship.n}:2`]);
+    expect(game.show(loaded).text).toMatch(new RegExp(`Demand used: ${ship.category} \\d+`));
+    const shop = ok(game.take(loaded, 'run'));
+    expect(shop.log.join('\n')).toMatch(new RegExp(`Demand used: ${ship.category} \\d+`));
+    expect(shop.view.text).toMatch(/Demand next round: Apparel \d+/);
   });
 });
 

@@ -1,7 +1,7 @@
 import type { CardView } from '../../../ui/types';
-import { cardEffect, designAdd, formatAmount, makeUnits, shipCap } from '../model';
+import { CATEGORIES, cardEffect, designAdd, formatAmount, makeUnits, shipCap } from '../model';
 import type { Card, CardDef, Category, FixtureDef, TrendStage } from '../model';
-import type { Offer, ThroughputRun } from '../rules';
+import type { Offer, ShiftResult, ThroughputRun } from '../rules';
 
 /** Department colour per Category (keys from ui/theme/tokens.css). */
 export const CATEGORY_ACCENT: Readonly<Record<Category, string>> = { Apparel: 'violet', Gadgets: 'blue', Home: 'orange', Food: 'green' };
@@ -10,8 +10,11 @@ export const STAGE_NAME: Readonly<Record<TrendStage, string>> = { hot: 'Hot', em
 
 const STAGE_LABEL = { design: 'Design', make: 'Make', ship: 'Ship' } as const;
 
-/** The big number on the box: Margin for a Design, Units for a Make, capacity for a Ship. */
-function valueLabel(card: Card): string {
+/**
+ * The big number on the box: Margin for a Design, Units for a Make, capacity for a Ship. A Ship
+ * that sells up to Demand shows the Demand left when known ("≤12"), else "≤D".
+ */
+function valueLabel(card: Card, demandLeft?: Readonly<Record<Category, number>>): string {
   const def = card.def;
   switch (def.stage) {
     case 'design': {
@@ -22,12 +25,14 @@ function valueLabel(card: Card): string {
       return `+${makeUnits(card)}`;
     case 'ship': {
       const cap = shipCap(card);
+      if (cap === 'demand') return `≤${demandLeft?.[card.category] ?? 'D'}`;
       return cap === 'all' ? 'All' : String(cap);
     }
   }
 }
 
-export function cardView(card: Card, id = `card-${card.uid}`): CardView {
+/** `demandLeft` (during a Shift) lets a Demand-capped Ship show how much it can still sell. */
+export function cardView(card: Card, id = `card-${card.uid}`, demandLeft?: Readonly<Record<Category, number>>): CardView {
   const extras = [card.upgrades > 0 ? `Tooled ×${card.upgrades}` : '', card.growth > 0 ? `R&D +$${card.growth}` : ''].filter(Boolean);
   return {
     id,
@@ -35,7 +40,7 @@ export function cardView(card: Card, id = `card-${card.uid}`): CardView {
     description: cardEffect(card).replace(/^\w+: /, ''),
     tags: [card.category, STAGE_LABEL[card.def.stage], ...extras],
     accent: CATEGORY_ACCENT[card.category],
-    valueLabel: valueLabel(card),
+    valueLabel: valueLabel(card, demandLeft),
   };
 }
 
@@ -89,4 +94,50 @@ export function runProgressLabel(run: ThroughputRun): string {
   const q = run.quarterOf(inShop ? run.round + 1 : run.round);
   const quarter = `Year ${q.year} ${q.isBoard ? 'Board' : `Q${q.quarter}`}`;
   return inShop ? `${quarter}, in the shop` : `${quarter}, Shift ${run.shift}: $${run.sales} of $${run.target}`;
+}
+
+/** One Category's Demand as the Market shows it. */
+export type DemandView = {
+  readonly category: Category;
+  /** Units it still buys this round (in the shop: all of next round's Demand). */
+  readonly left: number;
+  /** The bar's full width: Demand at the start of the round, after any Saturated halving. */
+  readonly full: number;
+  /** Units the current Line would sell into it this Shift. */
+  readonly using: number;
+  /** Saturated this round (in the shop: next round), so its Demand is halved. */
+  readonly halved: boolean;
+  /** Permanent Demand already earned this round; it counts from next round. */
+  readonly earned: number;
+  /** Permanent Demand running the current Line would earn. */
+  readonly wouldEarn: number;
+  /** Running the current Line would sell it out. */
+  readonly sellsOut: boolean;
+  readonly scale: number;
+  readonly premium: number;
+};
+
+/** Demand per Category for the Market: this round's during a Shift (with `preview`'s use), next round's in the shop. */
+export function demandViews(run: ThroughputRun, preview: ShiftResult | null): DemandView[] {
+  const next = run.round + 1;
+  return CATEGORIES.map((category) => {
+    const { scale, premium } = run.grants[category];
+    if (run.phase !== 'shift') {
+      const full = next <= run.rounds ? run.demandIn(next, category) : run.demand[category];
+      const halved = run.trends[next - 1]?.[category] === 'saturated';
+      return { category, left: full, full, using: 0, halved, earned: 0, wouldEarn: 0, sellsOut: false, scale, premium };
+    }
+    return {
+      category,
+      left: run.demandLeft[category],
+      full: run.roundDemand[category],
+      using: preview?.demandSold[category] ?? 0,
+      halved: run.trendsNow[category] === 'saturated',
+      earned: run.demandEarned[category],
+      wouldEarn: preview?.demandGrowth[category] ?? 0,
+      sellsOut: preview?.soldOut.includes(category) ?? false,
+      scale,
+      premium,
+    };
+  });
 }

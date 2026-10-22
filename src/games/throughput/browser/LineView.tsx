@@ -59,7 +59,7 @@ export function LineView({ run, bayState, onBay, onScrap, bayLabel }: LineViewPr
               </div>
               <button type="button" className="tp-bay__spot" aria-label={bayLabel(i)} onClick={() => onBay(i)} disabled={inert}>
                 {held !== null ? (
-                  <Card card={cardView(held.card)} />
+                  <Card card={cardView(held.card, undefined, run.demandLeft)} />
                 ) : (
                   <span className="tp-bay__empty">{welded ? '' : station ? slot.fixture?.def.name : inShift ? 'Empty' : ''}</span>
                 )}

@@ -256,6 +256,8 @@ export function formatView(run: ThroughputRun, context: ViewContext): string {
     const preview = run.preview();
     const clears = overkillNote(run, Math.max(0, run.sales + preview.total));
     lines.push('', 'If you run now:', ...traceLines(preview));
+    const demand = demandUseText(preview);
+    if (demand !== '') lines.push(`  Demand used: ${demand}.`);
     if (clears !== '') lines.push(`  This Shift ${clears}.`);
   } else {
     lines.push(...nextBoardLayout(run));
@@ -297,9 +299,44 @@ function marketLines(run: ThroughputRun): string[] {
       : '';
     lines.push(`  ${now ? 'now ' : '    '}${quarterLabel(run, round)}: ${trendsText(trends, pips)}`);
   }
-  const grant = (c: Category) => (run.grants[c].scale + run.grants[c].premium > 0 ? ` (Scale ${run.grants[c].scale}, Premium ${run.grants[c].premium})` : '');
-  lines.push(`  Demand left / Demand: ${CATEGORIES.map((c) => `${c} ${run.demandLeft[c]}/${run.demand[c]}${grant(c)}`).join(' · ')}`);
+  lines.push(demandLine(run));
   return lines;
+}
+
+/**
+ * Demand per Category: during a Shift what is left of this round's (with why it is lower or will
+ * grow), in the shop what next round's will be.
+ */
+function demandLine(run: ThroughputRun): string {
+  const shop = run.phase !== 'shift';
+  const next = run.round + 1;
+  const parts = CATEGORIES.map((c) => {
+    const { scale, premium } = run.grants[c];
+    const notes: string[] = [];
+    const saturated = (shop ? run.trends[next - 1]?.[c] : run.trendsNow[c]) === 'saturated';
+    if (saturated) notes.push(shop ? `Saturated: halved from ${run.demand[c]}` : 'Saturated: halved');
+    if (!shop && run.demandEarned[c] > 0) notes.push(`+${run.demandEarned[c]} from next round`);
+    if (scale > 0) notes.push(`Scale ${scale}`);
+    if (premium > 0) notes.push(`Premium ×${formatAmount(1 + run.config.grant.premiumStep * premium)}`);
+    const amount = shop
+      ? String(next <= run.rounds ? run.demandIn(next, c) : run.demand[c])
+      : run.demandLeft[c] === 0
+        ? 'sold out'
+        : `${run.demandLeft[c]} of ${run.roundDemand[c]}`;
+    return `${c} ${amount}${notes.length > 0 ? ` (${notes.join(', ')})` : ''}`;
+  });
+  return `  Demand ${shop ? 'next round' : 'left this round'}: ${parts.join(' · ')}`;
+}
+
+/** What a Shift sold into Demand and the Demand it grows, e.g. "Home 12 (sells out: +10 from next round)". */
+export function demandUseText(result: ShiftResult): string {
+  return CATEGORIES.flatMap((c) => {
+    const sold = result.demandSold[c] ?? 0;
+    const grows = result.demandGrowth[c] ?? 0;
+    if (sold === 0 && grows === 0) return [];
+    const why = [result.soldOut.includes(c) ? 'sells out' : '', result.emergingSold.includes(c) ? 'Emerging sale' : ''].filter(Boolean).join(', ');
+    return [`${c} ${sold}${grows > 0 ? ` (${why}: +${grows} from next round)` : ''}`];
+  }).join(', ');
 }
 
 /** Free `deck` query: every card and what is left to draw this round. */

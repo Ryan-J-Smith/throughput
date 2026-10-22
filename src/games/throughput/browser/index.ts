@@ -1,11 +1,14 @@
 export { HowToPlay } from './HowToPlay';
 export type { HowToPlayProps } from './HowToPlay';
 export { LineView } from './LineView';
+export { GrantPicker } from './ShopParts';
+export type { GrantPickerProps } from './ShopParts';
 export type { BayState, LineViewProps } from './LineView';
 export { ThroughputBrowserGame } from './ThroughputBrowserGame';
 export { ThroughputScreen } from './ThroughputScreen';
 export { TraceReceipt } from './TraceReceipt';
 export type { TraceReceiptProps } from './TraceReceipt';
-export { CATEGORY_ACCENT, cardView, fixtureView, lineNotice, offerView, runProgressLabel } from './present';
+export { CATEGORY_ACCENT, cardView, demandViews, fixtureView, lineNotice, offerView, runProgressLabel } from './present';
+export type { DemandView } from './present';
 export { RunAutosave, handNumber } from './run-autosave';
 export type { RestoredRun } from './run-autosave';
