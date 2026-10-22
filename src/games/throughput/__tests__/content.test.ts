@@ -139,6 +139,20 @@ describe('wave-1 Contracts', () => {
     expect(run.deck.at(-1)?.uid).not.toBe(source.uid);
   });
 
+  it('a Clone of a bought card resells at half that card\'s price, like the card itself', () => {
+    const run = shopWith('clone');
+    const offer = run.offers.findIndex((o) => o?.kind === 'card');
+    expect(offer).toBeGreaterThanOrEqual(0);
+    run.buy(offer);
+    const bought = run.deck.at(-1);
+    if (bought === undefined) throw new Error('no card bought');
+    run.buy(4, { deckCard: run.deck.length - 1 });
+    const clone = run.deck.length - 1;
+    expect(run.deck[clone]?.paid).toBe(bought.def.price);
+    expect(run.whyCannotSellCard(clone)).toBeNull();
+    expect(run.sellCard(clone)).toBe(Math.floor(bought.def.price * run.config.sellRate));
+  });
+
   it('Ad Campaign, Training Program and Treasury Bond add a pip, a Retool and 2C of interest cap for good', () => {
     const run = shopWith('campaign');
     run.buy(4);

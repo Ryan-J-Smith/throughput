@@ -277,6 +277,7 @@ describe('rules and shop text', () => {
     expect(text).toContain('Revenue is rounded down once per sale');
     expect(text).toContain('Line Shift: Shift 1 runs on your layout. From Shift 2 on');
     expect(text).toContain('The opening hand always holds at least one Make and one Ship');
+    expect(text).toContain("2 Trucks (Ship up to the Category's Demand)");
     expect(text).toContain('Restock: Once per round, when you would draw from an empty draw pile');
     expect(rulesText({ ...DEFAULT_CONFIG, restocksPerRound: 0, openingHandTypes: [] })).toContain('The deck does NOT reshuffle during a round');
     expect(text).toContain(`Targets: Y1 ${DEFAULT_CONFIG.targets.slice(0, 3).join('/')}`);

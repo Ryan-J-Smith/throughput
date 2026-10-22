@@ -171,6 +171,22 @@ describe('cli rules', () => {
   });
 });
 
+describe('cli deck', () => {
+  it('prints a save\'s deck without touching the save, and says so for a game without one', () => {
+    const io = new FakeIo();
+    io.run('new', '--seed', '5', '--save', 't.json', '--game', 'throughput');
+    const saved = io.read('t.json');
+    io.stdout = [];
+    expect(io.run('deck', '--save', 't.json')).toBe(EXIT_OK);
+    expect(io.output).toMatch(/^Deck \(20 cards\)/);
+    expect(io.read('t.json')).toBe(saved);
+    expect(io.run('deck')).toBe(EXIT_USAGE);
+    io.run('new', '--seed', '5', '--save', 'd.json', '--game', 'demo');
+    expect(io.run('deck', '--save', 'd.json')).toBe(EXIT_USAGE);
+    expect(io.stderr.join('\n')).toMatch(/demo has no deck view/);
+  });
+});
+
 describe('cli with a non-Run game', () => {
   it('drives any TextGame and does not rewrite the save for read-only queries', () => {
     const io = new FakeIo();
@@ -190,6 +206,6 @@ describe('cli with a non-Run game', () => {
     runCli(['new', '--seed', '3', '--save', 'c.json', '--game', 'counter'], io, games);
     io.stdout = [];
     expect(runCli(['act', '--save', 'c.json', 'peek'], io, games)).toBe(EXIT_OK);
-    expect(io.stdout.join('\n')).toBe('> peek\nvalue is 3\n(state unchanged; use "state" to reprint it)');
+    expect(io.stdout.join('\n')).toBe('> peek\nvalue is 3\n(state unchanged; reprint it with: npm run -s cli -- state --save c.json)');
   });
 });

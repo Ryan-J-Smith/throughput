@@ -331,7 +331,9 @@ export class ThroughputRun {
   /** The next `count` Board Reviews from the current round on (bosses are telegraphed a Year ahead). */
   upcomingBoards(count = 2): { readonly round: number; readonly year: number; readonly boss: BoardBoss }[] {
     const out: { round: number; year: number; boss: BoardBoss }[] = [];
-    for (let round = this.round_; round <= this.rounds && out.length < count; round++) {
+    // In the shop the current round is the one just cleared, so look from the next.
+    const from = this.phase_ === 'shop' ? this.round_ + 1 : this.round_;
+    for (let round = from; round <= this.rounds && out.length < count; round++) {
       const boss = this.bossOf(round);
       if (boss !== null) out.push({ round, year: this.quarterOf(round).year, boss });
     }
@@ -789,8 +791,9 @@ export class ThroughputRun {
         this.slots_.push({ fixture: null, card: null });
         return;
       case 'clone': {
+        // A Clone resells like the card it copies: at half that card's price (a starter's copy has none).
         const card = this.deck_[deckCard as number] as Card;
-        this.deck_.push({ ...this.newCard(card.def, card.category, 0), upgrades: card.upgrades, growth: card.growth });
+        this.deck_.push({ ...this.newCard(card.def, card.category, card.def.price), upgrades: card.upgrades, growth: card.growth });
         return;
       }
       case 'campaign':

@@ -21,6 +21,7 @@ const USAGE = `usage:
   npm run -s cli -- state --save FILE [--json]
   npm run -s cli -- act   --save FILE "<action>" [--json]
   npm run -s cli -- rules --game NAME | --save FILE [--json]
+  npm run -s cli -- deck  --save FILE [--json]
 actions are game-specific; every state printout ends with the legal ones (--game picks the game for new)
 free queries such as act "rules" or act "deck" print an answer and leave the save alone
 exit codes: 0 ok, 1 illegal action (save unchanged), 2 usage or save-file error`;
@@ -51,6 +52,8 @@ export function runCli(args: readonly string[], io: CliIo, games: readonly TextG
         return commandAct(parsed, io, games);
       case 'rules':
         return commandRules(parsed, io, games);
+      case 'deck':
+        return commandDeck(parsed, io, games);
       case 'help':
         io.out(USAGE);
         return EXIT_OK;
@@ -112,7 +115,7 @@ function commandAct(parsed: Parsed, io: CliIo, games: readonly TextGame[]): numb
     io.out([`> ${action}`, ...result.log, '', result.view.text].join('\n'));
   } else {
     // The state can't have changed, so don't reprint it.
-    io.out([`> ${action}`, ...result.log, '(state unchanged; use "state" to reprint it)'].join('\n'));
+    io.out([`> ${action}`, ...result.log, `(state unchanged; reprint it with: npm run -s cli -- state --save ${path})`].join('\n'));
   }
   return EXIT_OK;
 }
@@ -126,6 +129,15 @@ function commandRules(parsed: Parsed, io: CliIo, games: readonly TextGame[]): nu
   const save = name === undefined ? loadSave(parsed, io) : findGame(games, name).newSave(1);
   const result = findGame(games, save.game).take(save, 'rules');
   if (!result.ok) throw new UsageError(`${save.game} has no rules text (${result.reason})`);
+  io.out(parsed.flags.has('json') ? JSON.stringify({ ok: true, log: result.log }) : result.log.join('\n'));
+  return EXIT_OK;
+}
+
+/** Prints a save's deck (its free "deck" query). Never writes the save. */
+function commandDeck(parsed: Parsed, io: CliIo, games: readonly TextGame[]): number {
+  const save = loadSave(parsed, io);
+  const result = findGame(games, save.game).take(save, 'deck');
+  if (!result.ok) throw new UsageError(`${save.game} has no deck view (${result.reason})`);
   io.out(parsed.flags.has('json') ? JSON.stringify({ ok: true, log: result.log }) : result.log.join('\n'));
   return EXIT_OK;
 }

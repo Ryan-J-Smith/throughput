@@ -63,7 +63,7 @@ CARDS
   - Make: adds Units. Dispatched (discarded) after the Shift, unless its Fixture keeps it.
   - Ship: sells Units at the current Margin. Dispatched after the Shift, even if it sold nothing.
   Starter deck (20): per Category 1 Sketch (Design +$2), 2 Workshops (Make +6 Units),
-  2 Trucks (Ship up to 20 Units).
+  2 Trucks (Ship up to the Category's Demand).
   Each round starts with an empty Line, the whole deck shuffled and a hand of ${c.handSize}.${opener === '' ? '' : `
   The opening hand always holds at least ${opener} (if your deck has them).`}
 ${draws}

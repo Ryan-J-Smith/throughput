@@ -1,9 +1,10 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { GrantPicker, HowToPlay, LineView, ThroughputBrowserGame, ThroughputScreen, TpHud, TraceReceipt, cardView, demandBossCut, demandViews, lineNotice, plateText } from '../browser';
+import { cardText, demandUseText, grownText } from '../cli';
 import { DEFAULT_CONFIG, REBRAND, SKETCH, TRUCK, WORKSHOP } from '../content';
 import type { BayState } from '../browser';
-import { CATEGORIES, cardEffect } from '../model';
+import { CATEGORIES, cardEffect, growthText } from '../model';
 import type { Category, Stage } from '../model';
 import { ThroughputRun, scoreLine } from '../rules';
 import { MemoryStore } from '../../../ui/storage';
@@ -142,6 +143,27 @@ describe('THROUGHPUT browser screen', () => {
     expect(score(hit)).toBe('<div class="hud__stat hud__stat--score" data-reveal="done" data-hit="true">');
     expect(hit).toContain('aria-valuenow="100"');
     expect(hit).toContain('style="width:100%"');
+  });
+
+  it('the last round shows no Demand growth "from next round"', () => {
+    const last = new ThroughputRun(1, easyConfig({ targets: [100_000] }));
+    const preview = { ...last.preview(), demandSold: { Home: 5 }, demandGrowth: { Home: 10 }, soldOut: ['Home'] as Category[] };
+    expect(demandUseText(preview)).toBe('Home 5 (sells out: +10 from next round)');
+    expect(demandUseText(preview, false)).toBe('Home 5');
+    expect(demandViews(last, preview).find((v) => v.category === 'Home')).toMatchObject({ earned: 0, wouldEarn: 0, sellsOut: true });
+    const notLast = new ThroughputRun(1, easyConfig({ targets: [100_000, 100_000] }));
+    expect(demandViews(notLast, preview).find((v) => v.category === 'Home')?.wouldEarn).toBe(10);
+  });
+
+  it('growth reads by card type: R&D Margin on a Design, Automation Units on a Make', () => {
+    const sketch = card(SKETCH, 'Home', { growth: 2 });
+    const workshop = card(WORKSHOP, 'Food', { growth: 3 });
+    expect(growthText(sketch)).toBe('R&D +$2');
+    expect(growthText(workshop)).toBe('Automated +3 Units');
+    expect(growthText(card(WORKSHOP, 'Food'))).toBe('');
+    expect(cardView(workshop).tags).toContain('Automated +3 Units');
+    expect(cardText(workshop)).toBe('Workshop-F · Make: +9 Units (Automated +3 Units)');
+    expect(grownText([sketch, workshop, workshop, workshop])).toBe('Sketch-H +$1, Workshop-F +3 Units');
   });
 
   it('a Design that takes Margin away reads -$, not +$-', () => {

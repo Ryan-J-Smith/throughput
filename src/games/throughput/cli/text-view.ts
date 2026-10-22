@@ -1,6 +1,6 @@
 import { computeInterest } from '../../../engine/economy';
 import { TRUCK } from '../content';
-import { CATEGORIES, cardEffect, cardName, formatAmount } from '../model';
+import { CATEGORIES, cardEffect, cardName, formatAmount, growthText } from '../model';
 import type { Card, CardDef, Category, Fixture, TrendStage } from '../model';
 import type { BuyTarget, FixtureMove, Offer, ShiftResult, ThroughputRun, Trends } from '../rules';
 
@@ -32,8 +32,15 @@ export function fixtureText(fixture: Fixture): string {
   return `${fixture.def.name} (${fixture.def.kind === 'station' ? 'Station' : 'Mod'}): ${fixture.def.text}${now === '' ? '' : ` ${now}`}`;
 }
 
+/** The cards a Shift grew for good, once each with how much, e.g. "Sketch-H +$1, Workshop-G +3 Units". */
+export function grownText(grown: readonly Card[]): string {
+  const points = new Map<Card, number>();
+  for (const card of grown) points.set(card, (points.get(card) ?? 0) + 1);
+  return [...points].map(([card, n]) => `${cardName(card)} ${card.def.stage === 'make' ? `+${n} Units` : `+$${n}`}`).join(', ');
+}
+
 export function cardText(card: Card): string {
-  const extras = [card.upgrades > 0 ? `${card.upgrades} upgrade${card.upgrades === 1 ? '' : 's'}` : '', card.growth > 0 ? `R&D +$${card.growth}` : '']
+  const extras = [card.upgrades > 0 ? `${card.upgrades} upgrade${card.upgrades === 1 ? '' : 's'}` : '', growthText(card)]
     .filter(Boolean)
     .join(', ');
   return `${cardName(card)} · ${cardEffect(card)}${extras === '' ? '' : ` (${extras})`}`;
@@ -271,7 +278,7 @@ export function formatView(run: ThroughputRun, context: ViewContext): string {
     const preview = run.preview();
     const clears = overkillNote(run, Math.max(0, run.sales + preview.total));
     lines.push('', 'If you run now:', ...traceLines(preview));
-    const demand = demandUseText(preview);
+    const demand = demandUseText(preview, run.round < run.rounds);
     if (demand !== '') lines.push(`  Demand used: ${demand}.`);
     if (clears !== '') lines.push(`  This Shift ${clears}.`);
   } else {
@@ -332,7 +339,7 @@ function demandLine(run: ThroughputRun): string {
     if (saturated) notes.push(shop ? `Saturated: halved from ${run.demand[c]}` : 'Saturated: halved');
     const boss = run.bossOf(shop ? next : run.round);
     if (boss != null && boss.demandMul() !== 1 && (shop ? next : run.round) <= run.rounds) notes.push(`${boss.name} ×${formatAmount(boss.demandMul())}`);
-    if (!shop && run.demandEarned[c] > 0) notes.push(`+${run.demandEarned[c]} from next round`);
+    if (!shop && run.demandEarned[c] > 0 && run.round < run.rounds) notes.push(`+${run.demandEarned[c]} from next round`);
     if (scale > 0) notes.push(`Scale ${scale}`);
     if (premium > 0) notes.push(`Premium ×${formatAmount(1 + run.config.grant.premiumStep * premium)}`);
     const amount = shop
@@ -345,11 +352,14 @@ function demandLine(run: ThroughputRun): string {
   return `  Demand ${shop ? 'next round' : 'left this round'}: ${parts.join(' · ')}`;
 }
 
-/** What a Shift sold into Demand and the Demand it grows, e.g. "Home 12 (sells out: +10 from next round)". */
-export function demandUseText(result: ShiftResult): string {
+/**
+ * What a Shift sold into Demand and the Demand it grows, e.g. "Home 12 (sells out: +10 from next
+ * round)". Without a next round (`growsNext` false) the growth isn't mentioned.
+ */
+export function demandUseText(result: ShiftResult, growsNext = true): string {
   return CATEGORIES.flatMap((c) => {
     const sold = result.demandSold[c] ?? 0;
-    const grows = result.demandGrowth[c] ?? 0;
+    const grows = growsNext ? (result.demandGrowth[c] ?? 0) : 0;
     if (sold === 0 && grows === 0) return [];
     const why = [result.soldOut.includes(c) ? 'sells out' : '', result.emergingSold.includes(c) ? 'Emerging sale' : ''].filter(Boolean).join(', ');
     return [`${c} ${sold}${grows > 0 ? ` (${why}: +${grows} from next round)` : ''}`];

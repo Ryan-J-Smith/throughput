@@ -1,6 +1,6 @@
 import type { CardView } from '../../../ui/types';
 import { fixtureNow } from '../cli';
-import { CATEGORIES, cardEffect, designAdd, formatAmount, makeUnits, shipCap } from '../model';
+import { CATEGORIES, cardEffect, designAdd, formatAmount, growthText, makeUnits, shipCap } from '../model';
 import type { Card, CardDef, Category, Fixture, FixtureDef, TrendStage } from '../model';
 import type { Offer, ShiftResult, ThroughputRun } from '../rules';
 import { CATEGORY_ICON, cardArt, contractArt, fixtureArt } from './art';
@@ -35,7 +35,7 @@ function valueLabel(card: Card, demandLeft?: Readonly<Record<Category, number>>)
 
 /** `demandLeft` (during a Shift) lets a Demand-capped Ship show how much it can still sell. */
 export function cardView(card: Card, id = `card-${card.uid}`, demandLeft?: Readonly<Record<Category, number>>): CardView {
-  const extras = [card.upgrades > 0 ? `Tooled ×${card.upgrades}` : '', card.growth > 0 ? `R&D +$${card.growth}` : ''].filter(Boolean);
+  const extras = [card.upgrades > 0 ? `Tooled ×${card.upgrades}` : '', growthText(card)].filter(Boolean);
   return {
     id,
     title: card.def.name,
@@ -138,6 +138,7 @@ export type DemandView = {
 /** Demand per Category for the Market: this round's during a Shift (with `preview`'s use), next round's in the shop. */
 export function demandViews(run: ThroughputRun, preview: ShiftResult | null): DemandView[] {
   const next = run.round + 1;
+  const lastRound = run.round >= run.rounds;
   const bossCut = demandBossCut(run, run.phase === 'shift' ? run.round : next);
   return CATEGORIES.map((category) => {
     const { scale, premium } = run.grants[category];
@@ -153,8 +154,9 @@ export function demandViews(run: ThroughputRun, preview: ShiftResult | null): De
       using: preview?.demandSold[category] ?? 0,
       halved: run.trendsNow[category] === 'saturated',
       bossCut,
-      earned: run.demandEarned[category],
-      wouldEarn: preview?.demandGrowth[category] ?? 0,
+      // Growth counts from next round, so the last round shows none.
+      earned: lastRound ? 0 : run.demandEarned[category],
+      wouldEarn: lastRound ? 0 : (preview?.demandGrowth[category] ?? 0),
       sellsOut: preview?.soldOut.includes(category) ?? false,
       scale,
       premium,

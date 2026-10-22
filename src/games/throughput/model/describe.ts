@@ -14,6 +14,12 @@ export function designAdd(card: Card): number {
   return card.def.stage === 'design' ? card.def.marginAdd + card.upgrades + card.growth : 0;
 }
 
+/** What a card has grown for good, or '' if nothing: R&D Lab adds Margin to Designs, Automation Units to Makes. */
+export function growthText(card: Card): string {
+  if (card.growth <= 0) return '';
+  return card.def.stage === 'make' ? `Automated +${card.growth} Units` : `R&D +$${card.growth}`;
+}
+
 /** Units a Make card adds, including Tooling Upgrades and Automation growth. */
 export function makeUnits(card: Card): number {
   return card.def.stage === 'make' ? card.def.units + 3 * card.upgrades + card.growth : 0;

@@ -10,7 +10,7 @@ import type { ThroughputAction } from './actions';
 
 type BuyAction = Extract<ThroughputAction, { verb: 'buy' }>;
 import { rulesText } from './rules-text';
-import { deckText, demandUseText, formatView, legalActions, movesText, quarterLabel, stateData, traceLines } from './text-view';
+import { deckText, demandUseText, formatView, grownText, legalActions, movesText, quarterLabel, stateData, traceLines } from './text-view';
 
 /** THROUGHPUT for the text CLI: `npm run -s cli -- new --game throughput --seed N --save FILE`. */
 export class ThroughputTextGame extends ReplayTextGame<ThroughputRun> {
@@ -189,9 +189,9 @@ function runLog(run: ThroughputRun): string[] {
   const lines = [`Shift ${shift}:`, ...traceLines(result)];
   const extras: string[] = [];
   if (result.hotPipUsed) extras.push('a Hot buzz pip was used');
-  const demand = demandUseText(result);
+  const demand = demandUseText(result, round < run.rounds);
   if (demand !== '') extras.push(`Demand used: ${demand}`);
-  if (result.grown.length > 0) extras.push(`R&D growth: ${result.grown.map(cardName).join(', ')}`);
+  if (result.grown.length > 0) extras.push(`grew for good: ${grownText(result.grown)}`);
   if (extras.length > 0) lines.push(`  ${extras.join('; ')}.`);
   lines.push(`Round sales $${run.sales} of $${target}.`);
   switch (run.phase) {

@@ -97,7 +97,7 @@ function DemandBars({ views, inShop, premiumStep }: { views: readonly DemandView
             v.scale > 0 ? `Scale ${v.scale}` : '',
             v.premium > 0 ? `Premium ×${formatAmount(1 + premiumStep * v.premium)}` : '',
             v.earned > 0 ? `+${v.earned} from next round` : '',
-            v.sellsOut ? `this Shift sells out: +${v.wouldEarn}` : v.wouldEarn > 0 ? `this Shift: +${v.wouldEarn}` : '',
+            v.sellsOut ? `this Shift sells out${v.wouldEarn > 0 ? `: +${v.wouldEarn}` : ''}` : v.wouldEarn > 0 ? `this Shift: +${v.wouldEarn}` : '',
           ].filter(Boolean);
           return (
             <li

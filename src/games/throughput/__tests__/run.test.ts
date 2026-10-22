@@ -235,6 +235,17 @@ describe('ThroughputRun: payout and shop', () => {
     expect(run.deck).toHaveLength(20);
   });
 
+  it('in the shop, the Boards ahead start after the round just cleared', () => {
+    const run = new ThroughputRun(1, easyConfig({ roundsPerYear: 2, targets: [0, 0, 0, 0] }));
+    expect(run.upcomingBoards().map((b) => b.round)).toEqual([2, 4]);
+    run.runShift();
+    expect(run.upcomingBoards().map((b) => b.round)).toEqual([2, 4]);
+    run.continueToNextRound();
+    run.runShift();
+    expect(run.phase).toBe('shop');
+    expect(run.upcomingBoards().map((b) => b.round)).toEqual([4]);
+  });
+
   it('moving a Fixture costs 1C and swaps; rerolls escalate', () => {
     const run = new ThroughputRun(1, easyConfig({ startingCapital: 100 }));
     makeAndShip(run);
