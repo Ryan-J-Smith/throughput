@@ -16,7 +16,8 @@ type CardOfferDef = { readonly id: string; readonly rarity: 'common'; readonly p
 type ContractOfferDef = { readonly id: string; readonly rarity: 'common'; readonly price: number; readonly weight?: number; readonly contract: ContractDef };
 
 /** Chance of each Fixture rarity per offer; split evenly among the Fixtures of that rarity. */
-const FIXTURE_ODDS: Readonly<Record<Rarity, number>> = { common: 70, uncommon: 25, rare: 5 };
+// Playtest 2: rares were near-unseen (Flagship 0 offers in 8 runs), so 70/25/5 became 60/30/10.
+const FIXTURE_ODDS: Readonly<Record<Rarity, number>> = { common: 60, uncommon: 30, rare: 10 };
 
 /**
  * Each visit offers 2 Fixtures, 2 Cards and 1 Contract. Built on three engine Shops (one per
@@ -64,22 +65,22 @@ export class ThroughputShop {
     ];
   }
 
-  /** Fresh stock for a shop visit; Floor Expansion is left out once the Line is at its maximum. */
-  restock(canExpand: boolean): void {
+  /** Fresh stock for a shop visit; Contracts the run can't take (`allowed` false) are left out. */
+  restock(allowed: (contract: ContractDef) => boolean): void {
     this.rerollCost_ = this.config.rerollBaseCost;
-    this.stock(canExpand);
+    this.stock(allowed);
   }
 
   whyCannotReroll(wallet: Wallet): string | null {
     return wallet.canAfford(this.rerollCost_) ? null : `Not enough Capital to reroll (${this.rerollCost_}C)`;
   }
 
-  reroll(wallet: Wallet, canExpand: boolean): void {
+  reroll(wallet: Wallet, allowed: (contract: ContractDef) => boolean): void {
     const reason = this.whyCannotReroll(wallet);
     if (reason !== null) throw new Error(reason);
     wallet.spend(this.rerollCost_);
     this.rerollCost_ += this.config.rerollCostIncrement;
-    this.stock(canExpand);
+    this.stock(allowed);
   }
 
   whyCannotBuy(index: number, wallet: Wallet): string | null {
@@ -99,10 +100,10 @@ export class ThroughputShop {
     return offer;
   }
 
-  private stock(canExpand: boolean): void {
+  private stock(allowed: (contract: ContractDef) => boolean): void {
     this.fixtures.restock();
     this.cards.restock();
-    this.contracts.restock((def) => canExpand || def.contract.effect !== 'expand');
+    this.contracts.restock((def) => allowed(def.contract));
   }
 }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_CONFIG } from '../content';
+import { DEFAULT_CONFIG, STARTER_CARDS } from '../content';
 import type { ThroughputConfig } from '../content';
 import { CATEGORIES, makeUnits } from '../model';
 import type { Card, Category, Stage } from '../model';
@@ -37,15 +37,19 @@ function findRun(config: ThroughputConfig, setup: (run: ThroughputRun) => void, 
   throw new Error('no seed fits');
 }
 
+/** Starter deck size, and what is left to draw after the opening hand of 7. */
+const DECK = STARTER_CARDS.length * CATEGORIES.length;
+const DRAW = DECK - 7;
+
 describe('ThroughputRun: setup', () => {
-  it('deals a hand of 7 from a 20-card starter deck onto an empty 5-slot Line', () => {
+  it('deals a hand of 7 from the starter deck (4 cards per Category) onto an empty 5-slot Line', () => {
     const run = new ThroughputRun(1);
     expect(run.phase).toBe('shift');
     expect(run.quarter).toEqual({ round: 1, year: 1, quarter: 1, isBoard: false });
     expect(run.target).toBe(DEFAULT_CONFIG.targets[0]);
-    expect(run.deck).toHaveLength(20);
+    expect(run.deck).toHaveLength(16);
     expect(run.hand).toHaveLength(7);
-    expect(run.drawPile).toHaveLength(13);
+    expect(run.drawPile).toHaveLength(DRAW);
     expect(run.line).toHaveLength(5);
     expect(run.wallet.cash).toBe(4);
     expect(run.retoolsLeft).toBe(2);
@@ -124,19 +128,20 @@ describe('ThroughputRun: a Shift', () => {
 
   it('Restock: once per round an empty draw pile takes the shuffled discards', () => {
     const run = new ThroughputRun(1, easyConfig({ targets: [10_000], retoolsPerRound: 20 }));
-    // 13 cards to draw; each Retool of 3 draws 3, so the fifth runs the pile dry partway.
-    for (let i = 0; i < 4; i++) run.retool([0, 1, 2]);
-    expect([run.drawPile.length, run.discardPile.length, run.restocksLeft]).toEqual([1, 12, 1]);
+    // Each Retool of 3 draws 3; once fewer than 3 are left, the next Retool runs the pile dry.
+    const retools = Math.floor(DRAW / 3);
+    for (let i = 0; i < retools; i++) run.retool([0, 1, 2]);
+    expect([run.drawPile.length, run.discardPile.length, run.restocksLeft]).toEqual([DRAW - 3 * retools, 3 * retools, 1]);
     run.retool([0, 1, 2]);
-    expect(run.restocked).toBe(15);
+    expect(run.restocked).toBe(3 * retools + 3);
     expect(run.restocksLeft).toBe(0);
     expect(run.hand).toHaveLength(7);
-    expect([run.drawPile.length, run.discardPile.length]).toEqual([13, 0]);
+    expect([run.drawPile.length, run.discardPile.length]).toEqual([DRAW, 0]);
     for (let i = 0; i < 5; i++) run.retool([0, 1, 2]);
     expect(run.drawPile).toHaveLength(0);
     expect(run.hand.length).toBeLessThan(7);
-    expect(run.restocked).toBe(15);
-    expect(run.drawPile.length + run.hand.length + run.discardPile.length).toBe(20);
+    expect(run.restocked).toBe(3 * retools + 3);
+    expect(run.drawPile.length + run.hand.length + run.discardPile.length).toBe(DECK);
   });
 
   it('the opening hand always holds a Make and a Ship, swapped in from the top of the draw pile', () => {
@@ -148,7 +153,7 @@ describe('ThroughputRun: a Shift', () => {
     const fixed = new ThroughputRun(seed, easyConfig());
     expect(has(fixed, 'make') && has(fixed, 'ship')).toBe(true);
     expect(fixed.hand).toHaveLength(7);
-    expect(fixed.drawPile).toHaveLength(13);
+    expect(fixed.drawPile).toHaveLength(DRAW);
     // The two runs deal the same cards (same uids); only the missing types came in from the draw pile.
     const uids = (cards: readonly { uid: number }[]) => cards.map((c) => c.uid);
     const moved = fixed.hand.filter((c) => !uids(plain.hand).includes(c.uid));
@@ -171,7 +176,7 @@ describe('ThroughputRun: a Shift', () => {
     run.retool([0, 1, 2]);
     run.retool([0]);
     expect(run.hand).toHaveLength(7);
-    expect(run.drawPile).toHaveLength(9);
+    expect(run.drawPile).toHaveLength(DRAW - 4);
     expect(run.discardPile).toHaveLength(4);
     expect(run.whyCannotRetool([0])).toBe('No Retools left this round');
   });
@@ -199,8 +204,8 @@ describe('ThroughputRun: payout and shop', () => {
     expect(run.line.every((s) => s.card === null)).toBe(true);
   });
 
-  it('pays overkill: +1C per full 25% of the target sold beyond it, at most 5C', () => {
-    const run = new ThroughputRun(1, easyConfig({ targets: [100, 100, 100] }));
+  it('pays overkill: +1C per full 25% of the target sold beyond it, up to the cap', () => {
+    const run = new ThroughputRun(1, easyConfig({ targets: [100, 100, 100], overkill: { step: 0.25, cap: 5 } }));
     expect([100, 124, 125, 150, 199, 225, 1000].map((sales) => run.overkillPayFor(sales))).toEqual([0, 0, 1, 2, 3, 5, 5]);
     const capped = new ThroughputRun(1, easyConfig({ targets: [100, 100, 100], overkill: { step: 0.1, cap: 3 } }));
     expect([109, 110, 130, 500].map((sales) => capped.overkillPayFor(sales))).toEqual([0, 1, 3, 3]);
@@ -213,7 +218,7 @@ describe('ThroughputRun: payout and shop', () => {
     expect(run.lastPayout).toEqual([
       { source: 'Q1 cleared', amount: 4 },
       { source: '3 unused Shifts', amount: 6 },
-      { source: 'Overkill (140% over target)', amount: 5 },
+      { source: 'Overkill (140% over target)', amount: DEFAULT_CONFIG.overkill.cap },
       { source: 'Interest', amount: 2 },
     ]);
   });
@@ -224,15 +229,35 @@ describe('ThroughputRun: payout and shop', () => {
     expect(run.whyCannotBuy(0)).toMatch(/which slot/);
     const fixture = run.buy(0, { slot: 2 });
     expect(run.line[2]?.fixture?.def).toBe(fixture.def);
-    expect(run.whyCannotBuy(1, { slot: 2 })).toMatch(/already has/);
+    // Buying onto an occupied slot sells the Fixture there for half its price as part of the buy.
+    const refund = Math.floor(fixture.price / 2);
+    expect(run.fixtureRefund(2)).toBe(refund);
+    const cash = run.wallet.cash;
+    const second = run.buy(1, { slot: 2 });
+    expect(run.line[2]?.fixture?.def).toBe(second.def);
+    expect(run.wallet.cash).toBe(cash + refund - second.price);
     run.buy(2);
-    expect(run.deck).toHaveLength(21);
+    expect(run.deck).toHaveLength(DECK + 1);
     const before = run.wallet.cash;
-    expect(run.sellFixture(2)).toBe(Math.floor(fixture.price / 2));
-    expect(run.wallet.cash).toBe(before + Math.floor(fixture.price / 2));
+    expect(run.sellFixture(2)).toBe(Math.floor(second.price / 2));
+    expect(run.wallet.cash).toBe(before + Math.floor(second.price / 2));
     expect(run.whyCannotSellCard(0)).toMatch(/starter card/);
-    expect(run.sellCard(20)).toBeGreaterThan(0);
-    expect(run.deck).toHaveLength(20);
+    expect(run.sellCard(DECK)).toBeGreaterThan(0);
+    expect(run.deck).toHaveLength(DECK);
+  });
+
+  it('counts the refund of a replaced Fixture toward the price', () => {
+    const run = new ThroughputRun(1, easyConfig({ startingCapital: 100 }));
+    makeAndShip(run);
+    const first = run.buy(0, { slot: 2 });
+    const next = run.offers[1];
+    if (next?.kind !== 'fixture') throw new Error('expected a Fixture offer');
+    const refund = Math.floor(first.price / 2);
+    run.wallet.spend(run.wallet.cash - (next.price - refund));
+    expect(run.whyCannotBuy(1, { slot: 3 })).toMatch(/Not enough Capital/);
+    expect(run.whyCannotBuy(1, { slot: 2 })).toBeNull();
+    run.buy(1, { slot: 2 });
+    expect(run.wallet.cash).toBe(0);
   });
 
   it('in the shop, the Boards ahead start after the round just cleared', () => {
@@ -279,7 +304,7 @@ describe('ThroughputRun: payout and shop', () => {
     expect(run.deck[0]?.upgrades).toBe(1);
     rerollFor('downsize');
     run.buy(4, { deckCard: 0 });
-    expect(run.deck).toHaveLength(19);
+    expect(run.deck).toHaveLength(DECK - 1);
     rerollFor('expand');
     run.buy(4);
     expect(run.line).toHaveLength(6);
@@ -300,7 +325,7 @@ describe('ThroughputRun: payout and shop', () => {
     expect(run.round).toBe(2);
     expect(run.trendsNow).toEqual(run.trends[1]);
     expect(run.hand).toHaveLength(7);
-    expect(run.drawPile).toHaveLength(13);
+    expect(run.drawPile).toHaveLength(DRAW);
   });
 
   it('clearing the last round wins', () => {

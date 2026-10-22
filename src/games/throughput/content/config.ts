@@ -21,7 +21,11 @@ export type ThroughputConfig = {
   readonly startingCapital: number;
   /** Capital for clearing each quarter of a Year (Q1, Q2, Board). */
   readonly income: readonly number[];
-  readonly unusedShiftBonus: number;
+  /**
+   * Capital per unused Shift when a round clears, by Year (the last entry holds for later Years).
+   * Board Reviews pay none: the tempo premium shrinks once engines can clear in one Shift.
+   */
+  readonly unusedShiftBonus: readonly number[];
   /**
    * Overkill pay when a round clears: +1C per full `step` × target of Sales beyond the target, at
    * most `cap`C a round (BoM's Overtime pay, grafted as the tempo lever).
@@ -60,9 +64,9 @@ export type ThroughputConfig = {
 export const SEED_03_TARGETS: readonly number[] = [150, 250, 400, 600, 900, 1300, 1800, 2600, 3600, 5000, 7000, 10000];
 
 export const DEFAULT_CONFIG: ThroughputConfig = {
-  // Re-fit after the BoM grafts and content wave 1 (DESIGN_NOTES "Target re-fit"): gentler to round 8,
-  // ×1.26–1.30 per round from round 9; best bot ~37%, three bots 11–37%.
-  targets: [130, 200, 270, 360, 470, 600, 760, 950, 1200, 1550, 2000, 2600],
+  // Playtest-2 re-fit (DESIGN_NOTES "Target re-fit from R7"): R1–R6 as before, then ×1.3–1.5 a round,
+  // calibrated to LLM play (Sonnet's Shift-1 output), not to the bots, which now win 1–3%.
+  targets: [130, 200, 270, 360, 470, 600, 950, 1400, 2050, 3000, 4300, 5800],
   roundsPerYear: 3,
   shiftsPerRound: 4,
   retoolsPerRound: 2,
@@ -75,8 +79,9 @@ export const DEFAULT_CONFIG: ThroughputConfig = {
   baseMargin: 2,
   startingCapital: 4,
   income: [4, 5, 6],
-  unusedShiftBonus: 2,
-  overkill: { step: 0.25, cap: 5 },
+  // Playtest 2 (DESIGN_NOTES "Tempo premium"): +2C in Years 1–2, +1C after, none on Boards; overkill cap 5 → 3.
+  unusedShiftBonus: [2, 2, 1],
+  overkill: { step: 0.25, cap: 3 },
   interest: { per: 5, amount: 1, cap: 5 },
   overstockValue: 1,
   rerollBaseCost: 2,
@@ -86,6 +91,7 @@ export const DEFAULT_CONFIG: ThroughputConfig = {
   hotPips: 2,
   hotMultiplier: 2,
   // BoM graft b (DESIGN_NOTES "Demand"): variant F of the sims.
-  demand: { start: 20, sellOutGrowth: 10, sellOutRate: 0.5, emergingGrowth: 10, saturatedMul: 0.5 },
+  // Playtest 2: sell-out growth +50% → +25% (the +10 floor stays), so grown Demand stops shrugging off Recession.
+  demand: { start: 20, sellOutGrowth: 10, sellOutRate: 0.25, emergingGrowth: 10, saturatedMul: 0.5 },
   grant: { scaleDemand: 10, scaleUnits: 3, premiumStep: 0.25 },
 };

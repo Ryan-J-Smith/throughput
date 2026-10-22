@@ -115,7 +115,7 @@ describe('ThroughputTextGame', () => {
     expect(view.text).toContain('  This Shift clears the target.');
     expect(view.legalActions).toContain(`run — run Shift 1 of 4 (makes $12; round reaches $12 of $${run.target}; clears the target)`);
     const big = new ThroughputTextGame(easyConfig({ targets: [5, 10, 10] }));
-    expect(big.show(play(big, 1, [`load ${numberOf(hand, 'make')}:1 ${numberOf(hand, 'ship')}:2`])).text).toContain('  This Shift clears the target, +5C overkill (140% over).');
+    expect(big.show(play(big, 1, [`load ${numberOf(hand, 'make')}:1 ${numberOf(hand, 'ship')}:2`])).text).toContain(`  This Shift clears the target, +${DEFAULT_CONFIG.overkill.cap}C overkill (140% over).`);
   });
 
   it('marks what stays on the Line after the run', () => {
@@ -264,10 +264,6 @@ class PerkRun extends ThroughputRun {
   override get perks(): Perks {
     return this.fixedPerks;
   }
-
-  override get interestRule() {
-    return { ...this.config.interest, cap: this.config.interest.cap + this.fixedPerks.interestCap };
-  }
 }
 
 describe('content wave 1 text', () => {
@@ -278,7 +274,7 @@ describe('content wave 1 text', () => {
     for (const boss of BOSSES.filter((b) => b.id !== 'line-shift')) expect(flat).toContain(`${boss.name}: ${boss.text}`);
     expect(flat).toContain('Line Shift: Shift 1 runs on your layout.');
     for (const contract of CONTRACTS) expect(flat).toContain(`- ${contract.name}${contract.targetsCard ? ' (pick a deck card)' : ''}: ${contract.text}`);
-    expect(flat).toContain('by half of its full Demand (before Saturated or Recession halving; at least +10) when a Shift sells the last of it');
+    expect(flat).toContain(`by ${Math.round(DEFAULT_CONFIG.demand.sellOutRate * 100)}% of its full Demand (before Saturated or Recession halving; at least +${DEFAULT_CONFIG.demand.sellOutGrowth}) when a Shift sells the last of it`);
     expect(flat).toContain('Wholesale Club and Export Deal ignore Demand');
   });
 
@@ -298,10 +294,10 @@ describe('content wave 1 text', () => {
     expect(view.state).toMatchObject({ shiftsThisRound: 3 });
   });
 
-  it('lists Contract perks and the raised interest cap', () => {
+  it('lists Contract perks, including Treasury Bond Capital', () => {
     expect(perksText(new ThroughputRun(1))).toBe('');
-    const run = new PerkRun({ hotPips: 1, retools: 2, interestCap: 2 });
-    expect(perksText(run)).toBe(`Perks: +1 Hot pip a round, +2 Retools a round, interest cap ${DEFAULT_CONFIG.interest.cap + 2}C.`);
+    const run = new PerkRun({ hotPips: 1, retools: 2, coupon: 1 });
+    expect(perksText(run)).toBe('Perks: +1 Hot pip a round, +2 Retools a round, +1C a round (Treasury Bond).');
   });
 });
 
@@ -314,7 +310,7 @@ describe('rules and shop text', () => {
     expect(text).toContain('Revenue is rounded down once per sale');
     expect(text).toContain('Line Shift: Shift 1 runs on your layout. From Shift 2 on');
     expect(text).toContain('The opening hand always holds at least one Make and one Ship');
-    expect(text).toContain("2 Trucks (Ship up to the Category's Demand)");
+    expect(text).toContain("1 Truck (Ship up to its Category's Demand)");
     expect(text).toContain('Restock: Once per round, when you would draw from an empty draw pile');
     expect(rulesText({ ...DEFAULT_CONFIG, restocksPerRound: 0, openingHandTypes: [] })).toContain('The deck does NOT reshuffle during a round');
     expect(text).toContain(`Targets: Y1 ${DEFAULT_CONFIG.targets.slice(0, 3).join('/')}`);

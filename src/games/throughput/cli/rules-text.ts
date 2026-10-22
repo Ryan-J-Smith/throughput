@@ -1,5 +1,6 @@
-import { BOSSES, BOUTIQUE, CONTRACTS } from '../content';
+import { BOSSES, BOUTIQUE, CONTRACTS, STARTER_CARDS } from '../content';
 import type { ThroughputConfig } from '../content';
+import { CATEGORIES } from '../model';
 
 /** Line Shift needs more than its one-line text to play well, so the rules spell it out. */
 const LINE_SHIFT_RULES = `Line Shift: Shift 1 runs on your layout. From Shift 2 on, all Fixtures move one slot right before
@@ -37,6 +38,8 @@ export function rulesText(config: ThroughputConfig): string {
   const targets = Array.from({ length: years }, (_, y) => `Y${y + 1} ${c.targets.slice(y * c.roundsPerYear, (y + 1) * c.roundsPerYear).join('/')}`).join(' · ');
   const income = c.income.map((amount, i) => `${amount}C (${i === c.income.length - 1 ? 'Board Review' : `Q${i + 1}`})`).join(', ');
   const interestFull = Math.ceil(c.interest.cap / c.interest.amount) * c.interest.per;
+  const last = c.unusedShiftBonus.length - 1;
+  const unusedByYear = c.unusedShiftBonus.map((pay, i) => `${pay}C ${i === last ? 'from' : 'in'} Year ${i + 1}`).join(', ');
   const pips = `${c.hotPips} buzz pip${c.hotPips === 1 ? '' : 's'}`;
   const typeName = { design: 'Design', make: 'Make', ship: 'Ship' } as const;
   const opener = c.openingHandTypes.map((t) => `one ${typeName[t]}`).join(' and ');
@@ -62,8 +65,8 @@ CARDS
     Shift until the round ends, unless you scrap them. They hold their slot all round.
   - Make: adds Units. Dispatched (discarded) after the Shift, unless its Fixture keeps it.
   - Ship: sells Units at the current Margin. Dispatched after the Shift, even if it sold nothing.
-  Starter deck (20): per Category 1 Sketch (Design +$2), 2 Workshops (Make +6 Units),
-  2 Trucks (Ship up to the Category's Demand).
+  Starter deck (${STARTER_CARDS.length * CATEGORIES.length}): per Category 1 Sketch (Design +$2), 2 Workshops (Make +6 Units),
+  1 Truck (Ship up to its Category's Demand).
   Each round starts with an empty Line, the whole deck shuffled and a hand of ${c.handSize}.${opener === '' ? '' : `
   The opening hand always holds at least ${opener} (if your deck has them).`}
 ${draws}
@@ -130,7 +133,7 @@ MARKET (trends)
 
 CAPITAL AND THE SHOP
   Capital (C) is separate from Sales. When a round clears you earn ${income},
-  plus ${c.unusedShiftBonus}C per unused Shift, plus interest: ${c.interest.amount}C per full ${c.interest.per}C you hold when the round
+  plus per unused Shift ${unusedByYear} (none in a Board Review), plus interest: ${c.interest.amount}C per full ${c.interest.per}C you hold when the round
   clears, counted before that round's payout (at most +${c.interest.cap}C, reached at ${interestFull}C).
   Overkill: when a round clears, each full ${Math.round(c.overkill.step * 100)}% of the target you sold beyond it pays +1C
   (at most +${c.overkill.cap}C a round).
@@ -138,7 +141,7 @@ CAPITAL AND THE SHOP
   Sell a Fixture, or a card you bought, for half its price (rounded down). Starter cards can't be sold.
   Contracts:
 ${contracts}
-  Perks from Contracts (extra Hot pips, Retools, interest cap) last for the rest of the run; the
+  Perks from Contracts (extra Hot pips, Retools, Treasury Bond Capital) last for the rest of the run; the
   state lists them.
 
 FIXTURES

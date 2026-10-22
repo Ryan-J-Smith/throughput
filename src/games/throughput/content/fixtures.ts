@@ -184,9 +184,12 @@ class CrossDock extends FixtureEffect {
   }
 }
 
+/** Logistics Hub's most Margin (playtest 2: Station × Hub × sell-out growth ran quadratic). */
+export const LOGISTICS_HUB_MAX = 5;
+
 class LogisticsHub extends FixtureEffect {
   override onSlot(batch: Batch): void {
-    const add = Math.floor(batch.units / 10);
+    const add = Math.min(LOGISTICS_HUB_MAX, Math.floor(batch.units / 10));
     if (add > 0) batch.addMargin(add, 'Logistics Hub');
   }
 }
@@ -329,10 +332,10 @@ export const FIXTURES: readonly FixtureDef[] = [
   {
     id: 'price-gun',
     name: 'Price Gun',
-    kind: 'station',
+    kind: 'mod',
     rarity: 'uncommon',
     price: 6,
-    text: 'Station. Margin ×2. Every later Ship card sells at most half its cap (a Truck: half the Demand left).',
+    text: 'Margin ×2 here. Every later Ship card sells at most half its cap (a Truck: half the Demand left).',
     short: '×2, later Ships halved',
     effect: new PriceGun(),
   },
@@ -353,8 +356,8 @@ export const FIXTURES: readonly FixtureDef[] = [
     kind: 'mod',
     rarity: 'common',
     price: 4,
-    text: '+$1 Margin for every 10 Units in the Batch here.',
-    short: '+$1 per 10 Units',
+    text: '+$1 Margin for every 10 Units in the Batch here (at most +$5).',
+    short: '+$1/10 Units, max +$5',
     effect: new LogisticsHub(),
   },
   {
@@ -371,10 +374,10 @@ export const FIXTURES: readonly FixtureDef[] = [
   {
     id: 'lean-cell',
     name: 'Lean Cell',
-    kind: 'station',
+    kind: 'mod',
     rarity: 'uncommon',
     price: 4,
-    text: 'Station. If the Batch has 15 or fewer Units here: Margin ×1.5.',
+    text: 'If the Batch has 15 or fewer Units here: Margin ×1.5.',
     short: '≤15 Units: ×1.5',
     effect: new LeanCell(),
   },

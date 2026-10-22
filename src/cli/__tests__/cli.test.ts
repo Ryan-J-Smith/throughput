@@ -178,7 +178,7 @@ describe('cli deck', () => {
     const saved = io.read('t.json');
     io.stdout = [];
     expect(io.run('deck', '--save', 't.json')).toBe(EXIT_OK);
-    expect(io.output).toMatch(/^Deck \(20 cards\)/);
+    expect(io.output).toMatch(/^Deck \(\d+ cards\)/);
     expect(io.read('t.json')).toBe(saved);
     expect(io.run('deck')).toBe(EXIT_USAGE);
     io.run('new', '--seed', '5', '--save', 'd.json', '--game', 'demo');

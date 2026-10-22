@@ -574,3 +574,65 @@ Steps, on the same 500 seeds (win %):
   - Every pick rate is within 10–80%.
 - **Greedy rose from 13.8 to 22.8.** Buying the priciest thing now rarely buys a trap. The best bot is still
   inside the 30–60% band, so the targets stand.
+
+## Playtest-2 balance pass (harder for skilled play)
+
+Playtest round 2 (8 LLM runs on 65c5785, before the re-fit and rescue): 7 of 8 won. Sonnet averaged 1.77× the target
+in R7–R12 and cleared 79% of rounds in Shift 1; Haiku averaged 1.40×. The bots badly under-rate skilled play: their
+Shift-1 output is about a fifth of Sonnet's. So this pass is calibrated to the LLM data. The bots are kept only for
+item health and relative strength.
+
+Numbers below are 500 seeds unless marked (win % for greedy / mass-market / rnd-compounder / trend-surfer).
+
+1. **Tempo premium** (rec 2). A Shift-1 clear paid 11–17C.
+   - Change: unused-Shift pay is now by Year, `unusedShiftBonus: [2, 2, 1]` (the last entry holds). Board Reviews
+     pay none. Overkill cap 5 → 3.
+   - Win rates 22.4 / 30.0 / 32.8 / 36.4 → 16.8 / 23.8 / 25.8 / 24.4.
+   - mass-market's late Capital halves (R12 54C → 26C). Years 1–2 are unchanged except on Boards.
+   - Rejected: +1C everywhere. It cut every bot 10–16 points, the weak ones included.
+2. **Runaways** (rec 3).
+   - The bots already pair Megafactory with Logistics Hub. The R12 32× Shift came from that.
+   - Measured with a runaway probe (biggest R10–12 Shift ÷ target, per build).
+   - **Logistics Hub at most +$5:** mass-market max 32× → 6.3×, p90 1.71 → 1.56. A +$10 cap still allowed 8.8×.
+   - **Sell-out growth 50% → 25%** (the +10 floor stays). Bots barely notice, since Demand rarely binds for them. It
+     targets skilled volume that grew Demand past Recession.
+   - **Rebrand ×1.5 once a Rebrand already ran this Shift** (`DesignDef.repeatMul`; Robot Arm's second resolve
+     counts): design-stack p90 1.31 → 1.18, max 2.4 → 1.8.
+   - Design Studio "+$4 only after a non-× Design" had no measurable effect, so it was not applied.
+3. **Late Capital** (rec 6). Done through the tempo cut plus a living Treasury Bond, not Year-scaled prices.
+   - Treasury Bond (4C): "+1C every round you clear, for the rest of the run". It was an interest-cap raise nobody
+     could reach. `Perks.interestCap` became `coupon`.
+   - Bond impact is now +4% (pick 27%).
+   - End-of-run Capital is 5–26C (R12 mean, by bot).
+   - Revisit Year-scaled prices only if round 3 shows Capital piling up again.
+4. **Target re-fit from R7** (rec 1). R1–R6 are unchanged (130 / 200 / 270 / 360 / 470 / 600). R7–R12 are now
+   950 / 1400 / 2050 / 3000 / 4300 / 5800 (were 760 / 950 / 1200 / 1550 / 2000 / 2600).
+   - **Calibration.** Sonnet's median Shift-1 sales at 65c5785 were about 1,100 at R7, 1,700 at R8, 4,000 at R10 and
+     4,300 at R11. The R9 and R12 Boards ran lower, and half of those needed Shift 2.
+     - For "clears R10–R12 at 1.1–1.3×, needing Shift 2+ at least half the time", a target has to sit near Sonnet's
+       Shift-1 output.
+     - Curve A was 900 / 1300 / 1850 / 2700 / 3800 / 5000.
+     - Then items 5–7 made play stronger: the bots' late Shift-1 output is now 1.17–1.34× 65c5785's on the same
+       curve. The Hub cap and the Rebrand repeat damp exactly Sonnet's engines, so R7+ was scaled by about half that
+       (×1.1–1.15).
+   - **Haiku.** Its Shift-1 sales were 1,060–1,290 at R7–R8, so it should still reach the Year-3 Board.
+   - **Bots** (1000 seeds): 5.1 / 4.8 / 9.1 / 2.5, with a median reach of round 9.
+     - By build: rnd-compounder 7.9, design-stack 6.5, skimmer 5.0, mass-market 4.7, stockpile 3.7.
+   - Round 3 playtests are the real check.
+5. **Shop unchoke** (rec 8). Approved rule: buying a Fixture into an occupied slot sells the old one for half its
+   price as part of the buy, and the refund counts toward the price (`fixtureRefund(slot)`).
+   - Every Fixture offer is now buyable as a replacement.
+   - So "weight Fixture offers by fill ratio" was not done. It would cut replacement choice, and it would break the
+     fixed 2 / 2 / 1 offer layout the views rely on.
+6. **Dead items, auto-picks, rare supply** (rec 9; the testers played the pre-rescue build):
+   - **Rare supply:** Fixture odds 70 / 25 / 5 → 60 / 30 / 10. Each rare goes from 1.25% to 2.5% of Fixture offers;
+     Flagship had 0 offers in 8 runs.
+   - **Auto-picks:** Contract Manufacturer 5 → 6C (8 of 8 runs) and Clone 5 → 6C (75% buy rate).
+   - **Price Gun and Lean Cell** are now Mods (as Stations they cost a card slot).
+     - Price Gun plus Wholesale or Export (which ignore cap cuts) is now a real combo.
+   - **Marketplace** ×1.25 → ×1.5. **Export Deal** 6 → 5C.
+   - **Result** (1000 seeds): every item's aware Δ is within −6% … +10%, and every pick rate is within 10–80%.
+7. **Starter deck and retools** (rec 10).
+   - One Truck per Category (16 cards, was 20). On the same seeds, bots with one Truck beat two clearly: 7.8 / 8.8 /
+     14.4 / 4.4 vs 4.6 / 3.8 / 9.0 / 2.6.
+   - Training Program is once per run: the shop stops offering it once bought.

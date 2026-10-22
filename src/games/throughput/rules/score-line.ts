@@ -147,6 +147,8 @@ export function scoreLine(line: readonly LineSlot[], ctx: ShiftContext, options:
 /** Trend and Demand effects collected while a Shift's Ship cards sell. */
 class SaleState {
   hotUsed = false;
+  /** Design card ids that have resolved this Shift (for `repeatMul`). */
+  readonly designsRun = new Set<string>();
   readonly demandSold = new Map<Category, number>();
   readonly soldOut = new Set<Category>();
   readonly emergingSold = new Set<Category>();
@@ -180,7 +182,9 @@ function resolveCard(card: Card, fixture: Fixture | null, batch: Batch, sale: Sa
     case 'design': {
       const add = designAdd(card);
       if (add !== 0) batch.addMargin(add, 'Design');
-      if (def.marginMul !== 1 && (sale.ctx.boss?.designMultipliers() ?? true)) batch.mulMargin(def.marginMul, 'Design');
+      const mul = sale.designsRun.has(def.id) ? (def.repeatMul ?? def.marginMul) : def.marginMul;
+      if (mul !== 1 && (sale.ctx.boss?.designMultipliers() ?? true)) batch.mulMargin(mul, 'Design');
+      sale.designsRun.add(def.id);
       return;
     }
     case 'make':

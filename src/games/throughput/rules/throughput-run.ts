@@ -4,7 +4,7 @@ import { Rng } from '../../../engine/rng';
 import { BOSSES, DEFAULT_CONFIG, STARTER_CARDS } from '../content';
 import type { ThroughputConfig } from '../content';
 import { CATEGORIES, cardName } from '../model';
-import type { BoardBoss, Card, CardDef, Category, ContractEffect, Fixture, FixtureDef, GrantLevels, GrantOption, Perks, Stage } from '../model';
+import type { BoardBoss, Card, CardDef, Category, ContractDef, ContractEffect, Fixture, FixtureDef, GrantLevels, GrantOption, Perks, Stage } from '../model';
 import { trendSchedule } from './market';
 import { scoreLine } from './score-line';
 import type { LineSlot, ShiftContext, ShiftResult, Trends } from './score-line';
@@ -61,6 +61,12 @@ type SlotState = { fixture: Fixture | null; card: LineCard | null };
  * Every action has a `whyCannot…` query; the action itself throws if called anyway, and a
  * refused action never changes state.
  */
+/** Capital per unused Shift in a non-Board round of `year` (the config's last entry holds for later Years). */
+export function unusedShiftPay(config: ThroughputConfig, year: number): number {
+  const table = config.unusedShiftBonus;
+  return table[Math.min(year, table.length) - 1] ?? 0;
+}
+
 export class ThroughputRun {
   readonly config: ThroughputConfig;
   readonly seed: number;
@@ -79,7 +85,7 @@ export class ThroughputRun {
   private readonly demandAtStart_: Record<Category, number>;
   private readonly grants_: Record<Category, { scale: number; premium: number }>;
   /** Run-long bonuses from Ad Campaign, Training Program and Treasury Bond. */
-  private readonly perks_ = { hotPips: 0, retools: 0, interestCap: 0 };
+  private readonly perks_ = { hotPips: 0, retools: 0, coupon: 0 };
   private readonly history_: RoundRecord[] = [];
   private phase_: Phase = 'shift';
   private round_ = 1;
@@ -229,9 +235,9 @@ export class ThroughputRun {
     return this.config.retoolsPerRound + this.perks_.retools;
   }
 
-  /** The interest rule in force, with Treasury Bonds raising the cap. */
+  /** The interest rule in force. */
   get interestRule(): ThroughputConfig['interest'] {
-    return { ...this.config.interest, cap: this.config.interest.cap + this.perks_.interestCap };
+    return this.config.interest;
   }
 
   get trendsNow(): Trends {
@@ -503,17 +509,24 @@ export class ThroughputRun {
 
   whyCannotBuy(offer: number, target: BuyTarget = {}): string | null {
     if (this.phase_ !== 'shop') return 'The shop is closed';
-    const reason = this.shop_.whyCannotBuy(offer, this.wallet);
-    if (reason !== null) return reason;
-    const item = this.shop_.offers[offer] as Offer;
-    if (item.kind === 'fixture') {
+    const item = this.shop_.offers[offer];
+    if (item?.kind === 'fixture') {
       if (target.slot === undefined) return `Say which slot gets the ${item.def.name} (buy ${offer + 1} <slot>)`;
       const slot = this.slots_[target.slot];
       if (slot === undefined) return `No slot ${target.slot + 1} (the Line has ${this.slots_.length})`;
-      if (slot.fixture !== null) return `Slot ${target.slot + 1} already has ${slot.fixture.def.name}; sell or move it first`;
+      // A Fixture already in the slot is sold as part of the buy, and its refund counts toward the price.
+      const refund = this.fixtureRefund(target.slot);
+      if (this.wallet.cash + refund < item.price) {
+        return `Not enough Capital (${item.price}C${refund > 0 ? `; selling ${slot.fixture?.def.name ?? ''} returns ${refund}C` : ''})`;
+      }
+      return null;
     }
+    const reason = this.shop_.whyCannotBuy(offer, this.wallet);
+    if (reason !== null) return reason;
+    if (item == null) return 'Nothing for sale in that slot';
     if (item.kind === 'contract') {
-      if (item.def.effect === 'expand' && this.slots_.length >= this.config.maxSlots) return `The Line is already at ${this.config.maxSlots} slots`;
+      const unavailable = this.whyContractUnavailable(item.def);
+      if (unavailable !== null) return unavailable;
       if (item.def.targetsCard) {
         if (target.deckCard === undefined) return `Say which deck card (buy ${offer + 1} <deck card>)`;
         const card = this.deck_[target.deckCard];
@@ -531,8 +544,10 @@ export class ThroughputRun {
     return null;
   }
 
+  /** Buys an offer; a Fixture bought into an occupied slot first sells the one there for half its price. */
   buy(offer: number, target: BuyTarget = {}): Offer {
     this.assert(this.whyCannotBuy(offer, target));
+    if (this.shop_.offers[offer]?.kind === 'fixture' && this.slots_[target.slot as number]?.fixture != null) this.sellFixture(target.slot as number);
     const item = this.shop_.buy(offer, this.wallet);
     switch (item.kind) {
       case 'fixture':
@@ -551,6 +566,12 @@ export class ThroughputRun {
   whyCannotSellFixture(slot: number): string | null {
     if (this.phase_ !== 'shop') return 'Sell in the shop';
     return this.slots_[slot]?.fixture == null ? `Slot ${slot + 1} has no Fixture` : null;
+  }
+
+  /** Capital that selling the Fixture in `slot` returns (0 for an empty slot). */
+  fixtureRefund(slot: number): number {
+    const fixture = this.slots_[slot]?.fixture;
+    return fixture == null ? 0 : Math.floor(fixture.paid * this.config.sellRate);
   }
 
   sellFixture(slot: number): number {
@@ -600,7 +621,7 @@ export class ThroughputRun {
 
   reroll(): void {
     this.assert(this.whyCannotReroll());
-    this.shop_.reroll(this.wallet, this.canExpand());
+    this.shop_.reroll(this.wallet, (c) => this.whyContractUnavailable(c) === null);
   }
 
   whyCannotContinue(): string | null {
@@ -725,11 +746,13 @@ export class ThroughputRun {
     const payout = new Payout();
     payout.add(info.isBoard ? 'Board Review cleared' : `Q${info.quarter} cleared`, this.config.income[info.quarter - 1] ?? 0);
     const unused = this.shiftsThisRound - this.shift_;
-    if (unused > 0) payout.add(`${unused} unused Shift${unused === 1 ? '' : 's'}`, unused * this.config.unusedShiftBonus);
+    const perUnused = info.isBoard ? 0 : unusedShiftPay(this.config, info.year);
+    if (unused > 0 && perUnused > 0) payout.add(`${unused} unused Shift${unused === 1 ? '' : 's'}`, unused * perUnused);
     const overkill = this.overkillPayFor(this.sales_);
     if (overkill > 0) payout.add(`Overkill (${Math.floor((100 * (this.sales_ - this.target)) / this.target)}% over target)`, overkill);
     const interest = computeInterest(this.wallet.cash, this.interestRule);
     if (interest > 0) payout.add('Interest', interest);
+    if (this.perks_.coupon > 0) payout.add(`Treasury Bond${this.perks_.coupon === 1 ? '' : ` ×${this.perks_.coupon}`}`, this.perks_.coupon);
     this.wallet.earn(payout.total());
     this.lastPayout_ = payout.lines;
     for (const slot of this.slots_) if (slot.fixture !== null) slot.fixture.roundsOwned++;
@@ -768,7 +791,7 @@ export class ThroughputRun {
   private enterShop(): void {
     this.phase_ = 'shop';
     if (this.stored_ > 0) this.storageNotice_ = `Warehouse: ${this.stored_} Units in stock for the next Board Review`;
-    this.shop_.restock(this.canExpand());
+    this.shop_.restock((c) => this.whyContractUnavailable(c) === null);
   }
 
   private applyContract(effect: ContractEffect, { deckCard, category, option }: BuyTarget): void {
@@ -803,7 +826,7 @@ export class ThroughputRun {
         this.perks_.retools++;
         return;
       case 'bond':
-        this.perks_.interestCap += 2;
+        this.perks_.coupon++;
         return;
     }
   }
@@ -829,8 +852,11 @@ export class ThroughputRun {
     };
   }
 
-  private canExpand(): boolean {
-    return this.slots_.length < this.config.maxSlots;
+  /** Why the shop can't offer (or sell) a Contract now: a full Line can't expand, and Training is once a run. */
+  private whyContractUnavailable(contract: ContractDef): string | null {
+    if (contract.effect === 'expand' && this.slots_.length >= this.config.maxSlots) return `The Line is already at ${this.config.maxSlots} slots`;
+    if (contract.effect === 'training' && this.perks_.retools > 0) return 'Training Program is once a run';
+    return null;
   }
 
   private refund(paid: number): number {

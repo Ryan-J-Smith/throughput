@@ -33,11 +33,11 @@ export const CONTRACTS: readonly ContractDef[] = [
   {
     id: 'clone',
     name: 'Clone',
-    price: 5,
+    price: 6,
     effect: 'clone',
     targetsCard: true,
     targetsCategory: false,
-    text: 'Add a copy of one deck card, upgrades and R&D growth included.',
+    text: 'Add a copy of one deck card, upgrades and growth included.',
   },
   {
     id: 'ad-campaign',
@@ -55,7 +55,7 @@ export const CONTRACTS: readonly ContractDef[] = [
     effect: 'training',
     targetsCard: false,
     targetsCategory: false,
-    text: '+1 Retool every round for the rest of the run.',
+    text: '+1 Retool every round for the rest of the run. Once per run.',
   },
   {
     id: 'treasury-bond',
@@ -64,6 +64,6 @@ export const CONTRACTS: readonly ContractDef[] = [
     effect: 'bond',
     targetsCard: false,
     targetsCategory: false,
-    text: 'Interest cap +2C for the rest of the run.',
+    text: '+1C every round you clear, for the rest of the run.',
   },
 ];
