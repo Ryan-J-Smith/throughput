@@ -1,3 +1,4 @@
+import { interestCeiling } from '../../../engine/economy';
 import { BOSSES, BOUTIQUE, CONTRACTS, FIXTURES, SHOP_CARDS, STARTER_CARDS } from '../content';
 import type { ThroughputConfig } from '../content';
 import { CATEGORIES, repeatRule } from '../model';
@@ -43,7 +44,7 @@ export function rulesText(config: ThroughputConfig): string {
   const quarters = Array.from({ length: c.roundsPerYear - 1 }, (_, i) => `Q${i + 1}`).join(', ');
   const targets = Array.from({ length: years }, (_, y) => `Y${y + 1} ${c.targets.slice(y * c.roundsPerYear, (y + 1) * c.roundsPerYear).join('/')}`).join(' · ');
   const income = c.income.map((amount, i) => `${amount}C (${i === c.income.length - 1 ? 'Board Review' : `Q${i + 1}`})`).join(', ');
-  const interestFull = Math.ceil(c.interest.cap / c.interest.amount) * c.interest.per;
+  const interestFull = interestCeiling(c.interest);
   const last = c.unusedShiftBonus.length - 1;
   const unusedByYear = c.unusedShiftBonus.map((pay, i) => `${pay}C ${i === last ? 'from' : 'in'} Year ${i + 1}`).join(', ');
   const pips = `${c.hotPips} buzz pip${c.hotPips === 1 ? '' : 's'}`;

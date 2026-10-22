@@ -159,6 +159,17 @@ describe('ThroughputTextGame', () => {
     expect(ok(shiftGame.take(parked.save, 'unload 4')).log).toEqual([`Back in hand: ${design.name}.`]);
   });
 
+  it('the shop says when Capital past the interest ceiling earns nothing', () => {
+    const run = new ThroughputRun(1, easyConfig({ targets: [0, 0, 0] }));
+    run.runShift();
+    const view = () => formatView(run, { game: 'throughput', seed: 1, actionsTaken: 1 });
+    run.wallet.spend(run.wallet.cash);
+    run.wallet.earn(24);
+    expect(view()).toContain('Interest: holding 24C when the next round clears pays +4C (1C per full 5C, at most +5C).\n');
+    run.wallet.earn(1);
+    expect(view()).toContain('pays +5C (1C per full 5C, at most +5C). Capital above 25C earns nothing.\n');
+  });
+
   it('a spend shows one interest figure, saying how much less when it lowers the interest', () => {
     const run = new ThroughputRun(1, easyConfig({ startingCapital: 13 }));
     expect(interestTrade(run, 2)).toBe('then holding 11C → +2C interest');

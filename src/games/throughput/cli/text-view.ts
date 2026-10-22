@@ -1,4 +1,4 @@
-import { computeInterest } from '../../../engine/economy';
+import { computeInterest, interestCeiling } from '../../../engine/economy';
 import { TRUCK } from '../content';
 import { CATEGORIES, cardEffect, cardName, formatAmount, growthText, shipCap } from '../model';
 import type { Card, CardDef, Category, Fixture, TrendStage } from '../model';
@@ -255,7 +255,9 @@ export function formatView(run: ThroughputRun, context: ViewContext): string {
       if (run.storageNotice !== null) lines.push(run.storageNotice);
       const rule = run.interestRule;
       const interest = computeInterest(run.wallet.cash, rule);
-      lines.push(`Interest: holding ${run.wallet.cash}C when the next round clears pays +${interest}C (${rule.amount}C per full ${rule.per}C, at most +${rule.cap}C).`);
+      const ceiling = interestCeiling(rule);
+      const idle = run.wallet.cash >= ceiling ? ` Capital above ${ceiling}C earns nothing.` : '';
+      lines.push(`Interest: holding ${run.wallet.cash}C when the next round clears pays +${interest}C (${rule.amount}C per full ${rule.per}C, at most +${rule.cap}C).${idle}`);
       if (perksText(run) !== '') lines.push(perksText(run));
       break;
     }

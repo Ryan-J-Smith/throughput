@@ -163,6 +163,9 @@ describe('THROUGHPUT browser screen', () => {
     const items = () => [...shelf().matchAll(/<div class="shop__item ?" data-kind="(\w+)" data-afford="(yes|no)"/g)].map((m) => [m[1], m[2]]);
     expect(items()).toEqual(run.offers.flatMap((o) => (o === null ? [] : [[o.kind, run.wallet.canAfford(o.price) ? 'yes' : 'no']])));
     expect(shelf()).toMatch(/<span class="tp-shop__interest"[^>]*>Holding \d+C → \+\d+C interest<\/span>/);
+    expect(shelf()).toContain('It tops out at +5C: Capital above 25C earns nothing.');
+    run.wallet.earn(25 - run.wallet.cash);
+    expect(shelf()).toContain('>Holding 25C → +5C interest (max)</span>');
     run.wallet.spend(run.wallet.cash);
     expect(items().map(([, afford]) => afford)).toEqual(run.offers.flatMap((o) => (o === null ? [] : [o.price > 0 ? 'no' : 'yes'])));
   });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Payout, Wallet, computeInterest } from '../economy';
+import { Payout, Wallet, computeInterest, interestCeiling } from '../economy';
 import { EngineError } from '../errors';
 
 describe('Wallet', () => {
@@ -26,6 +26,12 @@ describe('computeInterest', () => {
     expect(computeInterest(4, config)).toBe(0);
     expect(computeInterest(14, config)).toBe(2);
     expect(computeInterest(100, config)).toBe(5);
+  });
+  it('tops out at a ceiling: the least cash that earns the cap', () => {
+    expect(interestCeiling(config)).toBe(25);
+    expect(computeInterest(interestCeiling(config) - 1, config)).toBeLessThan(5);
+    expect(interestCeiling({ per: 4, amount: 2, cap: 5 })).toBe(12);
+    expect(computeInterest(12, { per: 4, amount: 2, cap: 5 })).toBe(5);
   });
   it('pays nothing on non-positive cash', () => {
     expect(computeInterest(-20, config)).toBe(0);
