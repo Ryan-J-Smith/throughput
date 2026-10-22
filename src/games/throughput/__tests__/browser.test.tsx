@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { GrantPicker, HowToPlay, LineView, MarketBoard, Shelf, ThroughputBrowserGame, ThroughputScreen, TpHud, TraceReceipt, cardView, demandBossCut, demandViews, lineNotice, plateText } from '../browser';
+import { GrantPicker, HowToPlay, LineView, MarketBoard, Shelf, ThroughputBrowserGame, ThroughputScreen, TpHud, TraceReceipt, cardView, demandBossCut, demandViews, fixtureView, lineNotice, plateText } from '../browser';
 import { cardText, demandUseText, grownText } from '../cli';
 import { DEFAULT_CONFIG, REBRAND, SKETCH, TRUCK, WORKSHOP } from '../content';
 import type { BayState } from '../browser';
@@ -231,6 +231,11 @@ describe('THROUGHPUT browser screen', () => {
     expect(html).toContain(`<abbr title="Margin: the $ each Unit sells for. Every Shift&#x27;s Batch starts at $2; Designs, Handoffs and Fixtures raise it.">Margin</abbr>`);
     expect(html).toContain('<span class="tp-receipt__amount">Sold</span></div>');
     expect(html).toContain('<small><abbr title="Handoff: a card right after another card of the same Category adds +$1 Margin.">Handoff +$1</abbr>; ');
+  });
+
+  it('a Fixture card names itself a Fixture, with Mod or Station as its kind', () => {
+    expect(fixtureView(fixture('quality-lab').def, 'f').tags).toEqual(['Fixture · Mod']);
+    expect(fixtureView(fixture('assembly-line').def, 'f').tags).toEqual(['Fixture · Station']);
   });
 
   it('the Market says what the Hot pips are, and Demand growth in plain words', () => {

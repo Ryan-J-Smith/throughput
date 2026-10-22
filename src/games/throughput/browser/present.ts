@@ -65,7 +65,8 @@ export function fixtureView(def: FixtureDef, id: string): CardView {
     id,
     title: def.name,
     description: def.text.replace(/^Station\. /, ''),
-    tags: [def.kind === 'station' ? 'Station' : 'Mod'],
+    // "Fixture" is the noun everywhere; Mod and Station are its two kinds.
+    tags: [def.kind === 'station' ? 'Fixture · Station' : 'Fixture · Mod'],
     accent: def.kind === 'station' ? 'mustard' : 'teal',
     ...withArt(fixtureArt(def.id)),
     icon: def.kind === 'station' ? 'station' : 'mod',
