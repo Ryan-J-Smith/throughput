@@ -120,7 +120,7 @@ describe('THROUGHPUT browser screen', () => {
     const now = /Now ×[\d.]+\.$/;
     expect(plateText(flagship)).toMatch(now);
     expect(plateText({ ...flagship, def: { ...flagship.def, short: 'Ship ×1.2, grows' } })).toMatch(new RegExp(`^Ship ×1\\.2, grows ${now.source}`));
-    expect(plateText(fixture('quality-lab'))).toBe('A Design here gets +$4.');
+    expect(plateText({ ...fixture('quality-lab'), def: { ...fixture('quality-lab').def, short: undefined } })).toBe('A Design here gets +$4.');
     expect(plateText({ ...fixture('quality-lab'), def: { ...fixture('quality-lab').def, short: '+$4 to a Design' } })).toBe('+$4 to a Design');
   });
 
