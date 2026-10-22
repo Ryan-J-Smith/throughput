@@ -120,6 +120,12 @@ describe('THROUGHPUT browser screen', () => {
     expect(html).toMatch(/<main class="screen screen--tp screen--tp-shift" data-year="1">/);
   });
 
+  it('the Shift controls show the draw and discard piles as card stacks', () => {
+    const html = renderToStaticMarkup(<ThroughputScreen seed={1} onQuit={() => {}} store={new MemoryStore()} resume={false} />);
+    expect(html).toMatch(/<span class="tp-piles" role="img" aria-label="Draw pile \d+, 0 discarded, Restock ready">/);
+    expect(html).not.toContain('hand__count');
+  });
+
   it('the HUD reveal lands a Shift\'s Sales before the Run applies, flagging a hit on the target', () => {
     const run = new ThroughputRun(1, easyConfig({ targets: [100, 100, 100] }));
     const score = (html: string) => /<div class="hud__stat hud__stat--score"[^>]*>/.exec(html)?.[0] ?? '';
