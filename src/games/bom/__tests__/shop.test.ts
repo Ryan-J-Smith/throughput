@@ -153,6 +153,6 @@ describe('BoM shop actions', () => {
     expect(part).toMatchObject({ category: 'chip', grade: 1 });
     expect(run.deck.allCards).toHaveLength(size - 1);
     expect(run.whyCannotShred('chip', 1)).toMatch(/once per shop visit/);
-    expect(run.wallet.cash).toBe(10 + 3 + 3 + 2 - 2); // payout: reward 3, unused Builds 3, interest 2
+    expect(run.wallet.cash).toBe(10 + 5 + 3 + 2 - 2); // payout: reward 5, unused Builds 3, interest 2
   });
 });

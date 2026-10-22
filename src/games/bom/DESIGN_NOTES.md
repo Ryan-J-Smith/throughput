@@ -23,8 +23,9 @@ doc was ambiguous and what the code does, plus deliberate deviations. Keep it cu
 - **Overtime.** Once revenue reaches the target, Ship locks and the phase becomes Overtime (if any
   Builds remain). Overtime allows Fabricate and Scrap. `collect` ends it and pays $1 per unused Build.
   If the last Build is spent fabricating, the round clears automatically.
-- **Payout** on a clear is the market reward (Small $3 / Big $4 / Boss $5), plus $1 per unused Build,
-  plus interest. Interest ($1 per $5, max $5) is computed on the cash held *before* this payout.
+- **Payout** on a clear is the market reward (doc: Small $3 / Big $4 / Boss $5; tuned to $5/$6/$8, see
+  Tuning), plus $1 per unused Build, plus interest. Interest ($1 per $5, max $5) is computed on the
+  cash held *before* this payout.
 - **Losing.** The run is lost when Builds reach 0 below target, including when the last Build was a
   Fabricate. It is also lost when no owned recipe (Product or Sub) can be formed from hand + Bench and
   no Scraps remain ("stuck").
@@ -37,8 +38,8 @@ doc was ambiguous and what the code does, plus deliberate deviations. Keep it cu
   Ship this round: `floor(D / 2^k)`.
 - **Steps 2–3, parts and additive rules.** Additive Demand effects (Market Research +15) apply after
   that halving, because they belong to the doc's step 3.
-- **Price floor.** Price has a floor of $1, applied after all additive effects (Outlet Mall, Price War)
-  and before multipliers.
+- **Price floor.** Price has a floor of $1, applied after all additive effects (Outlet Mall) and before
+  multipliers.
 - **Markup** is the product of all multipliers. Multipliers of exactly 1 are not logged.
 - **Float error.** Revenue uses `floor(x + 1e-9)` to absorb error from factors such as 1.1 × 1.6.
 - **Sell-out** compares final Units against final Demand on that Product's first Ship of the round.
@@ -71,6 +72,7 @@ doc was ambiguous and what the code does, plus deliberate deviations. Keep it cu
 - **Recall.** "Most-shipped" means the highest Ship count this run, evaluated live before each Ship.
   Ties all get ×0.5.
 - **Warehouse Fire** empties the Bench as the Boss round starts.
+- **Price War** is tuned from the doc's −$3 Price to ×0.75 (applied as Markup; see Tuning).
 
 ### Shop
 - **Rack slots.** Each Rack slot rolls a kind (Facility 55 / Blueprint 30 / R&D 15), then for
@@ -107,58 +109,140 @@ doc was ambiguous and what the code does, plus deliberate deviations. Keep it cu
 - **Bots.** `sim/StrategyBot` is one heuristic player driven by a `Strategy` preset. The four presets
   in `sim/bots.ts` are `greedy` (baseline: buys anything affordable), `bargain-bin` (tempo),
   `assembly-chain` (slow-burn) and `market-maker` (slow-burn).
-  - **Building.** Ship if the best Ship clears the target. Otherwise fabricate a Sub part that an owned
-    Product needs. Then stock preferred Subs while ≥3 Builds remain (never trashing). Scrap when far
-    behind pace, else Ship the best.
-  - **Ship planning.** Recipe slots take the highest grades; filler is greedy and hand-only (Bench
-    parts are used up).
-  - **Overtime.** Chain and Market Maker stock the Bench, except before a revealed Warehouse Fire.
-  - **Shop.** Buy by priority lists: Rack, then R&D, then Parts Counter, then Shred, then a reroll.
+- **Round play.**
+  - **Plans.** The bot plans a Ship for every owned Product (`planner.planProduct`). A plan may
+    Fabricate missing Sub parts first; those parts are projected with `BomRun.projectShip`.
+  - **Choosing.** Overshooting the target earns nothing, so the bot takes the cheapest plan that
+    clears it: fewest Builds, then least Bench WIP spent. Otherwise it takes the best revenue per
+    Build. It Scraps when even that pace falls short.
+  - **Ship parts.** Recipe slots take the highest grades. Filler is greedy and hand-only.
+- **Overtime.** The bot stocks the Bench toward its Products' recipes, in Strategy order, never
+  trashing. It skips stocking in the Big round before a revealed Warehouse Fire, and there it spends
+  WIP first when clearing.
+- **Shop.** The bot buys the best-ranked wanted Rack item. When slots are full it sells an idle Sub,
+  else the lowest-value unwanted Product or Facility, to make room. Then it buys R&D, then Parts
+  Counter, then Shreds, then rerolls.
 - **Archetype labels** come from owned key Facilities (≥2 of a set), not from the bot. Runs with fewer
   are labelled "unbuilt".
 - **Scenario.** `npm run sim -- --scenario bom` (registered in `src/sim/cli/all-scenarios.ts`).
 
-## Tuning (Phase B, first pass)
-- **Doc targets are out of reach.** With `DOC_TARGETS`, no bot wins a run, and most die in Q2 (best
-  mean reach 6.3 of 12). Income is about $5 per round against $4–$8 items, so engines grow roughly
-  linearly. The doc's targets grow ×42 from round 1 to 12.
-- **`TUNED_TARGETS`** (the default; `DOC_TARGETS` is kept):
+## Tuning
+Goals (stratgame-24):
+- tempo comfortably clears Q1–Q2 and stalls in Q3–Q4; slow-burn is shaky early and pulls ahead late;
+- targets grow at least 20× from Q1 Small to the Q4 Boss;
+- the best tempo and best slow-burn bots are within ~10pp win rate;
+- tempo leads on margin in rounds 1–5 and slow-burn in rounds 8–12;
+- the best bot wins 30–60%.
+
+Every step was measured over 1000 seeds.
+
+### First pass (Phase B)
+- **Doc targets are out of reach.** With `DOC_TARGETS`, no bot wins and most die in Q2. Income is about
+  $5 per round against $4–$8 items, so engines grow roughly linearly; the doc's targets grow ×42.
+- **Flat targets.** A ×10 table (120 → 1,200) gave bargain-bin 47%. The tempo and slow-burn curves
+  never crossed, and a curve that flat gives no reason to build a snowball.
+
+### Phase B2: one lever at a time
+Steps 0–2b are measured on the flat Phase B table (Q1 120/180/240 … Q4 900/1050/1200).
+
+Win % (mean round reached, of 12):
+
+| Step | greedy | bargain-bin | assembly-chain | market-maker |
+|---|---|---|---|---|
+| 0. Bot fixes (planner, Overtime stocking, WIP, make-room selling) | 32.5 (10.3) | 63.9 (11.5) | 0.0 (6.0) | 0.5 (7.3) |
+| 1. Price War ×0.75 Price (was −$3, min $1) | 34.1 (10.7) | 63.8 (11.6) | 0.0 (6.4) | 0.8 (8.0) |
+| 3a. Precision Tooling: also ×(1 + 0.01 per fabricated grade) | 36.9 (10.8) | 63.8 (11.6) | 0.4 (6.7) | 0.8 (8.0) |
+| 3b. Viral Marketing: also +Units = Demand grown, ×(1 + 0.01 per Demand grown) | 40.9 (10.9) | 63.8 (11.6) | 0.4 (6.7) | 6.6 (8.3) |
+| 2. Drone and E-Bike Rare → Uncommon (still $8) | 38.3 (10.8) | 70.6 (11.7) | 1.1 (6.5) | 6.7 (8.2) |
+| 2b. Precision Tooling and Viral Marketing Uncommon → Common | 45.5 (10.8) | 59.3 (11.5) | 2.4 (6.8) | 13.3 (8.5) |
+| 3c. Lever 3 multipliers 0.01 → 0.02 | 47.9 (10.9) | 59.3 (11.5) | 3.3 (7.2) | 17.6 (8.6) |
+
+- **After step 3c, the curves cross on the flat table.** Mean margin in rounds 10, 11 and 12:
+  - assembly-chain +43%, +34%, +12%;
+  - market-maker +30%, +33%, +27%;
+  - bargain-bin +14%, +12%, +5%.
+- **Kitted ceilings.** Each archetype starts owning its key Facilities and Blueprints (500 seeds,
+  measured after step 3b):
+  - assembly-chain wins 77.8% (24.8% before lever 3);
+  - market-maker wins 82.2% (1.0% before);
+  - bargain-bin wins 97.4%.
+
+  Lever 3 gave each slow-burn archetype a real late game. The remaining problem was getting the
+  pieces together, which is what levers 2 and 2b address.
+- **Why lever 3b adds Units.** With only the multiplier, Market Maker's Units fell behind the Demand
+  its sell-outs grow. The sell-outs then stopped, and so did the multiplier (kitted: 9.4% → 82.2% with
+  the Units).
+
+### Re-steepened targets, economy, and lever 4
+- **Re-steepening alone fails.** Tables growing 20× or more (Q4 Boss 2,000–2,600) at the doc's $3/$4/$5
+  rewards left the best bot at 4–17%. Committed archetype bots rarely assemble on about $5 a round.
+- **Rewards $3/$4/$5 → $5/$6/$8.**
+  - This helps every bot, but the high-ceiling slow-burn engines gain the most where it matters: they
+    survive to their payoff.
+  - With the same 20× table: assembly-chain 2.8% → 13.5%, bargain-bin 8.7% → 38.3%.
+- **Gentler Q3.** Assembly-chain's deaths moved from Q3 (round 8 Big, round 9 Boss) to Q4. Bargain-bin
+  mostly dies at the Q4 Boss, as intended.
+- **Lever 4: Q2 Boss 340 → 320.** assembly-chain 15.9% → 17.4%; bargain-bin unchanged.
+- **The Q4 Boss sets the trade-off.** At 2,200 the gap is 8.9pp, but the best bot wins only 26.3%. At
+  2,100 the best bot wins 34.4%, but the gap is 15.7pp. The table uses 2,150.
+
+### Current tuning (default config)
+- **Targets.** `TUNED_TARGETS` grow 21.5× (100 → 2,150):
 
   | Quarter | Small | Big | Boss |
   | ------- | ----: | --: | ---: |
-  | Q1      | 120   | 180 | 240  |
-  | Q2      | 300   | 380 | 460  |
-  | Q3      | 560   | 680 | 800  |
-  | Q4      | 900   | 1050| 1200 |
+  | Q1      | 100   | 140 | 180  |
+  | Q2      | 220   | 280 | 320  |
+  | Q3      | 360   | 480 | 620  |
+  | Q4      | 1000  | 1450| 2150 |
 
-  Q1 is unchanged.
+- **Rewards** are $5/$6/$8.
+- **Price War** is ×0.75.
+- **Precision Tooling** is Common, and Ships get ×(1 + 0.02 per fabricated grade).
+- **Viral Marketing** is Common. Ships get +Units equal to Demand grown, and ×(1 + 0.02 per Demand
+  grown).
+- **Drone and E-Bike** are Uncommon.
+- **Worked example.** The doc's worked example still runs on doc content, with the doc's Precision
+  Tooling and rewards injected through the config (`__tests__/worked-example.test.ts`).
 
-  Results over 1000 seeds:
+Results over 1000 seeds (`npm run sim -- --scenario bom --runs 1000`):
 
-  | Bot            | Win % | Mean reach |
-  | -------------- | ----: | ---------: |
-  | bargain-bin    | 47.2  | 10.8       |
-  | greedy         | 19.2  | 9.4        |
-  | market-maker   | 0.1   | 6.1        |
-  | assembly-chain | 0.0   | 5.5        |
+| Bot | Win % | Mean reach |
+|---|---:|---:|
+| bargain-bin | 29.3 | 11.9 |
+| greedy | 21.3 | 11.5 |
+| assembly-chain | 17.8 | 10.2 |
+| market-maker | 11.0 | 10.6 |
 
-- **Open: the tempo and slow-burn curves do not cross.** Tempo leads at every round. Findings:
-  - **Kitted runs.** Each archetype starts owning its three key Facilities plus its key Blueprints
-    (500 seeds):
-    - Kitted Assembly Chain posts higher margins than kitted Bargain Bin in rounds 3–11 (for example
-      +95% vs +27% in round 6), but wins only 25% vs 91%.
-    - Kitted Market Maker wins 1%.
+Mean margin by round:
 
-    So the Chain engine has a high ceiling but is rarely assembled (Drone and E-Bike are Rare). It is
-    also fragile at Bosses.
-  - **Boss losses.** Price War and Recall cause most slow-burn losses (unkitted chain: 167 and 105 of
-    500).
-    - Price War's flat −$3 removes most of the Price on $3–$4 Products. Tempo Prices of $10 or more
-      lose only a fraction.
-    - Recall punishes single-Product engines.
-  - **Market Maker.** Revenue is `min(U, D) × P`, so Demand growth from sell-outs only pays when Units
-    keep up, and Units grow only additively from parts. Price, which tempo stacks, is the stronger lever.
-  - **A rarity lever alone doesn't help.** Moving rarity to 55/30/15 left Chain at 0%, because it dies
-    in Q2 (round 6 Boss) before Rare parts matter.
-  - **Impact caveat.** The impact table pools all bots, so Chain and Market Maker items read negative
-    partly because weak bots buy them.
+| Bot | Round 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| bargain-bin | 79 | 72 | 49 | 55 | 53 | 38 | 45 | 36 | 27 | 19 | 12 | −11 |
+| assembly-chain | 79 | 55 | 35 | 37 | 32 | 31 | 40 | 48 | 40 | 47 | 37 | 9 |
+
+Labelled by what the run actually built (all bots pooled):
+
+| Archetype | Win % |
+|---|---:|
+| boutique | 29.5 |
+| bargain-bin | 26.1 |
+| catalog | 22.4 |
+| assembly-chain | 21.1 |
+| market-maker | 17.8 |
+| unbuilt | 5.3 |
+
+### Status against the goals
+- **Met:**
+  - Targets grow 21.5×.
+  - Tempo leads on margin in rounds 2–5, and assembly-chain leads in rounds 8–12.
+  - Tempo stalls at the Q4 Boss.
+- **Borderline:**
+  - The best bot wins 29.3% (goal 30–60%).
+  - The best tempo and best slow-burn bots are 11.5pp apart (goal ~10pp). By archetype label the
+    gap is 5pp.
+- **Open:**
+  - Market-maker trails assembly-chain. Bookshelf's $3 Price limits it.
+  - The greedy baseline posts the highest mid-run margins because it buys whatever shows up. An
+    adaptive bot would be a better "best player" reference.
+  - The impact table pools all bots, so archetype items partly reflect which bots buy them.

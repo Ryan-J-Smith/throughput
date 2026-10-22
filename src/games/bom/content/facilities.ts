@@ -63,13 +63,17 @@ export class OutletMall extends Facility {
 }
 
 export class PrecisionTooling extends Facility {
-  readonly rarity = 'uncommon';
+  readonly rarity = 'common';
   readonly cost = 6;
   constructor() {
-    super({ id: 'precision-tooling', name: 'Precision Tooling', text: 'Fabricated parts get +4 grade' });
+    super({ id: 'precision-tooling', name: 'Precision Tooling', text: 'Fabricated parts get +4 grade; Ships ×(1 + 0.02 per fabricated grade)' });
   }
   override onFabricate(fab: FabContext): void {
     fab.bonus += 4;
+  }
+  // Tuned (DESIGN_NOTES "Tuning", levers 3 and 2b): the Assembly Chain's multiplicative path; was Uncommon.
+  override shipMultiplier(ship: ShipContext): number {
+    return 1 + 0.02 * ship.parts.reduce((sum, p) => sum + (p.fabricated ? p.grade : 0), 0);
   }
 }
 
@@ -118,13 +122,25 @@ export class MarketResearch extends Facility {
 }
 
 export class ViralMarketing extends Facility {
-  readonly rarity = 'uncommon';
+  readonly rarity = 'common';
   readonly cost = 6;
   constructor() {
-    super({ id: 'viral-marketing', name: 'Viral Marketing', text: 'Sell-out growth is +15 instead of +5' });
+    super({
+      id: 'viral-marketing',
+      name: 'Viral Marketing',
+      text: 'Sell-out growth is +15 instead of +5; Ships get +Units equal to Demand grown and ×(1 + 0.02 per Demand grown)',
+    });
   }
   override adjust(mods: RoundMods): void {
     mods.sellOutGrowth = Math.max(mods.sellOutGrowth, 15);
+  }
+  // Tuned (DESIGN_NOTES "Tuning", levers 3 and 2b): the Market Maker's multiplicative path; was Uncommon.
+  // Units keep pace with grown Demand so sell-outs keep compounding.
+  override onShipAdd(ship: ShipContext): void {
+    if (ship.blueprint.growth > 0) ship.score.add(UNITS, ship.blueprint.growth, this.name);
+  }
+  override shipMultiplier(ship: ShipContext): number {
+    return 1 + 0.02 * ship.blueprint.growth;
   }
 }
 

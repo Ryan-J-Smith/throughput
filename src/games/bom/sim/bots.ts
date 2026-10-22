@@ -4,13 +4,11 @@ import type { Strategy } from './strategy-bot';
 /** Baseline: buys whatever it can afford, Premium R&D on the starters, never stocks the Bench. */
 export const GREEDY: Strategy = {
   name: 'greedy',
-  facilities: [],
-  blueprints: [],
+  wants: [],
   buyAnything: true,
   rnd: [{ id: 'desk-fan' }, { id: 'flatpack' }, { id: 'gizmo' }],
   counter: [],
   shred: [],
-  fabricate: [],
   overtimeFab: false,
   reserve: 0,
   rerolls: 0,
@@ -19,13 +17,11 @@ export const GREEDY: Strategy = {
 /** Tempo (doc §4 "Bargain Bin"): flat Price and Units from cheap commons, Paint-heavy products, spend everything. */
 export const BARGAIN_BIN: Strategy = {
   name: 'bargain-bin',
-  facilities: ['paint-shop', 'flagship-store', 'discount-warehouse', 'outlet-mall', 'product-catalog', 'market-research'],
-  blueprints: ['kettle', 'desk-lamp', 'smartwatch'],
+  wants: ['paint-shop', 'flagship-store', 'kettle', 'desk-lamp', 'discount-warehouse', 'product-catalog', 'smartwatch', 'market-research', 'outlet-mall', 'flatpack', 'gizmo'],
   rnd: [{ id: 'kettle' }, { id: 'desk-lamp' }, { id: 'desk-fan' }],
   counter: ['paint', 'shell'],
   shred: [['bolt', 1], ['chip', 1]],
-  fabricate: [],
-  overtimeFab: false,
+  overtimeFab: true,
   reserve: 0,
   rerolls: 1,
 };
@@ -33,12 +29,10 @@ export const BARGAIN_BIN: Strategy = {
 /** Slow-burn (doc §4 "Assembly Chain"): Subs and the Bench compound grades into Rare Products. */
 export const ASSEMBLY_CHAIN: Strategy = {
   name: 'assembly-chain',
-  facilities: ['precision-tooling', 'kitting-station', 'stockroom', 'patent-office', 'lean-line'],
-  blueprints: ['drone', 'e-bike', 'board', 'frame', 'smartwatch'],
+  wants: ['precision-tooling', 'drone', 'e-bike', 'smartwatch', 'stockroom', 'board', 'frame', 'kitting-station', 'patent-office', 'lean-line', 'desk-fan', 'motor'],
   rnd: [{ id: 'motor' }, { id: 'drone' }, { id: 'e-bike' }, { id: 'desk-fan' }],
   counter: ['chip', 'bolt'],
   shred: [['paint', 1], ['paint', 2]],
-  fabricate: ['motor', 'board', 'frame'],
   overtimeFab: true,
   reserve: 5,
   rerolls: 1,
@@ -47,12 +41,10 @@ export const ASSEMBLY_CHAIN: Strategy = {
 /** Slow-burn (doc §4 "Market Maker"): grow Demand through sell-outs and keep shipping the same Product. */
 export const MARKET_MAKER: Strategy = {
   name: 'market-maker',
-  facilities: ['conveyor-belt', 'viral-marketing', 'continuous-production', 'discount-warehouse', 'market-research'],
-  blueprints: ['bookshelf', 'frame', 'e-bike'],
+  wants: ['bookshelf', 'conveyor-belt', 'viral-marketing', 'frame', 'continuous-production', 'discount-warehouse', 'market-research', 'flatpack', 'e-bike', 'desk-fan', 'motor'],
   rnd: [{ id: 'bookshelf', choice: 'scale' }, { id: 'desk-fan', choice: 'scale' }, { id: 'flatpack', choice: 'scale' }],
   counter: ['shell', 'bolt'],
   shred: [['paint', 1], ['chip', 1]],
-  fabricate: ['frame'],
   overtimeFab: true,
   reserve: 5,
   rerolls: 1,

@@ -216,6 +216,17 @@ export class BomRun {
     return this.quote(this.blueprint(productId) as OwnedBlueprint, parts);
   }
 
+  /**
+   * What shipping `parts` as `productId` would earn in the current state, without checking that
+   * the parts are held: a planning aid for parts not fabricated yet. Null if the recipe doesn't fit.
+   */
+  projectShip(productId: string, parts: readonly Part[]): ShipQuote | null {
+    const product = this.blueprint(productId);
+    if (product === undefined || product.def.kind !== 'product') return null;
+    if (parts.length > this.config.maxSelection || !containsRecipe(product.def.recipe, parts)) return null;
+    return this.quote(product, parts);
+  }
+
   ship(parts: readonly Part[], productId: string): ShipResult {
     this.check(this.whyCannotShip(parts, productId));
     const product = this.blueprint(productId) as OwnedBlueprint;

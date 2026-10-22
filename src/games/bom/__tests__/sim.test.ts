@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { SimulationError } from '../../../sim/simulate';
-import { defaultBomConfig } from '../content';
+import { STARTING_BLUEPRINTS, defaultBomConfig } from '../content';
 import { makePart } from '../model';
+import type { OwnedBlueprint } from '../model';
 import type { BomRun } from '../rules';
-import { BomBot, BomScenario, GREEDY, StrategyBot, bomBots, classifyRun, planShip, simulateBom } from '../sim';
-import type { BomShopDecision, BuildDecision } from '../sim';
-import { config, deckOf, runWith } from './helpers';
+import { ASSEMBLY_CHAIN, BomBot, BomScenario, GREEDY, StrategyBot, bomBots, classifyRun, planProduct, planShip, simulateBom } from '../sim';
+import type { BomShopDecision, BuildDecision, Strategy } from '../sim';
+import { clearRound, config, deckOf, flatTargets, runWith, shipAnything } from './helpers';
 
 const seeds = Array.from({ length: 30 }, (_, i) => i + 1);
 
@@ -68,6 +69,56 @@ describe('StrategyBot', () => {
     expect(quote?.parts.filter((p) => p.category === 'motor').map((p) => p.grade)).toEqual([10]);
   });
 
+  it('plans a Fabricate before the Ship, projecting the part it will make', () => {
+    const deck = deckOf(['shell', 4], ['chip', 4], ['bolt', 4], ['bolt', 1], ['chip', 1], ['shell', 1], ['paint', 1], ['paint', 1]);
+    const run = runWith({ startingDeck: deck });
+    const plan = planProduct(run, run.blueprint('desk-fan') as OwnedBlueprint);
+    expect(plan?.builds).toBe(2);
+    expect(plan?.fabs[0]?.inputs.map((p) => `${p.category} ${p.grade}`)).toEqual(['chip 4', 'bolt 4']);
+    expect(plan?.quote.parts.find((p) => p.category === 'motor')?.grade).toBe(16);
+  });
+
+  it('clears the target without spending Bench WIP when it can', () => {
+    const run = runWith({ targets: flatTargets(1), startingBench: () => [makePart('motor', 10, { fabricated: true })] });
+    const decision = new StrategyBot(ASSEMBLY_CHAIN).buildTurn(run);
+    expect(decision.action).toBe('ship');
+    if (decision.action === 'ship') expect(decision.parts.some((p) => run.bench.includes(p))).toBe(false);
+  });
+
+  it('skips Overtime stocking before a revealed Warehouse Fire', () => {
+    const deck = deckOf(['shell', 4], ['chip', 4], ['bolt', 4], ['shell', 3], ['chip', 3], ['bolt', 3], ['shell', 2], ['chip', 2], ['bolt', 2], ['paint', 1]);
+    const inBigOvertime = (seed: number): BomRun => {
+      const run = runWith({ targets: flatTargets(1), startingDeck: deck }, seed);
+      clearRound(run);
+      run.leaveShop();
+      shipAnything(run);
+      return run;
+    };
+    const fire = Array.from({ length: 50 }, (_, i) => i + 1).find((seed) => runWith({}, seed).roundInfo(2).disruption?.id === 'warehouse-fire');
+    const calm = Array.from({ length: 50 }, (_, i) => i + 1).find((seed) => runWith({}, seed).roundInfo(2).disruption?.id !== 'warehouse-fire');
+    if (fire === undefined || calm === undefined) throw new Error('no seeds');
+    const burning = inBigOvertime(fire);
+    expect(burning.phase).toBe('overtime');
+    expect(new StrategyBot(ASSEMBLY_CHAIN).buildTurn(burning).action).toBe('collect');
+    expect(new StrategyBot(ASSEMBLY_CHAIN).buildTurn(inBigOvertime(calm)).action).toBe('fab');
+  });
+
+  it('sells an idle Sub to make room for a wanted Blueprint', () => {
+    const strategy: Strategy = { ...GREEDY, name: 'kettle-fan', wants: ['kettle'], buyAnything: false };
+    for (let seed = 1; seed <= 500; seed++) {
+      const run = runWith({ targets: flatTargets(1), startingCash: 50, startingBlueprints: [...STARTING_BLUEPRINTS, 'frame', 'board'] }, seed);
+      clearRound(run);
+      const slot = run.shop.offers.findIndex((o) => o?.kind === 'blueprint' && o.blueprint.id === 'kettle');
+      if (slot < 0) continue;
+      const bot = new StrategyBot(strategy);
+      expect(bot.shopTurn(run)).toEqual({ action: 'sell', id: 'frame' });
+      run.sell('frame');
+      expect(bot.shopTurn(run)).toEqual({ action: 'buy', slot });
+      return;
+    }
+    throw new Error('no Kettle offer found');
+  });
+
   it('labels runs by the archetype whose key facilities it owns', () => {
     expect(classifyRun(runWith())).toBe('unbuilt');
     expect(classifyRun(runWith({ startingFacilities: ['paint-shop'] }))).toBe('unbuilt');
@@ -77,7 +128,8 @@ describe('StrategyBot', () => {
 });
 
 describe('tuned targets', () => {
-  it('keep the doc Q1 targets', () => {
-    expect(config().targets[0]).toEqual([120, 180, 240]);
+  it('grow at least 20× from Q1 Small to the Q4 Boss', () => {
+    const targets = config().targets;
+    expect((targets[3]?.[2] ?? 0) / (targets[0]?.[0] ?? 1)).toBeGreaterThanOrEqual(20);
   });
 });

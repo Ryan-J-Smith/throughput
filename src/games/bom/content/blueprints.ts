@@ -17,8 +17,9 @@ export const BLUEPRINTS: readonly BlueprintDef[] = [
   { id: 'kettle', name: 'Kettle', kind: 'product', rarity: 'common', cost: 4, recipe: [SHELL, PAINT, PAINT], units: 10, price: 6, demand: 25 },
   { id: 'bookshelf', name: 'Bookshelf', kind: 'product', rarity: 'common', cost: 4, recipe: [FRAME, SHELL], units: 20, price: 3, demand: 60 },
   { id: 'smartwatch', name: 'Smartwatch', kind: 'product', rarity: 'uncommon', cost: 6, recipe: [BOARD, SHELL, PAINT], units: 20, price: 7, demand: 40 },
-  { id: 'e-bike', name: 'E-Bike', kind: 'product', rarity: 'rare', cost: 8, recipe: [FRAME, MOTOR, SHELL], units: 35, price: 9, demand: 80 },
-  { id: 'drone', name: 'Drone', kind: 'product', rarity: 'rare', cost: 8, recipe: [MOTOR, MOTOR, BOARD], units: 40, price: 10, demand: 120 },
+  // Tuned (DESIGN_NOTES "Tuning", lever 2): E-Bike and Drone were Rare; still $8.
+  { id: 'e-bike', name: 'E-Bike', kind: 'product', rarity: 'uncommon', cost: 8, recipe: [FRAME, MOTOR, SHELL], units: 35, price: 9, demand: 80 },
+  { id: 'drone', name: 'Drone', kind: 'product', rarity: 'uncommon', cost: 8, recipe: [MOTOR, MOTOR, BOARD], units: 40, price: 10, demand: 120 },
 ];
 
 export const STARTING_BLUEPRINTS: readonly string[] = ['gizmo', 'flatpack', 'motor', 'desk-fan'];

@@ -12,19 +12,23 @@ export const DOC_TARGETS: readonly (readonly [number, number, number])[] = [
   [2500, 3750, 5000],
 ];
 
-/** First-pass sim tune (Phase B): the best bot (bargain-bin) wins ~47% over 1000 seeds. */
+/**
+ * Sim-tuned targets (Phase B2): 21.5× from Q1 Small to the Q4 Boss, so tempo stalls in Q4 while
+ * slow-burn engines pull ahead (DESIGN_NOTES "Tuning").
+ */
 export const TUNED_TARGETS: readonly (readonly [number, number, number])[] = [
-  [120, 180, 240],
-  [300, 380, 460],
-  [560, 680, 800],
-  [900, 1050, 1200],
+  [100, 140, 180],
+  [220, 280, 320],
+  [360, 480, 620],
+  [1000, 1450, 2150],
 ];
 
-/** The game as specified in the design doc, except for the tuned targets. */
+/** The game as specified in the design doc, with the tuning in DESIGN_NOTES "Tuning" applied. */
 export function defaultBomConfig(): BomConfig {
   return {
     targets: TUNED_TARGETS,
-    rewards: { small: 3, big: 4, boss: 5 },
+    // Tuned from the doc's $3/$4/$5 so committed engines can assemble.
+    rewards: { small: 5, big: 6, boss: 8 },
     startingCash: 4,
     interest: { per: 5, amount: 1, cap: 5 },
     builds: 4,

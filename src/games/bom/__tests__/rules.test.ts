@@ -67,6 +67,29 @@ describe('Ship scoring', () => {
     expect(run.ship([pick(run, 'shell', 4), pick(run, 'chip', 4)], 'gizmo').growth).toBe(15);
   });
 
+  it('Viral Marketing (tuned): +Units equal to Demand grown and ×(1 + 0.02 per Demand grown)', () => {
+    const run = runWith({ startingDeck: gizmoDeck, startingFacilities: ['viral-marketing'] });
+    const gizmo = run.blueprint('gizmo') as OwnedBlueprint;
+    gizmo.growth = 30;
+    const log = run.quoteOptions([pick(run, 'shell', 4), pick(run, 'chip', 4)])[0]?.score.log ?? [];
+    const viral = log.filter((c) => c.source === 'Viral Marketing');
+    expect(viral.map((c) => [c.stat, c.op, c.amount])).toEqual([
+      ['units', 'add', 30],
+      ['markup', 'multiply', 1.6],
+    ]);
+  });
+
+  it('Precision Tooling (tuned): Ships ×(1 + 0.02 per fabricated grade)', () => {
+    const run = runWith({
+      startingDeck: gizmoDeck,
+      startingFacilities: ['precision-tooling'],
+      startingBench: () => [makePart('motor', 14, { fabricated: true })],
+    });
+    const log = run.quoteOptions([pick(run, 'motor', 14), pick(run, 'shell', 4)])[0]?.score.log ?? [];
+    const markup = log.find((c) => c.source === 'Precision Tooling');
+    expect(markup?.amount).toBeCloseTo(1.28);
+  });
+
   it('Continuous Production stops repeat Ships halving Demand', () => {
     const run = runWith({ startingDeck: gizmoDeck, startingFacilities: ['continuous-production'] });
     run.ship([pick(run, 'shell', 4), pick(run, 'chip', 4)], 'gizmo');
@@ -176,11 +199,11 @@ describe('round flow', () => {
     clearRound(run);
     expect(run.phase).toBe('shop');
     expect(run.lastRoundEnd?.payout?.lines).toEqual([
-      { source: 'Small market cleared', amount: 3 },
+      { source: 'Small market cleared', amount: 5 },
       { source: 'Unused Builds ×3', amount: 3 },
       { source: 'Interest', amount: 2 },
     ]);
-    expect(run.wallet.cash).toBe(20);
+    expect(run.wallet.cash).toBe(22);
   });
 
   it('wins after clearing all 12 rounds', () => {
@@ -250,11 +273,11 @@ describe('disruptions', () => {
     expect(run.bench).toEqual([]);
   });
 
-  it('Price War: −$3 final Price, minimum $1', () => {
+  it('Price War: ×0.75 on every Ship (tuned from the doc\'s −$3)', () => {
     const run = toBoss(seedFor('price-war'));
     const options = run.quoteOptions(run.hand.slice(0, 5));
-    for (const q of options) expect(q.score.get('price')).toBeGreaterThanOrEqual(1);
-    expect(options.some((q) => q.score.log.some((c) => c.source === 'Price War'))).toBe(true);
+    expect(options.length).toBeGreaterThan(0);
+    for (const q of options) expect(q.score.log.some((c) => c.source === 'Price War' && c.amount === 0.75)).toBe(true);
   });
 
   it('Recall halves the most-shipped blueprint', () => {

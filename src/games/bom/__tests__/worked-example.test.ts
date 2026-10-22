@@ -1,12 +1,27 @@
 import { describe, expect, it } from 'vitest';
-import { defaultBomConfig } from '../content';
-import { makePart } from '../model';
-import type { Part } from '../model';
+import { FACILITIES, defaultBomConfig } from '../content';
+import { Facility, makePart } from '../model';
+import type { FabContext, Part } from '../model';
 import { BomRun } from '../rules';
 import type { BomConfig } from '../rules';
 
 // Design doc §2 worked example (Q2 Big, target 600). The doc's round is Q2 Big; here every
 // target is 600 so the example plays as round 1 (same numbers, Small-market reward).
+// The example checks the doc's rules, so it runs on the doc's content where the game is tuned.
+
+/** Precision Tooling as the doc specifies it (+4 grade, no multiplier). */
+class DocPrecisionTooling extends Facility {
+  readonly rarity = 'uncommon';
+  readonly cost = 6;
+  constructor() {
+    super({ id: 'precision-tooling', name: 'Precision Tooling', text: 'Fabricated parts get +4 grade' });
+  }
+  override onFabricate(fab: FabContext): void {
+    fab.bonus += 4;
+  }
+}
+
+const DOC_FACILITY_SET = FACILITIES.map((f) => (f.id === 'precision-tooling' ? new DocPrecisionTooling() : f));
 
 const HAND = (): Part[] => [
   makePart('chip', 4),
@@ -28,6 +43,8 @@ function exampleRun(facilities: readonly string[], premiumLevels: number): BomRu
       [600, 600, 600],
       [600, 600, 600],
     ],
+    rewards: { small: 3, big: 4, boss: 5 },
+    facilities: DOC_FACILITY_SET,
     startingFacilities: facilities,
     startingDeck: HAND,
     startingBench: () => [makePart('motor', 14, { fabricated: true })],

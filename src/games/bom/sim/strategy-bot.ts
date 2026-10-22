@@ -1,9 +1,10 @@
 import type { Rng } from '../../../engine/rng';
-import type { PartCategory, RndChoice } from '../model';
-import type { BomRun } from '../rules';
+import type { OwnedBlueprint, PartCategory, RndChoice } from '../model';
+import type { BomRun, RackOffer } from '../rules';
 import { BomBot } from './bom-bot';
 import type { BomShopDecision, BuildDecision } from './bom-bot';
-import { bestShip, planFab, scrapPlan } from './planner';
+import { firstStep, planFab, scrapPlan, shipPlans, stockFab } from './planner';
+import type { ShipPlan } from './planner';
 
 /** Key facilities per archetype (design doc §4); a run is labelled by what it actually built. */
 export const ARCHETYPE_KEYS: readonly { readonly archetype: string; readonly facilities: readonly string[] }[] = [
@@ -27,9 +28,11 @@ export function classifyRun(run: BomRun): string {
 
 export type Strategy = {
   readonly name: string;
-  /** Facility ids to buy, best first. Empty with `buyAnything` = take whatever is affordable. */
-  readonly facilities: readonly string[];
-  readonly blueprints: readonly string[];
+  /**
+   * Facility and Blueprint ids to buy, best first (the top 3 ignore the cash reserve). Blueprint order
+   * is also the Bench-stocking priority; owned blueprints not listed may be sold to make room.
+   */
+  readonly wants: readonly string[];
   /** Buy any affordable Rack Facility or Blueprint (the greedy baseline). */
   readonly buyAnything?: boolean;
   /** R&D targets, best first, with the Product choice. */
@@ -38,9 +41,7 @@ export type Strategy = {
   readonly counter: readonly PartCategory[];
   /** Deck parts to Shred, best first. */
   readonly shred: readonly (readonly [PartCategory, number])[];
-  /** Subs to fabricate proactively (Bench stocking); others only when nothing can ship. */
-  readonly fabricate: readonly string[];
-  /** Spend Overtime Builds fabricating instead of collecting $1. */
+  /** Spend Overtime Builds stocking the Bench for next round instead of collecting $1 each. */
   readonly overtimeFab: boolean;
   /** Cash to keep for interest; purchases (other than its top priorities) never dip below it. */
   readonly reserve: number;
@@ -48,9 +49,14 @@ export type Strategy = {
   readonly rerolls: number;
 };
 
+const baseValue = (b: OwnedBlueprint): number => (b.def.kind === 'product' ? b.def.units * b.def.price : 0);
+
 /**
- * A heuristic bot driven by a Strategy: ships the best available Product (greedy filler), stocks
- * the Bench with its preferred Subs when Builds allow, and shops by priority lists.
+ * A heuristic bot driven by a Strategy.
+ * - Round: take the cheapest plan that clears the target (fewest Builds, least WIP), else the plan
+ *   with the best revenue per Build; plans may Fabricate missing Sub parts first. Scrap when far behind.
+ * - Overtime: stock the Bench toward its Products' recipes (if the Strategy says so).
+ * - Shop: buy by priority lists, selling unwanted blueprints or facilities to make room.
  */
 export class StrategyBot extends BomBot {
   readonly name: string;
@@ -73,40 +79,35 @@ export class StrategyBot extends BomBot {
   }
 
   override buildTurn(run: BomRun): BuildDecision {
-    const s = this.strategy;
+    // Before a revealed Warehouse Fire, WIP left after the Big round burns: spend it, don't stock.
+    const burns = run.round.market === 'big' && run.revealedDisruption(run.round.quarter)?.id === 'warehouse-fire';
     if (run.phase === 'overtime') {
-      // Stocking for next round is wasted if the revealed Boss disruption empties the Bench.
-      const burns = run.round.market === 'big' && run.revealedDisruption(run.round.quarter)?.id === 'warehouse-fire';
-      if (s.overtimeFab && !burns) {
-        const fab = this.preferredFab(run, false);
-        if (fab !== null) return fab;
+      if (this.strategy.overtimeFab && !burns) {
+        const fab = stockFab(run, this.productPriority(run));
+        if (fab !== null) return { action: 'fab', parts: fab.parts };
       }
       return { action: 'collect' };
     }
 
     const need = run.round.target - run.revenue;
-    const ship = bestShip(run);
-    if (ship !== null && ship.revenue >= need) return { action: 'ship', product: ship.blueprint.id, parts: ship.parts };
-
-    // Make a missing Sub part an owned Product needs, if a Ship can still follow.
-    if (run.buildsLeft >= 2) {
-      const fab = this.enablingFab(run);
-      if (fab !== null) return fab;
+    const plans = shipPlans(run);
+    // Overshooting the target earns nothing, so clear it as cheaply as possible.
+    const clearing = plans.filter((p) => p.quote.revenue >= need);
+    if (clearing.length > 0) {
+      clearing.sort((a, b) => a.builds - b.builds || (burns ? b.benchUsed - a.benchUsed : a.benchUsed - b.benchUsed) || b.quote.revenue - a.quote.revenue);
+      return firstStep(clearing[0] as ShipPlan);
     }
 
-    // Stock the Bench while there are Builds to spare (never trashing a stocked part).
-    if (s.fabricate.length > 0 && run.buildsLeft >= 3) {
-      const fab = this.preferredFab(run, false);
-      if (fab !== null) return fab;
-    }
-
-    // Dig with Scraps when the best Ship is far behind the pace the round needs.
-    if (run.scrapsLeft > 0 && (ship === null || ship.revenue * run.buildsLeft < need * 0.8)) {
-      const parts = scrapPlan(run, ship?.parts ?? []);
+    const rate = (p: ShipPlan): number => p.quote.revenue / p.builds;
+    const best = plans.reduce<ShipPlan | null>((a, p) => (a === null || rate(p) > rate(a) ? p : a), null);
+    // Dig with Scraps when the best pace can't reach the target.
+    if (run.scrapsLeft > 0 && (best === null || rate(best) * run.buildsLeft < need * 0.8)) {
+      const keep = best === null ? [] : [...best.quote.parts, ...best.fabs.flatMap((f) => f.inputs)];
+      const parts = scrapPlan(run, keep);
       if (parts.length > 0) return { action: 'scrap', parts };
     }
+    if (best !== null) return firstStep(best);
 
-    if (ship !== null) return { action: 'ship', product: ship.blueprint.id, parts: ship.parts };
     for (const sub of run.blueprints) {
       const fab = planFab(run, sub, true);
       if (fab !== null) return { action: 'fab', parts: fab.parts, ...(fab.trash ? { trash: fab.trash } : {}) };
@@ -128,18 +129,22 @@ export class StrategyBot extends BomBot {
       return offer != null && cash - offer.cost >= (top ? 0 : s.reserve);
     };
 
-    // Rack: wanted Facilities and Blueprints by priority (top choices ignore the reserve).
+    // Rack: the best-ranked wanted Facility or Blueprint (top choices ignore the reserve).
+    let pick: { slot: number; rank: number } | null = null;
     for (let slot = 0; slot < offers.length; slot++) {
       const offer = offers[slot];
-      if (offer == null || run.offerProblem(slot) !== null) continue;
-      if (offer.kind === 'facility') {
-        const rank = s.facilities.indexOf(offer.facility.id);
-        if ((rank >= 0 || s.buyAnything) && affordable(slot, rank >= 0 && rank < 2)) return { action: 'buy', slot };
-      }
-      if (offer.kind === 'blueprint') {
-        const rank = s.blueprints.indexOf(offer.blueprint.id);
-        if ((rank >= 0 || s.buyAnything) && affordable(slot, rank === 0)) return { action: 'buy', slot };
-      }
+      if (offer == null || (offer.kind !== 'facility' && offer.kind !== 'blueprint')) continue;
+      const found = s.wants.indexOf(offer.kind === 'facility' ? offer.facility.id : offer.blueprint.id);
+      const rank = found >= 0 ? found : s.buyAnything === true ? s.wants.length : -1;
+      if (rank < 0 || !affordable(slot, rank < 3) || (pick !== null && pick.rank <= rank)) continue;
+      if (offer.kind === 'blueprint' && offer.blueprint.kind === 'sub' && !this.hasUse(run, offer.blueprint.output)) continue;
+      const problem = run.offerProblem(slot);
+      if (problem === null || (found >= 0 && /slots full/.test(problem) && this.makeRoom(run, offer.kind) !== null)) pick = { slot, rank };
+    }
+    if (pick !== null) {
+      const offer = offers[pick.slot] as RackOffer;
+      if (run.offerProblem(pick.slot) === null) return { action: 'buy', slot: pick.slot };
+      return { action: 'sell', id: this.makeRoom(run, offer.kind === 'facility' ? 'facility' : 'blueprint') as string };
     }
     // R&D Grants on the first owned preferred target.
     for (let slot = 0; slot < offers.length; slot++) {
@@ -174,29 +179,34 @@ export class StrategyBot extends BomBot {
     return { action: 'leave' };
   }
 
-  private preferredFab(run: BomRun, allowTrash: boolean): BuildDecision | null {
-    for (const id of this.strategy.fabricate) {
-      const sub = run.blueprint(id);
-      if (sub === undefined) continue;
-      const fab = planFab(run, sub, allowTrash && run.bench.length > 0);
-      if (fab !== null) return { action: 'fab', parts: fab.parts, ...(fab.trash ? { trash: fab.trash } : {}) };
-    }
-    return null;
+  /** Owned Products, wanted ones first (in Strategy order), then by base Units × Price. */
+  private productPriority(run: BomRun): OwnedBlueprint[] {
+    const rank = (b: OwnedBlueprint): number => {
+      const i = this.strategy.wants.indexOf(b.id);
+      return i < 0 ? this.strategy.wants.length : i;
+    };
+    return run.blueprints.filter((b) => b.def.kind === 'product').sort((a, b) => rank(a) - rank(b) || baseValue(b) - baseValue(a));
   }
 
-  /** Fabricates a Sub output that some owned Product's recipe needs and hand + Bench lack. */
-  private enablingFab(run: BomRun): BuildDecision | null {
-    const available = [...run.hand, ...run.bench];
-    for (const product of run.blueprints) {
-      if (product.def.kind !== 'product') continue;
-      for (const category of new Set(product.def.recipe)) {
-        const needed = product.def.recipe.filter((c) => c === category).length;
-        if (available.filter((p) => p.category === category).length >= needed) continue;
-        const sub = run.blueprints.find((b) => b.def.kind === 'sub' && b.def.output === category);
-        const fab = sub === undefined ? null : planFab(run, sub, false);
-        if (fab !== null) return { action: 'fab', parts: fab.parts };
-      }
+  /** Whether an owned Product (other than `except`) uses this Sub output. */
+  private hasUse(run: BomRun, output: PartCategory, except?: string): boolean {
+    return run.blueprints.some((b) => b.id !== except && b.def.kind === 'product' && b.def.recipe.includes(output));
+  }
+
+  /**
+   * Something unwanted to sell for a wanted Rack item when slots are full: a Sub nothing uses, then the
+   * lowest-value unwanted Product (keeping Subs fed), or the cheapest unwanted Facility.
+   */
+  private makeRoom(run: BomRun, kind: 'facility' | 'blueprint'): string | null {
+    const s = this.strategy;
+    if (kind === 'facility') {
+      const spare = run.facilities.filter((f) => !s.wants.includes(f.id) && run.whyCannotSell(f.id) === null);
+      return [...spare].sort((a, b) => a.cost - b.cost)[0]?.id ?? null;
     }
-    return null;
+    const spare = run.blueprints.filter((b) => !s.wants.includes(b.id) && run.whyCannotSell(b.id) === null);
+    const idleSub = spare.find((b) => b.def.kind === 'sub' && !this.hasUse(run, b.def.output));
+    if (idleSub !== undefined) return idleSub.id;
+    const products = spare.filter((b) => b.def.kind === 'product').sort((a, b) => baseValue(a) - baseValue(b));
+    return products[0]?.id ?? null;
   }
 }
