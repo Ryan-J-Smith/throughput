@@ -71,6 +71,7 @@ class YearBoss extends BoardBoss {
   readonly id: string;
   readonly name: string;
   readonly text = '';
+  readonly short = '';
   readonly pressures = '';
   override readonly earliestYear: number;
 

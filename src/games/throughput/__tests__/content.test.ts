@@ -31,6 +31,11 @@ describe('content catalogue', () => {
     for (const item of [...SHOP_CARDS, ...FIXTURES, ...CONTRACTS]) expect(words(item.text), item.id).toBeLessThanOrEqual(20);
   });
 
+  it('gives every Board boss a gist of 2 to 4 words', () => {
+    for (const b of BOSSES) expect(words(b.short), b.id).toBeGreaterThanOrEqual(2);
+    for (const b of BOSSES) expect(words(b.short), b.id).toBeLessThanOrEqual(4);
+  });
+
   it('gives every Fixture a plate gist of 2 to 4 words', () => {
     for (const def of FIXTURES) expect(words(def.short ?? ''), def.id).toBeGreaterThanOrEqual(2);
     for (const def of FIXTURES) expect(words(def.short ?? ''), def.id).toBeLessThanOrEqual(4);

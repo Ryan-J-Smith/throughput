@@ -42,9 +42,9 @@ export function MarketBoard({ run, preview = null }: MarketBoardProps) {
       <DemandBars views={demandViews(run, preview)} inShop={run.phase !== 'shift'} premiumStep={run.config.grant.premiumStep} />
       <ul className="tp-market__boards">
         {run.upcomingBoards().map((b) => (
-          <li key={b.round} data-boss={b.boss.id}>
+          <li key={b.round} data-boss={b.boss.id} title={`${b.boss.name}: ${b.boss.text}`}>
             {bossArt(b.boss.id) !== undefined && <img className="tp-market__board-art" src={bossArt(b.boss.id)} alt="" loading="lazy" />}
-            <strong>{label(b.round)}</strong> {b.boss.name}: {b.boss.text}
+            <strong>{label(b.round)}</strong> {b.boss.name}: <span className="tp-market__board-gist">{b.boss.short}</span>
           </li>
         ))}
       </ul>

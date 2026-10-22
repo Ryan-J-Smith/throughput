@@ -233,6 +233,15 @@ describe('THROUGHPUT browser screen', () => {
     expect(html).toContain('<small><abbr title="Handoff: a card right after another card of the same Category adds +$1 Margin.">Handoff +$1</abbr>; ');
   });
 
+  it('the Market lists each Board ahead by name and gist, with the full rule on hover', () => {
+    const run = new ThroughputRun(1);
+    const [next] = run.upcomingBoards();
+    if (next === undefined) throw new Error('no Board ahead');
+    const html = renderToStaticMarkup(<MarketBoard run={run} />);
+    expect(html).toContain(`<li data-boss="${next.boss.id}" title="${next.boss.name}: ${next.boss.text.replace(/'/g, '&#x27;')}">`);
+    expect(html).toContain(`${next.boss.name}: <span class="tp-market__board-gist">${next.boss.short}</span></li>`);
+  });
+
   it('a Fixture card names itself a Fixture, with Mod or Station as its kind', () => {
     expect(fixtureView(fixture('quality-lab').def, 'f').tags).toEqual(['Fixture · Mod']);
     expect(fixtureView(fixture('assembly-line').def, 'f').tags).toEqual(['Fixture · Station']);

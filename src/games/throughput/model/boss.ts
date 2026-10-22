@@ -6,6 +6,8 @@ export abstract class BoardBoss {
   abstract readonly id: string;
   abstract readonly name: string;
   abstract readonly text: string;
+  /** A 2–4 word gist for tight spots like the Market's Board list (e.g. "Slot 3 welded"); `text` is the full rule. */
+  abstract readonly short: string;
   /** The build this boss leans on (for design notes and reports). */
   abstract readonly pressures: string;
   /** The first Year this boss can be drawn for; later-Year bosses wait until engines exist to test. */
