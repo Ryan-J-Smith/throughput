@@ -16,7 +16,17 @@ export type RoundStats = {
   readonly cash: number;
 };
 
+/** One shop offer as shown (on restock or after a reroll). */
+export type OfferRecord = {
+  /** The round just cleared before this shop visit. */
+  readonly round: number;
+  readonly id: string;
+  readonly kind: string;
+  readonly price: number;
+};
+
 export type PurchaseRecord = {
+  /** The round just cleared before this shop visit. */
   readonly round: number;
   readonly id: string;
   readonly kind: string;
@@ -25,10 +35,16 @@ export type PurchaseRecord = {
 
 export type RunStats = {
   readonly seed: number;
+  readonly bot: string;
+  /** Strategy label from Bot.archetypeOf. */
+  readonly archetype: string;
   readonly won: boolean;
   /** Last round played (equals the round count on a win). */
   readonly roundReached: number;
+  /** Rounds cleared: roundReached on a win, one less on a loss. */
+  readonly roundsCleared: number;
   readonly rounds: readonly RoundStats[];
+  readonly offers: readonly OfferRecord[];
   readonly purchases: readonly PurchaseRecord[];
 };
 
@@ -74,6 +90,12 @@ function inRound<TCard>(run: Run<TCard>): boolean {
 function simulateOne<TCard>(run: Run<TCard>, bot: Bot<TCard>, seed: number, maxActions: number): RunStats {
   const rounds: RoundStats[] = [];
   const purchases: PurchaseRecord[] = [];
+  const offers: OfferRecord[] = [];
+  const recordOffers = (): void => {
+    for (const offer of run.shop.offers) {
+      if (offer !== null) offers.push({ round: run.round.number, id: offer.def.id, kind: offer.def.kind, price: offer.price });
+    }
+  };
   bot.beginRun(run, new Rng(seed).fork('bot'));
   run.start();
 
@@ -109,6 +131,7 @@ function simulateOne<TCard>(run: Run<TCard>, bot: Bot<TCard>, seed: number, maxA
         throw new SimulationError(seed, 'unexpected playing phase');
       case 'roundEnd':
         run.enterShop();
+        recordOffers();
         break;
       case 'shop':
         for (let actions = 0; ; actions++) {
@@ -122,6 +145,7 @@ function simulateOne<TCard>(run: Run<TCard>, bot: Bot<TCard>, seed: number, maxA
             run.sell(decision.modifier);
           } else {
             run.reroll();
+            recordOffers();
           }
         }
         run.leaveShop();
@@ -129,5 +153,17 @@ function simulateOne<TCard>(run: Run<TCard>, bot: Bot<TCard>, seed: number, maxA
     }
   }
 
-  return { seed, won: run.phase === 'won', roundReached: run.round.number, rounds, purchases };
+  const won = run.phase === 'won';
+  const roundReached = run.round.number;
+  return {
+    seed,
+    bot: bot.name,
+    archetype: bot.archetypeOf(run),
+    won,
+    roundReached,
+    roundsCleared: won ? roundReached : roundReached - 1,
+    rounds,
+    offers,
+    purchases,
+  };
 }

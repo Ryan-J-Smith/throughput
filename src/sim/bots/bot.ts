@@ -27,4 +27,12 @@ export abstract class Bot<TCard> {
   abstract playTurn(run: Run<TCard>): PlayDecision<TCard>;
 
   abstract shopTurn(run: Run<TCard>): ShopDecision<TCard>;
+
+  /**
+   * Labels a finished run with a strategy archetype (e.g. what it ended up building) so reports
+   * can break results down by archetype. Called once, after the run ends. Default: the bot name.
+   */
+  archetypeOf(_run: Run<TCard>): string {
+    return this.name;
+  }
 }

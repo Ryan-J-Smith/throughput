@@ -20,6 +20,12 @@ function greedyTurn(run: Run<DemoCard>): PlayDecision<DemoCard> {
 export class GreedyBot extends Bot<DemoCard> {
   readonly name = 'greedy';
 
+  /** Placeholder archetype: whether the run thickened its deck with bought tens or leaned on modifiers. */
+  override archetypeOf(run: Run<DemoCard>): string {
+    const tens = run.deck.allCards.filter((c) => c.value === 10).length;
+    return tens >= 10 ? 'greedy/tens' : 'greedy/modifiers';
+  }
+
   override playTurn(run: Run<DemoCard>): PlayDecision<DemoCard> {
     return greedyTurn(run);
   }
