@@ -49,14 +49,19 @@ function freeFixtureSlot(run: ThroughputRun): number {
   return run.line.findIndex((s) => s.fixture === null);
 }
 
-/** Loads hand cards into every bay that takes one, leftmost first. */
+const PLAN = ['design', 'make', 'make', 'ship', 'ship', 'ship', 'ship'] as const;
+
+/** Loads hand cards into every bay that takes one, following PLAN (a Design, Makes, then Ships) so the Batch sells. */
 function loadEverywhere(run: ThroughputRun): void {
+  let step = 0;
   for (let slot = 0; slot < run.line.length; slot++) {
-    for (let hand = 0; hand < run.hand.length; hand++) {
-      if (run.whyCannotLoad([{ hand, slot }]) === null) {
-        run.load([{ hand, slot }]);
-        break;
-      }
+    const want = PLAN[Math.min(step, PLAN.length - 1)];
+    const fits = (hand: number) => run.whyCannotLoad([{ hand, slot }]) === null;
+    const preferred = run.hand.findIndex((card, hand) => card.def.stage === want && fits(hand));
+    const hand = preferred >= 0 ? preferred : run.hand.findIndex((_, h) => fits(h));
+    if (hand >= 0) {
+      run.load([{ hand, slot }]);
+      step++;
     }
   }
 }

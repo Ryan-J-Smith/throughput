@@ -5,6 +5,7 @@ import { LineView, TraceReceipt, bossArt, cardView, offerView } from '../browser
 import { BOSSES, CONTRACTS, FIXTURES, SHOP_CARDS } from '../content';
 import { CATEGORIES } from '../model';
 import type { Offer } from '../rules';
+import { ShiftReplay } from '../spectacle';
 import { buildQaScene } from './scene';
 import './qa.css';
 
@@ -16,6 +17,7 @@ const BOARDS = ['supply-shock', 'line-shift', 'bottleneck', 'short-week'] as con
  */
 export function ThroughputQa(_props: BrowserGameProps) {
   const [boss, setBoss] = useState<string>(BOARDS[0]);
+  const [replay, setReplay] = useState(0);
   const { run, notes } = useMemo(() => buildQaScene(boss), [boss]);
   const preview = run.phase === 'shift' ? run.preview() : null;
   const shelf: Offer[] = [
@@ -33,9 +35,13 @@ export function ThroughputQa(_props: BrowserGameProps) {
             {b}
           </button>
         ))}
+        <button type="button" className="btn btn--play qa__replay" disabled={preview === null} onClick={() => setReplay((r) => Math.abs(r) + 1)}>
+          Play the Shift replay
+        </button>
       </p>
       <main className="screen screen--tp screen--tp-shift" data-qa="line">
         <LineView run={run} bayState={() => 'idle'} onBay={() => {}} onScrap={() => {}} bayLabel={(slot) => `Bay ${slot + 1}`} />
+        {preview !== null && replay > 0 && <ShiftReplay key={replay} result={preview} shift={run.shift} baseMargin={run.config.baseMargin} onDone={() => setReplay((r) => -r)} />}
         <div className="tp-desk">
           <section className="hand tp-hand" aria-label="Hand">
             <p className="tp-hint">The hand as dealt for this Shift.</p>

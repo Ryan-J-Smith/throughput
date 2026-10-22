@@ -1,0 +1,532 @@
+/*
+ * THROUGHPUT scoring spectacle: the Batch rides the belt. Pacing comes from replayTiming() (as
+ * --step); everything else from theme tokens. Reduced motion shows the finale at once.
+ */
+
+.tp-replay {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px 12px;
+  overflow: hidden;
+  background: var(--glass), rgb(10 16 29 / 0.95);
+  border: 1px solid rgb(46 197 255 / 0.35);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel), 0 0 40px -16px rgb(46 197 255 / 0.7);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  cursor: pointer;
+  animation: tp-replay-in var(--dur-med) var(--ease-out) both;
+}
+
+/* During a Shift it plays over the Line it replays (same grid cell). */
+.screen--tp-shift > .tp-replay {
+  grid-area: line;
+  z-index: 6;
+  align-self: stretch;
+}
+
+@keyframes tp-replay-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* ---- Header: the Batch's readouts ---- */
+
+.tp-replay__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 18px;
+}
+
+.tp-replay__title {
+  margin-right: auto;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 800;
+}
+
+.tp-replay__readout {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  color: var(--chalk-dim);
+}
+
+.tp-replay__readout b {
+  display: inline-block;
+  min-width: 2ch;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--chalk);
+  animation: tp-tick var(--dur-med) var(--ease-spring);
+}
+
+.tp-replay__readout-icon {
+  width: 16px;
+  height: 16px;
+  align-self: center;
+}
+
+.tp-replay__readout-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tp-replay__readout[data-kind='units'] .tp-replay__readout-icon {
+  color: var(--cat-gadgets);
+}
+
+.tp-replay__readout[data-kind='margin'] .tp-replay__readout-icon {
+  color: var(--type-design);
+}
+
+.tp-replay__readout[data-kind='sales'] .tp-replay__readout-icon,
+.tp-replay__readout[data-kind='sales'] b {
+  color: var(--cash);
+}
+
+.tp-replay__skip {
+  padding: 4px 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--chalk);
+  background: rgb(255 255 255 / 0.06);
+  cursor: pointer;
+}
+
+.tp-replay__skip:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@keyframes tp-tick {
+  40% {
+    transform: scale(1.25);
+  }
+}
+
+/* ---- The belt: slots above, the token's track below ---- */
+
+/* The belt fills the rest of the panel: slots on top, the token's track along the bottom. */
+.tp-replay__belt {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding-bottom: 96px;
+  background:
+    radial-gradient(circle at 50% 50%, #c9d3e6 0 2px, #4d5872 2.5px 4.5px, transparent 5px) 0 calc(100% - 4px) / 24px 12px repeat-x,
+    linear-gradient(180deg, transparent calc(100% - 20px), rgb(34 211 197 / 0.55) calc(100% - 20px) calc(100% - 19px), #0b111e calc(100% - 19px));
+}
+
+.tp-replay__slots {
+  display: grid;
+  grid-template-columns: repeat(var(--slots), minmax(0, 1fr));
+  gap: 8px;
+  flex: 1;
+  margin: 0;
+  padding: 14px 0 0;
+  list-style: none;
+}
+
+.tp-replay__slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  min-height: 104px;
+  padding: 9px 10px;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.07), rgb(255 255 255 / 0.02));
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: var(--radius-button);
+  transition:
+    opacity var(--dur-med) linear,
+    transform var(--dur-med) var(--ease-spring),
+    border-color var(--dur-med) linear,
+    box-shadow var(--dur-med) linear;
+}
+
+.tp-replay__slot[data-state='ahead'] {
+  opacity: 0.5;
+}
+
+.tp-replay__slot[data-state='active'] {
+  border-color: var(--cat-gadgets);
+  box-shadow: 0 0 0 1px var(--cat-gadgets), 0 0 26px -6px rgb(46 197 255 / 0.8);
+  transform: translateY(-4px) scale(1.04);
+}
+
+.tp-replay__slot[data-kind='empty'] {
+  border-style: dashed;
+  background: rgb(0 0 0 / 0.2);
+}
+
+.tp-replay__slot[data-kind='welded'] {
+  border-color: rgb(255 84 112 / 0.45);
+  background:
+    linear-gradient(135deg, transparent 47%, rgb(255 120 90 / 0.8) 49%, rgb(255 210 150 / 0.85) 50%, rgb(255 120 90 / 0.8) 51%, transparent 53%),
+    repeating-linear-gradient(45deg, #1f2738 0 6px, #171e2c 6px 12px);
+}
+
+.tp-replay__num {
+  font-family: var(--font-display);
+  font-size: 0.625rem;
+  font-weight: 800;
+  color: var(--chalk-dim);
+}
+
+.tp-replay__name {
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.tp-replay__slot[data-kind='welded'] .tp-replay__name {
+  color: #ff8fa3;
+}
+
+.tp-replay__fixture {
+  overflow: hidden;
+  font-size: 0.625rem;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--type-ship);
+}
+
+.tp-replay__fixture[data-idle] {
+  color: var(--chalk-dim);
+  text-decoration: line-through;
+}
+
+.tp-replay__deltas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: auto;
+}
+
+.tp-replay__deltas > span {
+  padding: 0 5px;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  border-radius: var(--radius-pill);
+  animation: tp-chip-in var(--dur-med) var(--ease-spring) both;
+}
+
+.tp-replay__deltas [data-kind='margin'] {
+  color: #d9c6ff;
+  background: rgb(167 123 255 / 0.22);
+}
+
+.tp-replay__deltas [data-kind='units'] {
+  color: #b8ecff;
+  background: rgb(46 197 255 / 0.2);
+}
+
+.tp-replay__deltas [data-kind='sales'] {
+  color: #b9f5d9;
+  background: rgb(61 220 151 / 0.22);
+}
+
+/* ---- Flourishes on the active slot ---- */
+
+.tp-replay__flourish {
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  z-index: 2;
+  padding: 2px 9px;
+  font-family: var(--font-display);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #fff;
+  border: 1px solid rgb(255 255 255 / 0.35);
+  border-radius: var(--radius-pill);
+  transform: translateX(-50%);
+  animation: tp-flourish var(--step) var(--ease-spring) both;
+}
+
+.tp-replay__flourish + .tp-replay__flourish {
+  top: -30px;
+}
+
+.tp-replay__flourish--hot {
+  background: linear-gradient(135deg, #ff4d6d, #ff9a1f);
+  box-shadow: 0 0 22px -2px rgb(255 110 60 / 0.9);
+}
+
+.tp-replay__flourish--sold-out {
+  color: #1a1204;
+  background: linear-gradient(180deg, #fff1bf, var(--rarity-gold));
+  box-shadow: 0 0 18px -2px rgb(255 207 90 / 0.8);
+}
+
+.tp-replay__flourish--price-gun {
+  background: linear-gradient(135deg, #7a4dff, #a77bff);
+  box-shadow: 0 0 18px -2px rgb(167 123 255 / 0.9);
+}
+
+.tp-replay__flourish--retrigger {
+  color: #1a1204;
+  background: linear-gradient(135deg, #ffd06b, #ff9a1f);
+  box-shadow: 0 0 18px -2px rgb(255 176 46 / 0.9);
+}
+
+/* A sale: the money rises off the slot and a truck pulls away to the right. */
+.tp-replay__pop {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  z-index: 3;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--cash);
+  text-shadow: 0 0 16px rgb(61 220 151 / 0.8), 0 2px 6px rgb(0 0 0 / 0.6);
+  pointer-events: none;
+  animation: tp-pop calc(var(--step) * 1.6) var(--ease-out) both;
+}
+
+.tp-replay__truck {
+  position: absolute;
+  right: 6px;
+  bottom: -34px;
+  z-index: 2;
+  color: var(--cash);
+  filter: drop-shadow(0 0 8px rgb(61 220 151 / 0.8));
+  animation: tp-truck calc(var(--step) * 1.4) cubic-bezier(0.5, 0, 0.75, 0.4) both;
+}
+
+.tp-replay__truck > .icon {
+  width: 26px;
+  height: 26px;
+}
+
+@keyframes tp-chip-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+@keyframes tp-flourish {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.4);
+  }
+  35% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.15);
+  }
+  100% {
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+@keyframes tp-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 8px) scale(0.7);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(-50%, -6px) scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -46px) scale(1);
+  }
+}
+
+@keyframes tp-truck {
+  0% {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  20% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(260px);
+  }
+}
+
+/* ---- The token: the hero robot pushing the Batch's crates along the track ---- */
+
+.tp-replay__token {
+  position: absolute;
+  bottom: 14px;
+  left: calc((var(--at) + 0.5) * 100% / var(--slots));
+  display: flex;
+  align-items: flex-end;
+  flex-direction: row-reverse;
+  gap: 2px;
+  transform: translateX(-62%);
+  transition: left calc(var(--step) * 0.7) cubic-bezier(0.45, 0, 0.25, 1);
+  pointer-events: none;
+}
+
+.tp-replay__robot {
+  width: 78px;
+  height: 78px;
+  filter: drop-shadow(0 6px 8px rgb(0 0 0 / 0.55)) drop-shadow(0 0 12px rgb(46 197 255 / 0.35));
+  animation: tp-hop calc(var(--step) * 0.7) var(--ease-out);
+}
+
+/* The cart sits in front of the robot (to its right). */
+.tp-replay__cart {
+  display: flex;
+  flex-wrap: wrap-reverse;
+  align-content: flex-start;
+  gap: 2px;
+  width: 58px;
+  min-height: 14px;
+  padding: 3px;
+  margin-bottom: 4px;
+  background: linear-gradient(180deg, #3a4660, #222c41);
+  border: 1px solid rgb(255 255 255 / 0.18);
+  border-radius: 4px 4px 7px 7px;
+  box-shadow: 0 4px 8px rgb(0 0 0 / 0.5);
+}
+
+.tp-replay__crate {
+  width: 11px;
+  height: 11px;
+  background: linear-gradient(180deg, #f2c27a, #c58a3e);
+  border-radius: 2px;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.45), inset 0 -1px 0 rgb(0 0 0 / 0.25);
+  animation: tp-chip-in var(--dur-fast) var(--ease-spring) both;
+}
+
+@keyframes tp-hop {
+  40% {
+    transform: translateY(-10px) rotate(-4deg);
+  }
+  70% {
+    transform: translateY(0) rotate(2deg);
+  }
+}
+
+/* ---- Finale: leftovers pile up, then the total lands ---- */
+
+.tp-replay__finale {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding-top: 8px;
+  border-top: 1px solid var(--paper-rule);
+}
+
+.tp-replay__pile {
+  display: flex;
+  flex-wrap: wrap-reverse;
+  gap: 2px;
+  width: 64px;
+}
+
+.tp-replay__pile > .tp-replay__crate {
+  width: 12px;
+  height: 12px;
+  animation: tp-drop var(--dur-slow) cubic-bezier(0.3, 1.4, 0.5, 1) both;
+  animation-delay: calc(var(--i, 0) * 35ms);
+}
+
+.tp-replay__leftover {
+  flex: 1;
+  min-width: 10rem;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--chalk-dim);
+}
+
+.tp-replay__total {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--cash);
+  text-shadow: 0 0 26px rgb(61 220 151 / 0.6);
+  animation: tp-total-land var(--dur-slow) var(--ease-spring) both;
+  animation-delay: var(--dur-med);
+}
+
+@keyframes tp-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-40px);
+  }
+}
+
+@keyframes tp-total-land {
+  from {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
+/* ---- Phones: narrower slots, the fixture line goes ---- */
+
+@media (max-width: 640px) {
+  .tp-replay__head {
+    gap: 4px 10px;
+  }
+
+  .tp-replay__readout-label {
+    display: none;
+  }
+
+  .tp-replay__readout b {
+    font-size: var(--text-md);
+  }
+
+  .tp-replay__slots {
+    gap: 4px;
+  }
+
+  .tp-replay__slot {
+    min-height: 74px;
+    padding: 6px 5px;
+  }
+
+  .tp-replay__name {
+    font-size: 0.6875rem;
+  }
+
+  .tp-replay__fixture {
+    display: none;
+  }
+
+  .tp-replay__robot {
+    width: 54px;
+    height: 54px;
+  }
+
+  .tp-replay__belt {
+    padding-bottom: 70px;
+  }
+}
