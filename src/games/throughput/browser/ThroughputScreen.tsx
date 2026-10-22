@@ -13,6 +13,7 @@ import type { ShiftResult } from '../rules';
 import { LineView } from './LineView';
 import type { BayState } from './LineView';
 import { MarketBoard } from './MarketBoard';
+import { PileStack } from './PileStack';
 import { cardView } from './present';
 import { RunAutosave, handNumber } from './run-autosave';
 import { RunSummaryView } from './RunSummary';
@@ -233,6 +234,7 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
   };
 
   const preview = inShift ? run.preview() : null;
+  const restockNote = run.config.restocksPerRound === 0 ? null : run.restocksLeft > 0 ? 'Restock ready' : 'Restocked';
   const tip = currentTip(run, preview, tips.done);
   const tipFor = (id: TipId) =>
     tip === id && (
@@ -312,10 +314,7 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
                   Retool ({run.retoolsLeft} left)
                 </button>
               )}
-              <span className="hand__count">
-                Draw pile {run.drawPile.length}
-                {run.config.restocksPerRound > 0 && (run.restocksLeft > 0 ? ', Restock ready' : ', Restocked')}
-              </span>
+              <PileStack draw={run.drawPile.length} discard={run.discardPile.length} {...(restockNote === null ? {} : { note: restockNote })} />
               <button type="button" className="btn btn--play" onClick={runShift}>
                 Run Shift {run.shift}: ${preview.total}
               </button>
