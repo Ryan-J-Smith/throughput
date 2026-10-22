@@ -63,8 +63,9 @@ export type ThroughputConfig = {
 export const SEED_03_TARGETS: readonly number[] = [150, 250, 400, 600, 900, 1300, 1800, 2600, 3600, 5000, 7000, 10000];
 
 export const DEFAULT_CONFIG: ThroughputConfig = {
-  // First-pass sim tune (DESIGN_NOTES "Sim tuning"): best bot wins ~30%, tempo and slow-burn cross at Y2.
-  targets: [150, 250, 350, 450, 600, 800, 1000, 1250, 1500, 1750, 2050, 2350],
+  // Re-fit after the BoM grafts and content wave 1 (DESIGN_NOTES "Target re-fit"): gentler to round 8,
+  // ×1.26–1.30 per round from round 9; best bot ~37%, three bots 11–37%.
+  targets: [130, 200, 270, 360, 470, 600, 760, 950, 1200, 1550, 2000, 2600],
   roundsPerYear: 3,
   shiftsPerRound: 4,
   retoolsPerRound: 2,

@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { GrantPicker, HowToPlay, LineView, ThroughputBrowserGame, ThroughputScreen, TraceReceipt, demandBossCut, demandViews, lineNotice } from '../browser';
+import { DEFAULT_CONFIG } from '../content';
 import type { BayState } from '../browser';
 import { CATEGORIES } from '../model';
 import type { Category, Stage } from '../model';
@@ -41,7 +42,7 @@ describe('THROUGHPUT browser screen', () => {
     expect(html).toContain('Run Shift 1: $0');
     expect(html.match(/class="tp-bay /g)).toHaveLength(5);
     expect(html).toContain('aria-label="Market"');
-    expect(html).toContain('of $150 target');
+    expect(html).toContain(`of $${DEFAULT_CONFIG.targets[0]} target`);
     expect(html).toContain('If you run now');
   });
 

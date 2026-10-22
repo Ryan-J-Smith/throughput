@@ -42,7 +42,7 @@ describe('ThroughputRun: setup', () => {
     const run = new ThroughputRun(1);
     expect(run.phase).toBe('shift');
     expect(run.quarter).toEqual({ round: 1, year: 1, quarter: 1, isBoard: false });
-    expect(run.target).toBe(150);
+    expect(run.target).toBe(DEFAULT_CONFIG.targets[0]);
     expect(run.deck).toHaveLength(20);
     expect(run.hand).toHaveLength(7);
     expect(run.drawPile).toHaveLength(13);
