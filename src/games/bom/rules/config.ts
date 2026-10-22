@@ -39,6 +39,8 @@ export type BomConfig = {
   readonly handSize: number;
   readonly benchSlots: number;
   readonly sellOutGrowth: number;
+  /** Overtime Ships pay $1 per `step` × target of their revenue, at most `cap` per round. */
+  readonly overtimeShip: { readonly step: number; readonly cap: number };
   /** Most parts in one Scrap or Ship. */
   readonly maxSelection: number;
   readonly blueprints: readonly BlueprintDef[];

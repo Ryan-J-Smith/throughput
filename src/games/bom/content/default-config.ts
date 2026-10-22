@@ -13,14 +13,14 @@ export const DOC_TARGETS: readonly (readonly [number, number, number])[] = [
 ];
 
 /**
- * Sim-tuned targets (Phase B2): 21.5× from Q1 Small to the Q4 Boss, so tempo stalls in Q4 while
- * slow-burn engines pull ahead (DESIGN_NOTES "Tuning").
+ * Sim-tuned targets: 21.4× from Q1 Small to the Q4 Boss, so tempo stalls in Q4 while slow-burn
+ * engines pull ahead. Re-centred +5% for Overtime Ship pay (DESIGN_NOTES "Tuning").
  */
 export const TUNED_TARGETS: readonly (readonly [number, number, number])[] = [
-  [100, 140, 180],
-  [220, 280, 320],
-  [360, 480, 620],
-  [1000, 1450, 2150],
+  [105, 145, 190],
+  [230, 295, 335],
+  [380, 505, 650],
+  [1050, 1525, 2250],
 ];
 
 /** The game as specified in the design doc, with the tuning in DESIGN_NOTES "Tuning" applied. */
@@ -36,6 +36,8 @@ export function defaultBomConfig(): BomConfig {
     handSize: 8,
     benchSlots: 2,
     sellOutGrowth: 5,
+    // Approved rule change (DESIGN_NOTES "Overtime"): Overtime Ships pay cash.
+    overtimeShip: { step: 0.25, cap: 5 },
     maxSelection: 5,
     blueprints: BLUEPRINTS,
     startingBlueprints: STARTING_BLUEPRINTS,

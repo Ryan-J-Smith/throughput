@@ -16,7 +16,8 @@ import type { BomOffer, StockContext } from './shop';
 /**
  * round: Builds and Scraps until revenue reaches the target (→ overtime, or the round clears if
  * no Builds remain) or the Builds run out (→ lost).
- * overtime: Ship is locked; Fabricate or Scrap, then collect $1 per unused Build.
+ * overtime: Ships pay cash (config `overtimeShip`), Fabricate stocks the Bench, Scraps are locked;
+ * collect takes $1 per unused Build, and using the last Build clears the round.
  * shop: buy, sell, shred, reroll, then continue to the next round.
  */
 export type BomPhase = 'round' | 'overtime' | 'shop' | 'won' | 'lost';
@@ -44,6 +45,8 @@ export type ShipResult = {
   readonly quote: ShipQuote;
   /** Permanent Demand gained by selling out (0 if not). */
   readonly growth: number;
+  /** Cash an Overtime Ship adds to this round's payout (0 for Ships before the target). */
+  readonly overtimePay: number;
   readonly drawn: readonly Part[];
   readonly roundEnd: RoundEnd | null;
 };
@@ -59,6 +62,15 @@ export type FabricateResult = {
 };
 
 export type ScrapResult = { readonly drawn: readonly Part[]; readonly roundEnd: RoundEnd | null };
+
+/** The `stock` shortcut: a Fabricate that supplies a Sub part an owned Product's recipe lacks on the Bench. */
+export type StockPlan = {
+  readonly product: OwnedBlueprint;
+  readonly sub: OwnedBlueprint;
+  /** Highest-grade hand inputs. */
+  readonly parts: readonly Part[];
+  readonly output: Part;
+};
 
 /** Target of an R&D Grant purchase. */
 export type RndTarget = { readonly blueprintId: string; readonly choice?: RndChoice };
@@ -87,6 +99,7 @@ export class BomRun {
   private buildsLeft_ = 0;
   private scrapsLeft_ = 0;
   private shippedThisRound = new Set<string>();
+  private overtimeCash_ = 0;
   private lastRoundEnd_: RoundEnd | null = null;
 
   constructor(config: BomConfig, seed: number) {
@@ -191,8 +204,7 @@ export class BomRun {
   // ---- round actions ----
 
   whyCannotShip(parts: readonly Part[], productId?: string): string | null {
-    if (this.phase_ === 'overtime') return 'Ship is locked in Overtime (target reached)';
-    if (this.phase_ !== 'round') return 'Not in a round';
+    if (this.phase_ !== 'round' && this.phase_ !== 'overtime') return 'Not in a round';
     if (this.buildsLeft_ <= 0) return 'No Builds left';
     const problem = this.selectionProblem(parts, true);
     if (problem !== null) return problem;
@@ -227,10 +239,56 @@ export class BomRun {
     return this.quote(product, parts);
   }
 
+  /** Overtime cash Ships have earned this round (paid with the round's payout). */
+  get overtimeCash(): number {
+    return this.overtimeCash_;
+  }
+
+  /** Cash an Overtime Ship earning `revenue` would add now: $1 per step × target, within the round cap. */
+  overtimePayFor(revenue: number): number {
+    const { step, cap } = this.config.overtimeShip;
+    const per = step * this.round.target;
+    if (per <= 0) return 0;
+    return Math.max(0, Math.min(cap - this.overtimeCash_, Math.floor(revenue / per + 1e-9)));
+  }
+
+  /**
+   * The `stock` shortcut (read-only): for owned Products from most to least valuable (Units × Price),
+   * the first Sub part a recipe needs that the Bench lacks, made from the highest-grade hand inputs.
+   * Null if no such Fabricate is legal without trashing.
+   */
+  stockPlan(): StockPlan | null {
+    const products = this.owned.filter((b) => b.def.kind === 'product').sort((a, b) => b.units * b.price - a.units * a.price);
+    for (const product of products) {
+      const bench = [...this.bench];
+      for (const category of product.def.recipe) {
+        const onBench = bench.findIndex((p) => p.category === category);
+        if (onBench >= 0) {
+          bench.splice(onBench, 1);
+          continue;
+        }
+        const sub = this.owned.find((b) => b.def.kind === 'sub' && b.def.output === category);
+        if (sub === undefined) continue;
+        const pool = [...this.deck.hand].sort((a, b) => b.grade - a.grade);
+        const parts: Part[] = [];
+        for (const input of sub.def.recipe) {
+          const i = pool.findIndex((p) => p.category === input);
+          if (i < 0) break;
+          parts.push(pool.splice(i, 1)[0] as Part);
+        }
+        if (parts.length !== sub.def.recipe.length || this.whyCannotFabricate(parts) !== null) continue;
+        return { product, sub, parts, output: fabricate(sub, parts, this.activeRules).output };
+      }
+    }
+    return null;
+  }
+
   ship(parts: readonly Part[], productId: string): ShipResult {
     this.check(this.whyCannotShip(parts, productId));
     const product = this.blueprint(productId) as OwnedBlueprint;
     const quote = this.quote(product, parts);
+    const overtimePay = this.phase_ === 'overtime' ? this.overtimePayFor(quote.revenue) : 0;
+    this.overtimeCash_ += overtimePay;
     const growth = quote.sellsOut ? this.mods.sellOutGrowth : 0;
     product.growth += growth;
     product.shipsThisRound++;
@@ -238,7 +296,7 @@ export class BomRun {
     this.shippedThisRound.add(product.id);
     this.revenue_ += quote.revenue;
     this.consume(parts);
-    return { quote, growth, ...this.afterBuild() };
+    return { quote, growth, overtimePay, ...this.afterBuild() };
   }
 
   whyCannotFabricate(parts: readonly Part[], trash?: Part): string | null {
@@ -280,7 +338,8 @@ export class BomRun {
   }
 
   whyCannotScrap(parts: readonly Part[]): string | null {
-    if (this.phase_ !== 'round' && this.phase_ !== 'overtime') return 'Not in a round';
+    if (this.phase_ === 'overtime') return 'Scraps are locked in Overtime';
+    if (this.phase_ !== 'round') return 'Not in a round';
     if (this.scrapsLeft_ <= 0) return 'No Scraps left';
     if (parts.some((p) => this.bench.includes(p))) return 'Only hand parts can be scrapped';
     return this.selectionProblem(parts, false);
@@ -298,7 +357,7 @@ export class BomRun {
     return this.phase_ === 'overtime' ? null : 'Collect is only for Overtime (after reaching the target)';
   }
 
-  /** Ends Overtime: each unused Build pays $1, then the round clears. */
+  /** Ends Overtime: each unused Build pays $1 (plus any Overtime Ship cash), then the round clears. */
   collect(): RoundEnd {
     this.check(this.whyCannotCollect());
     return this.clearRound();
@@ -448,6 +507,7 @@ export class BomRun {
     this.buildsLeft_ = mods.builds;
     this.scrapsLeft_ = mods.scraps;
     this.shippedThisRound = new Set();
+    this.overtimeCash_ = 0;
     for (const b of this.owned) b.shipsThisRound = 0;
     this.deck.handSize = mods.handSize;
     this.deck.resetForRound();
@@ -504,6 +564,7 @@ export class BomRun {
     const payout = new Payout();
     payout.add(`${capitalize(round.market)} market cleared`, this.config.rewards[round.market]);
     if (this.buildsLeft_ > 0) payout.add(`Unused Builds ×${this.buildsLeft_}`, this.buildsLeft_);
+    if (this.overtimeCash_ > 0) payout.add('Overtime Ships', this.overtimeCash_);
     const interest = computeInterest(this.wallet.cash, this.config.interest);
     if (interest > 0) payout.add('Interest', interest);
     this.wallet.earn(payout.total());

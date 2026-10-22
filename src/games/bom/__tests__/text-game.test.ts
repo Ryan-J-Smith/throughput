@@ -63,7 +63,7 @@ describe('BomTextGame', () => {
   it('starts in round 1 with a readable view', () => {
     const view = game.show(game.newSave(42));
     expect(view.text).toMatch(/^Bill of Materials · seed 42 · 0 actions · phase: round/);
-    expect(view.text).toMatch(/Q1 Small \(round 1\/12\) · Target 100 · Revenue 0 · Builds 4 · Scraps 3 · Cash \$4/);
+    expect(view.text).toMatch(/Q1 Small \(round 1\/12\) · Target 105 · Revenue 0 · Builds 4 · Scraps 3 · Cash \$4/);
     expect(view.text).toMatch(/Hand \(8\) · draw pile 24 · discard 0 \(reshuffled next round\): 1 \w+ \d/);
     expect(view.text).toMatch(/desk-fan\s+Motor\+Shell\s+15 Units/);
     expect(state(view).hand).toHaveLength(8);
@@ -97,7 +97,7 @@ describe('BomTextGame', () => {
     if (!ambiguous.ok) expect(ambiguous.reason).toMatch(/Several Products fit; pick one: ship (gizmo|flatpack) /);
     const shipped = easy.take(save, 'ship Flatpack 1 5 6');
     expect(shipped.ok && shipped.save.actions).toEqual(['ship flatpack 1 5 6']);
-    expect(shipped.ok && shipped.log[0]).toMatch(/^Shipped Flatpack: \$\d+ \(revenue \d+\/100\)$/);
+    expect(shipped.ok && shipped.log[0]).toMatch(/^Shipped Flatpack: \$\d+ \(revenue \d+\/105\)$/);
     expect(shipped.ok && shipped.log[1]).toMatch(/^ {2}Flatpack base: 18 Units, \$2, 50 Demand$/);
   });
 

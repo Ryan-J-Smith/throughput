@@ -8,4 +8,4 @@ export type { FabResult } from './fabricate';
 export { BomShop } from './shop';
 export type { BomOffer, CounterOffer, RackOffer, StockContext } from './shop';
 export { BomRun, recipeText } from './bom-run';
-export type { BomPhase, BomRoundInfo, FabricateResult, RndTarget, RoundEnd, ScrapResult, ShipResult } from './bom-run';
+export type { BomPhase, BomRoundInfo, FabricateResult, RndTarget, RoundEnd, ScrapResult, ShipResult, StockPlan } from './bom-run';

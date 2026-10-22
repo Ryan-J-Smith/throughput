@@ -9,6 +9,7 @@ export type BomCommand =
   | { readonly kind: 'fab'; readonly parts: readonly PartRef[]; readonly trash: PartRef | null }
   | { readonly kind: 'scrap'; readonly parts: readonly PartRef[] }
   | { readonly kind: 'collect' }
+  | { readonly kind: 'stock' }
   | { readonly kind: 'continue' }
   | { readonly kind: 'buy'; readonly slot: number; readonly blueprint: string | null; readonly choice: RndChoice | null }
   | { readonly kind: 'sell'; readonly id: string }
@@ -18,7 +19,7 @@ export type BomCommand =
 export type BomParse = { readonly ok: true; readonly command: BomCommand } | { readonly ok: false; readonly reason: string };
 
 export const ACTION_SUMMARY =
-  'ship [product] <parts…> | preview <parts…> | fab <parts…> [trash bN] | scrap <positions…> | collect | ' +
+  'ship [product] <parts…> | preview <parts…> | fab <parts…> [trash bN] | stock | scrap <positions…> | collect | ' +
   'buy <slot> [blueprint scale|premium] | sell <id> | shred <category> <grade> | reroll | continue';
 
 const PART_TOKEN = /^(b?)(\d+)$/;
@@ -74,6 +75,7 @@ export function parseBomAction(text: string): BomParse {
       return { ok: true, command: { kind: 'scrap', parts } };
     }
     case 'collect':
+    case 'stock':
     case 'reroll':
     case 'continue':
       if (args.length > 0) return fail(`${verb} takes no arguments`);

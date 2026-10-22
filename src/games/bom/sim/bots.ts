@@ -10,6 +10,7 @@ export const GREEDY: Strategy = {
   counter: [],
   shred: [],
   overtimeFab: false,
+  overtimePriority: 'cash',
   reserve: 0,
   rerolls: 0,
 };
@@ -22,6 +23,7 @@ export const BARGAIN_BIN: Strategy = {
   counter: ['paint', 'shell'],
   shred: [['bolt', 1], ['chip', 1]],
   overtimeFab: true,
+  overtimePriority: 'cash',
   reserve: 0,
   rerolls: 1,
 };
@@ -34,6 +36,7 @@ export const ASSEMBLY_CHAIN: Strategy = {
   counter: ['chip', 'bolt'],
   shred: [['paint', 1], ['paint', 2]],
   overtimeFab: true,
+  overtimePriority: 'stock',
   reserve: 5,
   rerolls: 1,
 };
@@ -46,6 +49,7 @@ export const MARKET_MAKER: Strategy = {
   counter: ['shell', 'bolt'],
   shred: [['paint', 1], ['chip', 1]],
   overtimeFab: true,
+  overtimePriority: 'stock',
   reserve: 5,
   rerolls: 1,
 };

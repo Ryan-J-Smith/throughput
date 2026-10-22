@@ -109,7 +109,9 @@ describe('BoM worked example', () => {
     expect(run.revenue).toBe(702);
     expect(run.phase).toBe('overtime');
     expect(run.buildsLeft).toBe(1);
-    expect(run.whyCannotShip([pick(run, 'bolt', 1)], 'gizmo')).toMatch(/locked in Overtime/);
+    // Approved change from the doc: Ships stay legal in Overtime (and pay cash); Scraps are locked.
+    expect(run.whyCannotShip([pick(run, 'bolt', 1)], 'gizmo')).toMatch(/Gizmo needs Shell\+Chip/);
+    expect(run.whyCannotScrap([pick(run, 'bolt', 1)])).toBe('Scraps are locked in Overtime');
   });
 
   it('Build 4 Overtime: take $1, or Fabricate a Motor (grade 8) for next round', () => {

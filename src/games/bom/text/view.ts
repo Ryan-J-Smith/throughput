@@ -28,6 +28,13 @@ export type BomView = {
   readonly interest: { readonly per: number; readonly amount: number; readonly cap: number };
   /** Rule numbers the text explains: sell-out growth, whether repeat Ships halve Demand, parts per Build. */
   readonly rules: { readonly sellOutGrowth: number; readonly demandHalves: boolean; readonly maxSelection: number };
+  /**
+   * Overtime Ship pay this round: $1 per `revenuePerDollar` of a Ship's revenue, `earned` of `cap` so
+   * far (paid with the round's payout).
+   */
+  readonly overtime: { readonly revenuePerDollar: number; readonly earned: number; readonly cap: number };
+  /** The `stock` shortcut, when a Fabricate can supply a Sub part a Product lacks (see BomRun.stockPlan). */
+  readonly stock: StockView | null;
   readonly hand: readonly PartView[];
   /** Deck piles: undrawn parts this round, and used/scrapped parts that return next round. */
   readonly piles: { readonly draw: number; readonly discard: number };
@@ -44,6 +51,16 @@ export type BomView = {
   readonly next: { readonly quarter: number; readonly market: string; readonly target: number; readonly disruption: string | null } | null;
   readonly lastPayout: readonly PayoutLine[] | null;
   readonly legalActions: readonly string[];
+};
+
+export type StockView = {
+  /** The Product whose recipe it serves, and the Sub it fabricates. */
+  readonly product: string;
+  readonly sub: string;
+  /** Hand refs of the inputs, as `fab` takes them (e.g. "2 6"). */
+  readonly parts: string;
+  /** The part it makes, e.g. "Motor 16". */
+  readonly output: string;
 };
 
 export type PartView = {
@@ -119,6 +136,8 @@ export function buildBomView(run: BomRun, context: { game: string; seed: number;
     interestNext: computeInterest(run.wallet.cash, run.config.interest),
     interest: run.config.interest,
     rules: { sellOutGrowth: run.mods.sellOutGrowth, demandHalves: run.mods.demandHalves, maxSelection: run.config.maxSelection },
+    overtime: { revenuePerDollar: run.config.overtimeShip.step * round.target, earned: run.overtimeCash, cap: run.config.overtimeShip.cap },
+    stock: stockView(run),
     hand: sortedHand(run).map((p, i) => partView(p, String(i + 1))),
     piles: { draw: run.deck.drawPile.length, discard: run.deck.discardPile.length },
     bench: { slots: run.mods.benchSlots, parts: run.bench.map((p, i) => partView(p, `b${i + 1}`)) },
@@ -141,6 +160,12 @@ export function buildBomView(run: BomRun, context: { game: string; seed: number;
     lastPayout: inShop || run.phase === 'won' ? (run.lastRoundEnd?.payout?.lines ?? null) : null,
     legalActions: legalActions(run),
   };
+}
+
+function stockView(run: BomRun): StockView | null {
+  const plan = run.stockPlan();
+  if (plan === null) return null;
+  return { product: plan.product.id, sub: plan.sub.id, parts: refsFor(run, plan.parts), output: partLabel(plan.output) };
 }
 
 function partView(part: Part, ref: string): PartView {
@@ -236,12 +261,13 @@ export function legalActions(run: BomRun): string[] {
   const out: string[] = [];
   const available = [...sortedHand(run), ...run.bench];
   const inRound = run.phase === 'round' || run.phase === 'overtime';
-  if (run.phase === 'round' && run.buildsLeft > 0) {
+  if (inRound && run.buildsLeft > 0) {
+    const pay = run.phase === 'overtime' ? ` (Overtime cash: ${overtimePayText(run)})` : '';
     for (const b of run.blueprints) {
       if (b.def.kind !== 'product') continue;
       const parts = findRecipeParts(b.def.recipe, available);
       if (parts !== null) {
-        out.push(`ship ${b.id} <parts…> — 1 Build: ${b.def.name} needs ${recipeText(b.def.recipe)}; extra parts are filler that add their grade (e.g. ship ${b.id} ${refsFor(run, parts)})`);
+        out.push(`ship ${b.id} <parts…> — 1 Build${pay}: ${b.def.name} needs ${recipeText(b.def.recipe)}; extra parts are filler that add their grade (e.g. ship ${b.id} ${refsFor(run, parts)})`);
       }
     }
     out.push('preview <parts…> — projected revenue for every Product those parts fit (free, not recorded)');
@@ -259,8 +285,15 @@ export function legalActions(run: BomRun): string[] {
       );
     }
   }
-  if (inRound && run.scrapsLeft > 0) out.push(`scrap <hand positions…> — discard 1–5 and redraw (${run.scrapsLeft} left)`);
-  if (run.phase === 'overtime') out.push(`collect — end the round: +$${run.buildsLeft} for ${run.buildsLeft} unused Build(s), then the shop (a fab costs $1 of that)`);
+  const stock = inRound ? run.stockPlan() : null;
+  if (stock !== null) {
+    out.push(`stock — 1 Build: fab ${partLabel(stock.output)} from ${stock.parts.map(partLabel).join(' + ')} for ${stock.product.def.name} (same as fab ${refsFor(run, stock.parts)})`);
+  }
+  if (run.phase === 'round' && run.scrapsLeft > 0) out.push(`scrap <hand positions…> — discard 1–5 and redraw (${run.scrapsLeft} left)`);
+  if (run.phase === 'overtime') {
+    const earned = run.overtimeCash > 0 ? ` + $${run.overtimeCash} from Overtime Ships` : '';
+    out.push(`collect — end the round: +$${run.buildsLeft} for ${run.buildsLeft} unused Build(s)${earned}, then the shop`);
+  }
   if (run.phase === 'shop') {
     run.shop.offers.forEach((offer, i) => {
       if (offer === null) return;
@@ -286,6 +319,15 @@ export function legalActions(run: BomRun): string[] {
   }
   return out;
 }
+
+/** Overtime Ship pay, e.g. "$1 per 60 revenue, max $3 more this round". */
+export function overtimePayText(run: BomRun): string {
+  const per = run.config.overtimeShip.step * run.round.target;
+  const left = run.config.overtimeShip.cap - run.overtimeCash;
+  return left > 0 ? `$1 per ${num(per)} revenue, max $${left} more this round` : 'no more cash this round: the cap is reached';
+}
+
+const num = (n: number): string => String(Math.round(n * 100) / 100);
 
 function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);

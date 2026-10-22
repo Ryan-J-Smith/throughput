@@ -43,6 +43,8 @@ export type Strategy = {
   readonly shred: readonly (readonly [PartCategory, number])[];
   /** Spend Overtime Builds stocking the Bench for next round instead of collecting $1 each. */
   readonly overtimeFab: boolean;
+  /** In Overtime, Ship for cash before stocking the Bench ("cash"), or after it ("stock"). */
+  readonly overtimePriority: 'cash' | 'stock';
   /** Cash to keep for interest; purchases (other than its top priorities) never dip below it. */
   readonly reserve: number;
   /** Rerolls per shop visit when nothing wanted is on offer. */
@@ -82,11 +84,11 @@ export class StrategyBot extends BomBot {
     // Before a revealed Warehouse Fire, WIP left after the Big round burns: spend it, don't stock.
     const burns = run.round.market === 'big' && run.revealedDisruption(run.round.quarter)?.id === 'warehouse-fire';
     if (run.phase === 'overtime') {
-      if (this.strategy.overtimeFab && !burns) {
-        const fab = stockFab(run, this.productPriority(run));
-        if (fab !== null) return { action: 'fab', parts: fab.parts };
-      }
-      return { action: 'collect' };
+      const stock = this.strategy.overtimeFab && !burns ? stockFab(run, this.productPriority(run)) : null;
+      const cash = this.cashShip(run, burns);
+      if (this.strategy.overtimePriority === 'cash' && cash !== null) return cash;
+      if (stock !== null) return { action: 'fab', parts: stock.parts };
+      return cash ?? { action: 'collect' };
     }
 
     const need = run.round.target - run.revenue;
@@ -177,6 +179,20 @@ export class StrategyBot extends BomBot {
       return { action: 'reroll' };
     }
     return { action: 'leave' };
+  }
+
+  /**
+   * The best one-Build Overtime Ship for cash, if it pays at least $2 (it uses a Build that collect
+   * would pay $1 for). Bench WIP is kept for next round unless a Warehouse Fire will burn it.
+   */
+  private cashShip(run: BomRun, burns: boolean): BuildDecision | null {
+    let best: { plan: ShipPlan; pay: number } | null = null;
+    for (const plan of shipPlans(run)) {
+      if (plan.builds !== 1 || (plan.benchUsed > 0 && !burns)) continue;
+      const pay = run.overtimePayFor(plan.quote.revenue);
+      if (best === null || pay > best.pay || (pay === best.pay && plan.quote.parts.length < best.plan.quote.parts.length)) best = { plan, pay };
+    }
+    return best !== null && best.pay >= 2 ? firstStep(best.plan) : null;
   }
 
   /** Owned Products, wanted ones first (in Strategy order), then by base Units × Price. */
