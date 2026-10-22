@@ -7,10 +7,11 @@ export type ArtKind = 'style' | 'sprite' | 'card' | 'fixture' | 'contract' | 'bo
 
 /**
  * How a prompt is built. `illustration` is the direction's style with its references attached;
+ * `environment` is the same style as a full-bleed scene for behind the UI (no studio backdrop);
  * `sheet` is the direction's style laid out as a style sheet (which then becomes a reference);
  * `silhouettes` is flat black icons with no references, for the icon-extraction experiment.
  */
-export type ArtTemplate = 'illustration' | 'sheet' | 'silhouettes';
+export type ArtTemplate = 'illustration' | 'environment' | 'sheet' | 'silhouettes';
 
 export type ArtAsset = {
   readonly id: string;
@@ -116,6 +117,11 @@ export function artDirection(id: string): ArtDirection {
 
 const SHEET_COMPOSITION = 'Square 1:1. A tidy, evenly spaced layout with clear margins around every element.';
 
+/** Scenes that sit behind the UI: the whole frame is the place, and nothing in the middle competes with the UI on top. */
+const ENVIRONMENT_COMPOSITION =
+  'Camera: a wide establishing shot from about eye level, slightly above. Full-bleed: the scene fills the whole frame edge to edge, with no studio backdrop, vignette or border. ' +
+  'Wide 3:2 landscape. Large, simple shapes and soft pools of light, low in contrast overall, with no single hero object in the middle of the frame (game UI sits on top of it).';
+
 /** Art the game shows. The style sheet and icon sheets are review-only and stay out of the game's lookup. */
 export function isGameArt(asset: ArtAsset): boolean {
   return asset.kind !== 'style' && asset.kind !== 'sprite';
@@ -126,6 +132,7 @@ export function artReferences(asset: ArtAsset, direction: ArtDirection): readonl
   const own = direction.references.map((file) => `${direction.id}/${file}`);
   switch (asset.template) {
     case 'illustration':
+    case 'environment':
       return [...own, `${direction.id}/style-sheet.jpg`];
     case 'sheet':
       return own;
@@ -147,6 +154,8 @@ export function artPrompt(asset: ArtAsset, direction: ArtDirection): string {
         `Subject: ${asset.subject}`,
         direction.avoid,
       ].join('\n');
+    case 'environment':
+      return [direction.style, ENVIRONMENT_COMPOSITION, `Lighting colours: ${asset.accent ?? 'cool blue'}.`, `Subject: ${asset.subject}`, direction.avoid].join('\n');
     case 'sheet':
       return [direction.style, SHEET_COMPOSITION, `Subject: ${asset.subject}`, direction.avoid].join('\n');
     case 'silhouettes':
@@ -263,8 +272,6 @@ export const ART_ASSETS = [
 
   // ---- Batch 2: the hero product (the little white robot toy from the key art) ----
   { id: 'token-hero-robot', kind: 'token', template: 'illustration', batch: 2, size: 256, transparent: true, subject: 'The small white robot toy with glowing cyan eyes, standing, seen from the front three-quarter.' },
-  { id: 'end-win', kind: 'title', template: 'illustration', batch: 2, size: 768, accent: 'gold and teal', subject: "The small white robot toy standing on a winner's podium holding a golden trophy, with confetti falling." },
-  { id: 'end-loss', kind: 'title', template: 'illustration', batch: 2, size: 768, accent: 'muted blue and grey', subject: 'The small white robot toy sitting alone on a stopped conveyor belt beside an unopened box, a single spotlight overhead.' },
 
   // ---- Batch 3: THROUGHPUT content wave 1 (asst-b's subjects). Shop cards share one picture across Categories. ----
   { id: 'card-prototype', kind: 'card', template: 'illustration', batch: 3, size: CARD, accent: 'violet', subject: 'A hand-built product prototype on a workbench beside pencil sketches and calipers.' },
@@ -300,6 +307,16 @@ export const ART_ASSETS = [
   { id: 'boss-recession', kind: 'boss', template: 'illustration', batch: 3, size: CARD, accent: 'ominous red and deep purple', subject: 'An empty shopping street with sale banners and a screen showing a falling red chart.' },
   { id: 'boss-ethics-review', kind: 'boss', template: 'illustration', batch: 3, size: CARD, accent: 'ominous red and deep purple', subject: 'A stern review panel at a long table examining a product, with a gavel.' },
   { id: 'boss-short-week', kind: 'boss', template: 'illustration', batch: 3, size: CARD, accent: 'ominous red and deep purple', subject: 'A wall calendar with the last day crossed out in red above a half-empty office.' },
+
+  // ---- Batch 4 (art wave 2): the company growing Year by Year behind the Shift screen, the Board, the shop, and the run's end ----
+  { id: 'bg-y1-garage', kind: 'bg', template: 'environment', batch: 4, size: 960, aspect: 'landscape', accent: 'warm tungsten amber with a little teal', subject: 'Year one: a cosy home garage where the company starts. A cluttered workbench under a warm desk lamp, a pegboard of tools, a small 3D printer, a few prototype robot toys and cardboard boxes, and a roll-up door half open onto a dusky driveway.' },
+  { id: 'bg-y2-factory', kind: 'bg', template: 'environment', batch: 4, size: 960, aspect: 'landscape', accent: 'amber and teal', subject: 'Year two: a small rented factory unit. One short conveyor line, a couple of machines and workbenches, shelves of boxed stock, and a single delivery van at the open loading door.' },
+  { id: 'bg-y3-plant', kind: 'bg', template: 'environment', batch: 4, size: 960, aspect: 'landscape', accent: 'cool cyan and white with amber safety accents', subject: 'Year three: a big modern production plant. Long parallel conveyor lines, rows of orange robot arms, a glass skylight roof and a mezzanine walkway, bright and busy.' },
+  { id: 'bg-y4-port', kind: 'bg', template: 'environment', batch: 4, size: 960, aspect: 'landscape', accent: 'magenta, cyan and gold city lights at night', subject: 'Year four: a global mega-facility on a harbour at night. A vast glowing factory complex, container cranes loading a huge cargo ship, stacks of colourful shipping containers, and a city skyline beyond.' },
+  { id: 'bg-board-review', kind: 'bg', template: 'environment', batch: 4, size: 960, aspect: 'landscape', accent: 'ominous red and deep purple', subject: 'A Board Review: a dark executive boardroom with a long glossy table and empty high-backed chairs under one dramatic spotlight, a big wall screen glowing with an abstract downward chart line, and city lights through tall windows.' },
+  { id: 'bg-shop', kind: 'bg', template: 'environment', batch: 4, size: 960, aspect: 'landscape', accent: 'teal and warm gold', subject: 'The supplier trade fair: a sleek showroom floor with spot-lit display pedestals and booths showing machines, robot arms and product samples, on a glossy reflective floor.' },
+  { id: 'end-win', kind: 'title', template: 'environment', batch: 4, size: 1280, aspect: 'landscape', accent: 'gold, teal and magenta fireworks', subject: "Victory: the small white robot toy on a winner's podium on a rooftop at night, standing in the right third of the frame and holding a golden trophy high, with fireworks bursting over a glowing city skyline and the company's huge factory below. The left half is open night sky." },
+  { id: 'end-loss', kind: 'title', template: 'environment', batch: 4, size: 1280, aspect: 'landscape', accent: 'muted blue with soft amber lamplight', subject: 'A gentle ending: the small white robot toy sitting on an upturned crate in the right third of the frame, in a quiet factory after closing, with a single warm work lamp on, an unopened box beside it and rain on a skylight. Wistful and hopeful rather than sad. The left half is calm, dim factory.' },
 ] as const satisfies readonly ArtAsset[];
 
 export type ArtId = (typeof ART_ASSETS)[number]['id'];

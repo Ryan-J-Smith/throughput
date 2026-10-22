@@ -14,6 +14,9 @@ const BOARDS = ['supply-shock', 'line-shift', 'bottleneck', 'short-week'] as con
 /** The scripted Board round, or a finished run's summary. */
 type View = 'line' | 'won' | 'lost';
 
+/** The backdrop behind the Line: a Year's place, or the boardroom (the scripted round is a Board Review). */
+const SCENES = ['Y1', 'Y2', 'Y3', 'Y4', 'Board'] as const;
+
 /**
  * Dev-only visual QA: the real Line, hand and receipt for a scripted Board round (every bay state
  * at once), then every shop item and Board with its art; or the run summary of a won or lost run.
@@ -23,6 +26,7 @@ export function ThroughputQa(_props: BrowserGameProps) {
   const [boss, setBoss] = useState<string>(BOARDS[0]);
   const [replay, setReplay] = useState(0);
   const [view, setView] = useState<View>('line');
+  const [scene, setScene] = useState<(typeof SCENES)[number]>('Board');
   const { run, notes } = useMemo(() => buildQaScene(boss), [boss]);
   const ending = useMemo(() => (view === 'line' ? null : buildQaEnding(view === 'won')), [view]);
   const preview = run.phase === 'shift' ? run.preview() : null;
@@ -49,12 +53,18 @@ export function ThroughputQa(_props: BrowserGameProps) {
             {v === 'won' ? 'Victory summary' : 'Defeat summary'}
           </button>
         ))}
-        {ending !== null && ` ${ending.notes.join(' · ')}.`}
+        {ending !== null && ` ${ending.notes.join(' · ')}.`}{' '}
+        {ending === null &&
+          SCENES.map((sc) => (
+            <button key={sc} type="button" className="tally__speed" aria-pressed={scene === sc} onClick={() => setScene(sc)}>
+              {sc}
+            </button>
+          ))}
       </p>
       {ending !== null && <RunSummaryView run={ending.run} onNewRun={() => setView('line')} onQuit={() => setView('line')} />}
       {ending === null && (
         <>
-          <main className="screen screen--tp screen--tp-shift" data-qa="line">
+          <main className="screen screen--tp screen--tp-shift" data-qa="line" data-year={scene === 'Board' ? run.quarter.year : SCENES.indexOf(scene) + 1} data-board={scene === 'Board' || undefined}>
             <LineView run={run} bayState={() => 'idle'} onBay={() => {}} onScrap={() => {}} bayLabel={(slot) => `Bay ${slot + 1}`} />
             {preview !== null && replay > 0 && <ShiftReplay key={replay} result={preview} shift={run.shift} baseMargin={run.config.baseMargin} onDone={() => setReplay((r) => -r)} />}
             <div className="tp-desk">

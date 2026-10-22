@@ -24,6 +24,41 @@
   backdrop-filter: var(--glass-blur);
 }
 
+/* ---------- Scenes: the company grows behind the UI ---------- */
+
+/* The app backdrop (body::before in ui/styles.css) follows the run: one place per Year, the
+   boardroom for a Board Review, the trade fair in the shop. Hooks: main.screen--tp[data-year]
+   [data-board] and .tp-summary[data-year]. All selectors weigh the same, so later rules win:
+   Board and shop over the Year. A Year past 4 (a longer config) stays at the port. */
+body:has(.screen--tp, .tp-summary)::before {
+  filter: blur(9px) saturate(1.15) brightness(0.36);
+  transition: background-image var(--dur-slow) var(--ease-out);
+}
+
+body:has(:is(.screen--tp, .tp-summary)[data-year='1'])::before {
+  background-image: url('../../../assets/art/plain/bg-y1-garage.webp');
+}
+
+body:has(:is(.screen--tp, .tp-summary)[data-year='2'])::before {
+  background-image: url('../../../assets/art/plain/bg-y2-factory.webp');
+}
+
+body:has(:is(.screen--tp, .tp-summary)[data-year='3'])::before {
+  background-image: url('../../../assets/art/plain/bg-y3-plant.webp');
+}
+
+body:has(:is(.screen--tp, .tp-summary)[data-year]:where(:not([data-year='1'], [data-year='2'], [data-year='3'])))::before {
+  background-image: url('../../../assets/art/plain/bg-y4-port.webp');
+}
+
+body:has(.screen--tp-shift[data-board])::before {
+  background-image: url('../../../assets/art/plain/bg-board-review.webp');
+}
+
+body:has(.screen--tp-shop[data-year])::before {
+  background-image: url('../../../assets/art/plain/bg-shop.webp');
+}
+
 /* ---------- Market: the trend board ---------- */
 
 .tp-market {
@@ -1294,24 +1329,38 @@
 
 /* ---------- Run summary (layout in summary.css) ---------- */
 
-/* The hero robot: on the podium after a win, alone on a stopped belt after a loss. */
+/* The run's end as a wide scene across the top, the hero robot in its right third (a rooftop podium
+   under fireworks, or alone in the factory after closing); the title and total sit over the calm left,
+   darkened a little more so they stay crisp. The scene fades out behind the stats. */
 .tp-summary .tp-summary__art {
-  inset: 0 0 auto auto;
-  width: min(46vw, 440px);
-  aspect-ratio: 1;
-  background: 50% 50% / cover no-repeat;
-  -webkit-mask-image: radial-gradient(closest-side, #000 62%, transparent);
-  mask-image: radial-gradient(closest-side, #000 62%, transparent);
+  inset: 0 0 auto 0;
+  height: min(78vh, 600px);
+  background: 72% 40% / cover no-repeat;
+  /* Feathered on every side (the two fades intersect) so the scene melts into the backdrop. */
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent),
+    linear-gradient(180deg, transparent, #000 8%, #000 50%, transparent 98%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent),
+    linear-gradient(180deg, transparent, #000 8%, #000 50%, transparent 98%);
+  mask-composite: intersect;
   animation: tp-summary-art-in 900ms var(--ease-out) both;
 }
 
 .tp-summary__art[data-art='end-win'] {
-  background-image: url('../../../assets/art/plain/end-win.webp');
+  background-image:
+    linear-gradient(90deg, rgb(7 11 20 / 0.8), rgb(7 11 20 / 0.3) 45%, transparent 70%),
+    url('../../../assets/art/plain/end-win.webp');
 }
 
 .tp-summary__art[data-art='end-loss'] {
-  background-image: url('../../../assets/art/plain/end-loss.webp');
-  filter: saturate(0.85);
+  background-image:
+    linear-gradient(90deg, rgb(7 11 20 / 0.85), rgb(7 11 20 / 0.4) 45%, transparent 70%),
+    url('../../../assets/art/plain/end-loss.webp');
+  /* The robot sits low in this scene: anchor the bottom so it clears the stats. */
+  background-position: 75% 100%;
+  filter: saturate(0.9);
 }
 
 @keyframes tp-summary-art-in {
@@ -1332,6 +1381,15 @@
 .tp-summary[data-outcome='won'] .tp-summary__title {
   background-image: linear-gradient(180deg, #fff3c4, var(--rarity-gold) 60%, #d9a440);
   filter: drop-shadow(0 0 24px rgb(255 207 90 / 0.35));
+}
+
+/* The smaller header lines can run over the bright part of the scene (fireworks on phones). */
+.tp-summary .tp-summary__outcome,
+.tp-summary .tp-summary__boss,
+.tp-summary .tp-summary__total-label {
+  text-shadow:
+    0 1px 2px rgb(4 7 14 / 0.9),
+    0 0 14px rgb(4 7 14 / 0.85);
 }
 
 .tp-summary .tp-summary__total {
@@ -1395,9 +1453,14 @@
 }
 
 @media (max-width: 640px) {
+  /* Narrow: keep the hero in frame on the right and let the text own the left. */
   .tp-summary .tp-summary__art {
-    width: 62vw;
-    opacity: 0.55;
+    height: min(62vh, 480px);
+    background-position: 80% 40%;
+  }
+
+  .tp-summary__art[data-art='end-loss'] {
+    background-position: 80% 100%;
   }
 }
 

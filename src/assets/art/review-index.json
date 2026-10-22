@@ -1,6 +1,24 @@
 {
   "variants": {
+    "bg-board-review": [
+      "plain"
+    ],
     "bg-factory-hall": [
+      "plain"
+    ],
+    "bg-shop": [
+      "plain"
+    ],
+    "bg-y1-garage": [
+      "plain"
+    ],
+    "bg-y2-factory": [
+      "plain"
+    ],
+    "bg-y3-plant": [
+      "plain"
+    ],
+    "bg-y4-port": [
       "plain"
     ],
     "boss-bottleneck": [
