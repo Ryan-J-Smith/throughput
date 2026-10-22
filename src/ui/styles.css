@@ -1291,17 +1291,21 @@ button {
   gap: 10px;
 }
 
+/* The stagger follows the speed setting too (--dur-fast is 120ms at normal speed). */
 .hand__cards > .card-wrap {
   flex: 0 1 140px;
-  animation: deal-in var(--dur-slow) var(--ease-out) backwards;
-  animation-delay: calc(var(--i, 0) * var(--stagger));
+  animation: deal-in calc(var(--dur-med) * 1.4) var(--ease-out) backwards;
+  animation-delay: calc(var(--i, 0) * var(--dur-fast) / 3);
 }
 
-/* Newly drawn cards slide in from the deck off to the right, one after another. */
+/* Newly drawn cards slide in from the deck off to the right, one after another, and settle fast. */
 @keyframes deal-in {
   from {
     opacity: 0;
-    transform: translate(min(40vw, 320px), 24px) rotate(10deg);
+    transform: translate(min(30vw, 220px), 16px) rotate(6deg);
+  }
+  60% {
+    opacity: 1;
   }
 }
 
