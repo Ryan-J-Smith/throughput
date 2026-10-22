@@ -522,6 +522,28 @@ button {
   border-top: 1px solid rgb(255 84 112 / 0.35);
 }
 
+/* The Board's illustration, when the game supplies one. */
+.hud__boss:has(.hud__boss-art) {
+  align-items: center;
+}
+
+.hud__boss-art {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border: 1px solid rgb(255 84 112 / 0.5);
+  border-radius: 9px;
+  box-shadow: 0 0 16px -4px rgb(255 84 112 / 0.7);
+}
+
+.hud__boss-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .hud__boss-label {
   font-size: var(--text-xs);
   font-weight: 700;
@@ -848,7 +870,10 @@ button {
   background: #0c1322;
 }
 
+/* Out of flow, so the image never props the window open past its aspect ratio. */
 .card__art img {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;

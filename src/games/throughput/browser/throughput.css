@@ -109,9 +109,11 @@
 }
 
 .tp-chip {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   max-width: 100%;
-  padding: 2px 8px;
+  padding: 2px 8px 2px 6px;
   overflow: hidden;
   border: 1px solid rgb(255 255 255 / 0.25);
   border-radius: var(--radius-pill);
@@ -123,6 +125,16 @@
   background:
     linear-gradient(180deg, rgb(255 255 255 / 0.3), rgb(255 255 255 / 0) 60%),
     var(--accent);
+}
+
+.tp-chip__icon {
+  width: 1.2em;
+  height: 1.2em;
+}
+
+.tp-chip__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /*
@@ -241,6 +253,20 @@
   display: none;
 }
 
+.tp-market__boards li {
+  display: flow-root;
+}
+
+.tp-market__board-art {
+  float: left;
+  width: 30px;
+  height: 30px;
+  margin: 1px 8px 2px 0;
+  object-fit: cover;
+  border: 1px solid rgb(255 84 112 / 0.4);
+  border-radius: 7px;
+}
+
 .tp-market__boards strong {
   font-family: var(--font-display);
   color: #ff8fa3;
@@ -321,6 +347,20 @@
   object-fit: cover;
 }
 
+/* No art for this Fixture yet: its Station/Mod icon glows in the same spot. */
+.tp-bay__fixture-art--icon {
+  display: grid;
+  place-items: center end;
+  padding-right: 10px;
+  color: var(--accent);
+  opacity: 0.4;
+}
+
+.tp-bay__fixture-art--icon > .icon {
+  width: 30px;
+  height: 30px;
+}
+
 .tp-bay__number {
   font-family: var(--font-display);
   font-size: var(--text-xs);
@@ -341,6 +381,42 @@
   line-height: 1.3;
   color: #c3cde2;
   text-shadow: 0 1px 4px rgb(0 0 0 / 0.7);
+}
+
+/* No Fixture: the plate is an empty inset slot waiting for one. */
+.tp-bay__plate:not([data-accent]) {
+  min-height: 0;
+  padding: 5px 9px;
+  background: rgb(0 0 0 / 0.18);
+  border: 1px dashed rgb(255 255 255 / 0.12);
+}
+
+.tp-bay__plate:not([data-accent]) .tp-bay__fixture {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: rgb(255 255 255 / 0.32);
+  text-shadow: none;
+}
+
+/* The bay number as a small round badge (plain text when it carries a "moved from" note). */
+.tp-bay__number:not(:has(.tp-bay__moved)) {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  font-size: 0.625rem;
+  color: var(--chalk);
+  background: rgb(255 255 255 / 0.08);
+  border: 1px solid color-mix(in srgb, var(--accent, #fff) 45%, transparent);
+  border-radius: 50%;
+}
+
+.tp-bay__plate:not([data-accent]) .tp-bay__number {
+  position: absolute;
+  top: 50%;
+  right: 7px;
+  transform: translateY(-50%);
 }
 
 /* A Mod under a card it never acts on: the plate goes dull, with a note. */
@@ -375,15 +451,20 @@
   box-shadow: 0 0 18px -8px rgb(255 176 46 / 0.8);
 }
 
+/* An empty bay is a stretch of belt: faint roller lines and a soft outline. */
 .tp-bay__spot {
   display: flex;
   align-items: stretch;
   justify-content: center;
   min-height: 176px;
   padding: 0;
-  border: 1.5px dashed rgb(255 255 255 / 0.14);
+  border: 1px solid rgb(255 255 255 / 0.08);
   border-radius: var(--radius-card);
-  background: radial-gradient(ellipse at 50% 100%, rgb(34 211 197 / 0.07), transparent 70%), rgb(0 0 0 / 0.22);
+  background:
+    radial-gradient(ellipse at 50% 100%, rgb(34 211 197 / 0.08), transparent 70%),
+    repeating-linear-gradient(180deg, rgb(255 255 255 / 0.035) 0 2px, transparent 2px 16px),
+    rgb(0 0 0 / 0.26);
+  box-shadow: inset 0 2px 10px rgb(0 0 0 / 0.4);
   font: inherit;
   color: inherit;
   text-align: left;
@@ -419,10 +500,15 @@
 .tp-bay__empty {
   align-self: center;
   font-family: var(--font-display);
-  font-size: var(--text-md);
+  font-size: var(--text-xs);
   font-weight: 700;
-  letter-spacing: 0.04em;
-  color: rgb(255 255 255 / 0.22);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 0.2);
+}
+
+.tp-bay--target .tp-bay__empty {
+  color: var(--focus);
 }
 
 /* Where the selected card or Fixture can go: a pulsing gold bay. */
@@ -530,14 +616,180 @@
   box-shadow: 0 0 14px -2px rgb(255 77 109 / 0.7);
 }
 
-/* ---------- Desk: hand and the preview receipt ---------- */
+/* ---------- Shift layout: Market rail | the Line over a docked hand | receipt rail ---------- */
 
-.tp-desk {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 330px;
-  align-items: start;
-  gap: 18px;
+/*
+ * The core loop (Line, hand, Run, receipt) fits one 1366×900 screen. .tp-desk dissolves so the hand
+ * and the receipt are grid items of the screen. Narrower: the receipt rail stays and the Market
+ * drops below; phones stack and dock the hand at the bottom.
+ */
+.app:has(.screen--tp-shift) {
+  max-width: 1480px;
+  padding-inline: 20px;
 }
+
+.screen--tp-shift > .tp-desk {
+  display: contents;
+}
+
+@media (min-width: 900px) {
+  .screen.screen--tp-shift {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    grid-template-areas:
+      'hud hud'
+      'line receipt'
+      'hand receipt'
+      'market market'
+      'last last'
+      'rules rules';
+    grid-template-rows: auto auto 1fr;
+    align-items: start;
+    gap: 12px 16px;
+  }
+
+  .screen--tp-shift > .tp-hud {
+    grid-area: hud;
+  }
+
+  .screen--tp-shift > .tp-market {
+    grid-area: market;
+  }
+
+  .screen--tp-shift > .tp-line {
+    grid-area: line;
+  }
+
+  .screen--tp-shift .tp-hand {
+    grid-area: hand;
+  }
+
+  .screen--tp-shift .tp-desk__receipt {
+    grid-area: receipt;
+    position: sticky;
+    top: 12px;
+  }
+
+  .screen--tp-shift > .tp-last {
+    grid-area: last;
+  }
+
+  .screen--tp-shift > .tp-rules {
+    grid-area: rules;
+  }
+}
+
+@media (min-width: 1200px) {
+  .screen.screen--tp-shift {
+    grid-template-columns: 272px minmax(0, 1fr) 300px;
+    grid-template-areas:
+      'hud hud hud'
+      'market line receipt'
+      'market hand receipt'
+      'last last last'
+      'rules rules rules';
+  }
+
+  /* The Market as a compact rail: icon chips, the current quarter first and brightest. */
+  .screen--tp-shift > .tp-market {
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .screen--tp-shift .tp-market__grid {
+    gap: 5px 5px;
+  }
+
+  .screen--tp-shift .tp-market__corner {
+    font-size: var(--text-md);
+  }
+
+  .screen--tp-shift .tp-market__quarter {
+    font-size: 0.625rem;
+    letter-spacing: 0;
+  }
+
+  .screen--tp-shift .tp-market__stage {
+    padding: 2px 7px;
+    font-size: 0.5625rem;
+  }
+
+  .screen--tp-shift .tp-market__cell[data-col]:not([data-col='0']) {
+    opacity: 0.7;
+  }
+
+  .screen--tp-shift .tp-market .tp-demand__row {
+    grid-template-columns: 3.9rem minmax(0, 1fr) auto;
+    font-size: var(--text-xs);
+  }
+
+  .screen--tp-shift .tp-market__boards {
+    font-size: var(--text-xs);
+  }
+}
+
+/* Icon-only chips wherever the Market is narrow; the name stays for screen readers and the title. */
+@media (min-width: 1200px), (max-width: 640px) {
+  .screen--tp-shift .tp-chip {
+    padding: 3px;
+  }
+
+  .screen--tp-shift .tp-chip__icon {
+    width: 15px;
+    height: 15px;
+  }
+
+  .screen--tp-shift .tp-chip__name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* The Line in the centre column: bays share the width, cards show title, art, value and stage. */
+.screen--tp-shift .tp-line__bays {
+  min-width: 0;
+  gap: 8px;
+}
+
+.screen--tp-shift .tp-bay {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 108px;
+  max-width: 150px;
+}
+
+.screen--tp-shift .tp-bay__spot {
+  min-height: 158px;
+}
+
+.tp-bay__spot .card {
+  min-height: 0;
+}
+
+.tp-bay__spot .card__art,
+.tp-hand .card__art {
+  aspect-ratio: 16 / 9;
+}
+
+.tp-bay__spot .card--windowed .badge--value,
+.tp-hand .card--windowed .badge--value {
+  padding: 3px 7px 2px;
+  font-size: 1.3rem;
+}
+
+.tp-bay__spot .card__desc {
+  display: none;
+}
+
+.screen--tp-shift .tp-bay__status {
+  font-size: 0.625rem;
+}
+
+/* ---- The hand tray: a fan of cards that overlap rather than wrap ---- */
 
 .tp-hint {
   margin: 0;
@@ -545,23 +797,114 @@
   color: var(--chalk-dim);
 }
 
-/* Room for a selected hand card, which lifts. */
-.tp-hand .tp-hint {
-  margin-bottom: 24px;
-}
-
 .tp-hint--shop {
   text-align: center;
   color: var(--focus);
 }
 
+.screen--tp-shift .tp-hand {
+  gap: 6px;
+  padding: 8px 14px 10px;
+  background: var(--glass), var(--glass-solid);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
+
+.tp-hand .tp-hint {
+  font-size: var(--text-sm);
+}
+
+/*
+ * Each card keeps its full width while its slot shrinks to share the row, so later cards slide
+ * over the right edge of earlier ones. The value tab moves left where it stays in view.
+ */
 .tp-hand .hand__cards {
-  flex-wrap: wrap;
-  row-gap: 26px;
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: 0;
+  padding: 16px 0 2px;
+}
+
+.tp-hand .hand__cards > .card-wrap {
+  --card-w: 132px;
+  flex: 0 1 calc(var(--card-w) + 8px);
+  min-width: 0;
+}
+
+.tp-hand .hand__cards > .card-wrap > .card {
+  width: var(--card-w);
+}
+
+/* Nothing overlaps the last card, so its slot never shrinks and it never spills past the tray. */
+.tp-hand .hand__cards > .card-wrap:last-child {
+  flex: 0 0 var(--card-w);
+}
+
+.tp-hand .hand__cards > .card-wrap:hover,
+.tp-hand .hand__cards > .card-wrap:focus-within,
+.tp-hand .hand__cards > .card-wrap:has(.card--selected) {
+  z-index: 2;
+}
+
+.tp-hand .card--windowed .badge--value {
+  right: auto;
+  left: 6px;
+}
+
+.tp-hand .card--windowed .card__title {
+  padding-top: 15px;
+  padding-right: 10px;
 }
 
 .tp-controls {
   flex-wrap: wrap;
+}
+
+.screen--tp-shift .tp-controls {
+  justify-content: space-between;
+  gap: 10px 14px;
+}
+
+.screen--tp-shift .tp-controls .btn--play {
+  padding: 12px 26px;
+  font-size: var(--text-lg);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.3),
+    inset 0 -2px 0 rgb(0 0 0 / 0.18),
+    0 8px 22px rgb(0 0 0 / 0.4),
+    0 0 28px -6px #22b8ff;
+}
+
+/* First-run tips (layout in tips.css): a gold-edged glass note. */
+.screen--tp .tp-tip {
+  padding: 8px 12px;
+  background: linear-gradient(90deg, rgb(255 209 102 / 0.14), rgb(255 209 102 / 0.03)), var(--glass-solid);
+  border: 1px solid rgb(255 209 102 / 0.35);
+  border-left: 3px solid var(--focus);
+  box-shadow: 0 0 22px -10px rgb(255 209 102 / 0.8);
+}
+
+.screen--tp .tp-tip .tp-tip__text {
+  font-size: var(--text-sm);
+}
+
+.screen--tp .tp-tip .tp-tip__done {
+  padding: 6px 14px;
+  font-size: var(--text-sm);
+}
+
+/* Board perks under the HUD. */
+.tp-hud__perks {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 6px 18px 7px;
+  font-size: var(--text-sm);
+  color: var(--chalk-dim);
+  border-top: 1px solid var(--paper-rule);
 }
 
 /* The ledger: one line per bay, a slot badge, the Batch so far and what each line earned. */
@@ -1002,18 +1345,7 @@
   color: var(--chalk);
 }
 
-/* ---------- Narrow screens ---------- */
-
-@media (max-width: 900px) {
-  .tp-desk {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .tp-desk__receipt {
-    width: min(100%, 380px);
-    justify-self: center;
-  }
-}
+/* ---------- Phones ---------- */
 
 @media (max-width: 640px) {
   .tp-market {
@@ -1053,6 +1385,86 @@
 
   .tp-line__bays {
     justify-content: flex-start;
+  }
+
+  .screen--tp-shift .tp-line__bays {
+    justify-content: flex-start;
+  }
+
+  .screen--tp-shift .tp-bay {
+    flex: 0 0 112px;
+  }
+
+  .screen--tp-shift .tp-bay__spot {
+    min-height: 140px;
+  }
+
+  /* The hand docks at the bottom of the screen with its controls, under the Line. */
+  .screen--tp-shift .tp-hand {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    gap: 6px;
+    margin: 0 -16px;
+    padding: 8px 12px calc(10px + env(safe-area-inset-bottom));
+    background: var(--glass), rgb(10 16 29 / 0.94);
+    border-width: 1px 0 0;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -12px 30px rgb(0 0 0 / 0.5);
+  }
+
+  .tp-hand .tp-hint {
+    font-size: var(--text-xs);
+  }
+
+  .tp-hand .hand__cards {
+    padding-top: 16px;
+  }
+
+  .tp-hand .hand__cards > .card-wrap {
+    --card-w: 104px;
+  }
+
+  /* The value tab fits the strip of each card left showing in the fan. */
+  .tp-hand .card--windowed .badge--value {
+    left: 4px;
+    padding: 2px 5px 1px;
+    font-size: 1.02rem;
+  }
+
+  .tp-hand .card__dept {
+    letter-spacing: 0.04em;
+  }
+
+  /* Phones show the effect text only on the card you picked up. */
+  .tp-hand .card__desc {
+    display: none;
+  }
+
+  .tp-hand .card--selected .card__desc {
+    display: block;
+  }
+
+  .tp-hand .hand__controls {
+    position: static;
+    padding: 0;
+    background: none;
+  }
+
+  .screen--tp-shift .tp-controls .btn--play {
+    padding: 10px 14px;
+    font-size: var(--text-md);
+  }
+
+  .screen--tp-shift .tp-controls .btn--discard {
+    padding: 10px 12px;
+  }
+
+  .screen--tp-shift .hand__count {
+    order: 3;
+    flex-basis: 100%;
+    min-width: 0;
+    font-size: var(--text-xs);
   }
 }
 
