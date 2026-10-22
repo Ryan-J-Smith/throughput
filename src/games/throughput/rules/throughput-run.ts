@@ -7,7 +7,7 @@ import { CATEGORIES, cardName } from '../model';
 import type { BoardBoss, Card, CardDef, Category, Fixture, FixtureDef } from '../model';
 import { trendSchedule } from './market';
 import { scoreLine } from './score-line';
-import type { LineSlot, ShiftResult, Trends } from './score-line';
+import type { LineSlot, ShiftContext, ShiftResult, Trends } from './score-line';
 import { ThroughputShop } from './throughput-shop';
 import type { Offer } from './throughput-shop';
 
@@ -585,7 +585,8 @@ export class ThroughputRun {
     return this.slots_.map((s) => ({ fixture: s.fixture, card: s.card?.card ?? null }));
   }
 
-  private shiftContext() {
+  /** What scoring needs besides the Line: trends, Equity, pips, storage, boss (a snapshot). */
+  shiftContext(): ShiftContext {
     return {
       config: this.config,
       trends: this.trendsNow,

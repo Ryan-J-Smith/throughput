@@ -57,9 +57,9 @@ export type ShiftResult = {
  * trace drives the preview, the run and the tests alike. At each slot: handoff, then the
  * fixture, then the card (as many times as the fixture says).
  */
-export function scoreLine(line: readonly LineSlot[], ctx: ShiftContext): ShiftResult {
+export function scoreLine(line: readonly LineSlot[], ctx: ShiftContext, options: { readonly trace?: boolean } = {}): ShiftResult {
   const { config, boss } = ctx;
-  const batch = new Batch(config.baseMargin, ctx.stored, boss?.warehouseOpen() ?? true);
+  const batch = new Batch(config.baseMargin, ctx.stored, boss?.warehouseOpen() ?? true, options.trace ?? true);
   const sale = new SaleState(ctx);
   const chain: (Card | null)[] = [];
   const steps: SlotTrace[] = [];
@@ -153,6 +153,12 @@ function ship(card: Card, marginMul: number, fixture: Fixture | null, batch: Bat
   const price = (batch.margin + equity[category]) * marginMul * (hot ? config.hotMultiplier : 1) * flagship;
   const revenue = Math.floor(sold * price);
 
+  batch.units -= sold;
+  batch.sales += revenue;
+  if (hot) sale.hotUsed = true;
+  if (stage === 'emerging' && sold > 0) sale.equityGained.add(category);
+  if (!batch.tracing) return;
+
   const notes: string[] = [];
   if (base !== 'all' && cap !== base) notes.push(`cap ${base}→${cap}${saturated ? ' (Saturated)' : ''}`);
   if (equity[category] > 0) notes.push(`Equity +$${equity[category]}`);
@@ -160,11 +166,6 @@ function ship(card: Card, marginMul: number, fixture: Fixture | null, batch: Bat
   if (hot) notes.push(`Hot ×${formatAmount(config.hotMultiplier)}`);
   if (flagship !== 1) notes.push(`Flagship ×${formatAmount(flagship)}`);
   batch.note(`Ship sells ${sold} × $${formatAmount(price)} = $${revenue}${notes.length > 0 ? ` (${notes.join(', ')})` : ''}`);
-
-  batch.units -= sold;
-  batch.sales += revenue;
-  if (hot) sale.hotUsed = true;
-  if (stage === 'emerging' && sold > 0) sale.equityGained.add(category);
 }
 
 function slotLabel(fixture: Fixture | null, card: Card | null, welded: boolean): string {

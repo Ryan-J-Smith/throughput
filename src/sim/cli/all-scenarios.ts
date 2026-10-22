@@ -1,5 +1,6 @@
 import { BomScenario, bomBots } from '../../games/bom/sim';
 import { defaultBomConfig } from '../../games/bom/content';
+import { ThroughputScenario } from '../../games/throughput/sim';
 import { demoScenario } from '../demo';
 import type { Scenario } from '../scenarios';
 
@@ -7,4 +8,5 @@ import type { Scenario } from '../scenarios';
 export const ALL_SCENARIOS: readonly Scenario[] = [
   demoScenario,
   new BomScenario('bom', 'Bill of Materials (bake-off): greedy baseline vs archetype bots', defaultBomConfig, bomBots()),
+  new ThroughputScenario(),
 ];

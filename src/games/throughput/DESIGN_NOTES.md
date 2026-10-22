@@ -57,15 +57,13 @@ These notes record where the docs were silent or ambiguous, and what was chosen.
 ## Trend conveyor
 
 - Quarter 1 puts one seeded-random Category in each of Emerging, Hot, Saturated and Neutral.
-- Each quarter after that, stages advance as specified, and a Category that was already Neutral becomes
-  Emerging.
-- **Observation:** with exactly 4 Categories there is only ever one such candidate. The conveyor is
-  therefore a fixed 4-cycle after the seeded start, and the 4-quarter Market strip always shows the whole
-  cycle.
-  - That makes it perfectly plannable.
-  - If we want surprise, options are a 5th "Category" axis, or a chance that no Category emerges in a
-    quarter. Not done; flagging for the evaluation.
-- The full schedule is computed at run start from per-round Rng forks, so the forecast is exact.
+- Each quarter after that, stages advance (Emerging → Hot → Saturated → Neutral). Then a seeded pick
+  among the Neutral Categories becomes Emerging, and that **may be the one just leaving Saturated**, so a
+  trend can come straight back.
+  - Orchestrator decision, 2026-10-22. The spec's "not the one just leaving" restriction left exactly one
+    candidate with 4 Categories, which made the conveyor a fixed 4-cycle with zero surprise.
+- The strip still shows this round and the next 3. The full schedule is computed at run start from
+  per-round Rng forks, so the forecast is exact.
 
 ## Bosses
 
@@ -95,7 +93,75 @@ These notes record where the docs were silent or ambiguous, and what was chosen.
   - the next two Board bosses;
   - legal actions with their valid slots.
 
-## First impressions (seed 1, by hand)
+## Sim tuning (Phase B, first pass)
 
-- The starter deck plus a Hot ×2 truck cleared Y1 Q1 (150) in 2 Shifts with $228.
-- Year 1 looks easy, as the doc intends ("clears in 2 Shifts"). Target tuning is Phase B.
+`npm run sim -- --scenario throughput --runs 500 --report all`
+
+### Bots
+
+All four bots share one tactical planner (`sim/planner.ts`):
+
+- It hill-climbs over slot assignments: add, remove, move, swap, replace.
+- Each candidate is scored with the exact preview, plus a bonus for Designs that will stay (capped so
+  the Line keeps 3 slots for Makes and Ships).
+- Two starts: empty, and the best canonical Designs → Makes → Ships fill. One-move climbs from empty
+  stall under JIT Auditor, where a lone Make loses money.
+- Bots scrap a weak parked Design when fewer than 2 slots are open.
+- Bots retool when the hand can't sell.
+- Before a Board whose boss welds a slot, bots move any Fixture out of it (bosses are telegraphed).
+- Bots replace a Fixture when a much more wanted one is on offer.
+
+The bots differ only in shopping:
+
+| Bot | Plan |
+|---|---|
+| `greedy` | Buys the priciest affordable item. Baseline. |
+| `mass-market` (tempo) | Overtime Crews, Assembly Line, Factory Floors, Wholesale Club; spends everything. |
+| `rnd-compounder` (slow burn) | Banks 15C for interest in Year 1, except for R&D Lab / Flagship / Robot Arm. Parks the most-grown Sketch on the R&D Lab, then buys multiplicative scaling. |
+| `trend-surfer` | Buys cards in next round's Hot/Emerging Categories; values shipping Emerging goods for Equity. |
+
+### Targets
+
+- seed-03's curve (150 … 10,000, kept as `SEED_03_TARGETS`) gave **0% wins for every bot**. The bots
+  plateau around 1,000–2,500 per round because they don't build the doc's Year 4 engine (~7,000 per
+  Shift).
+- New default: **150, 250, 350 | 450, 600, 800 | 1000, 1250, 1500 | 1750, 2050, 2350**.
+
+Results over 500 seeds per bot:
+
+| Bot | Win | Clears r3 | Clears r6 | Clears r9 | Clears r12 |
+|---|---|---|---|---|---|
+| rnd-compounder | **30.2%** | 84% | 76% | 55% | 30% |
+| greedy | 20.4% | 92% | 68% | 38% | 20% |
+| mass-market | 4.0% | 98% | 81% | 33% | 4% |
+| trend-surfer | 1.8% | 98% | 69% | 16% | 2% |
+
+- **Tempo and slow burn cross.** Mass Market clears more rounds through Y2 Q2 (round 5). The
+  Compounder, which pays for its Year 1 banking, overtakes at the Y2 Board and widens the gap through
+  Year 4.
+- **Caveat: the late curve is now far flatter than the doc's.** Skilled human or LLM play should scale
+  well past the bots (Influencer on a Robot Arm, Gun skim lines). If playtests find Years 3–4 easy,
+  steepen from round 9 on first.
+
+### Item impact (pooled, aware Δ win vs skippers)
+
+- **Winners:** Robot Arm +29%, R&D Lab +27%, Flagship +24%, Floor Expansion +17%, Influencer +11%,
+  Quality Lab +10%.
+- **Losers:** Wholesale Club −18%, Factory Floor −16%, Assembly Line −16%, Tooling Upgrade −12%,
+  Warehouse −8%, Automation −8%.
+  - The volume items losing is the doc's "Mass Market stalls by Year 3".
+  - None of the bots *pivots* (sells volume pieces in Year 2), so this overstates it.
+- **No auto-pick:** the highest pick rate is 51% (Flagship).
+- **No item is dead.** Brand Manager (12%) and Warehouse (12%) are the least picked; the bots never
+  pursue Brand Chain or Stockpile deliberately.
+
+### Findings for the evaluation
+
+1. **Compounders are rare.** The slow-burn plan hinges on the R&D Lab, one of 6 uncommons (about 4% per
+   Fixture offer), and on Robot Arm and Flagship (rares, about 2.5% each).
+2. **Trend chasing through the shop is weak** (trend-surfer 1.8%). Trends matter tactically (Hot ×2 on
+   the right Truck) more than as a build direction.
+   - Equity +$1/point is small next to Margin multipliers.
+   - Consider a bigger Emerging payoff if trends should drive builds.
+3. **Supply Shock is the hardest Board** (about 40% clears at r9/r12 versus 50–80% for the others).
+   Losing a fifth of the Line is steep even when the bot dodges the weld.
