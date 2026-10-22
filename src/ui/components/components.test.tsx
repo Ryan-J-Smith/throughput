@@ -94,7 +94,13 @@ describe('Hud', () => {
 describe('ModifierRow', () => {
   it('fills remaining capacity with empty slots', () => {
     const html = renderToStaticMarkup(
-      <ModifierRow row={{ slots: 4, modifiers: [{ id: 'm', title: 'Mod', description: 'd', tags: [] }] }} />,
+      <ModifierRow
+        row={{
+          slots: 4,
+          locked: false,
+          modifiers: [{ id: 'm', title: 'Mod', description: 'd', tags: [], sellValue: 2, canSell: true }],
+        }}
+      />,
     );
     expect(html).toContain('Mod');
     expect(html.match(/modifier-row__empty/g)).toHaveLength(3);

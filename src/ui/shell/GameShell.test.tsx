@@ -16,9 +16,12 @@ const actions: ShellActions = {
   onTallyComplete: noop,
   onCashOut: noop,
   onDismissToast: noop,
+  onSellModifier: noop,
+  onMoveModifier: noop,
+  onSortHand: noop,
 };
 const hud: HudView = { round: 1, targetScore: 100, currentScore: 0, playsLeft: 4, discardsLeft: 3, cash: 10 };
-const modifierRow = { slots: 5, modifiers: [] };
+const modifierRow = { slots: 5, modifiers: [], locked: false };
 
 const views: Array<[ShellView, string]> = [
   [{ screen: 'title' }, 'screen--title'],
@@ -28,6 +31,7 @@ const views: Array<[ShellView, string]> = [
       hud,
       modifierRow,
       hand: [],
+      handSort: 'dealt',
       selectedIds: [],
       maxSelected: 5,
       canPlay: false,

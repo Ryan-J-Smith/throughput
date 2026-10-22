@@ -30,6 +30,7 @@ function Screen({ view, actions, tallySpeed, onTallySpeedChange }: Omit<GameShel
           hud={view.hud}
           modifierRow={view.modifierRow}
           hand={view.hand}
+          handSort={view.handSort}
           selectedIds={view.selectedIds}
           maxSelected={view.maxSelected}
           canPlay={view.canPlay}
@@ -41,6 +42,9 @@ function Screen({ view, actions, tallySpeed, onTallySpeedChange }: Omit<GameShel
           onTallySpeedChange={onTallySpeedChange}
           onTallyComplete={actions.onTallyComplete}
           onCashOut={actions.onCashOut}
+          onSortHand={actions.onSortHand}
+          onSellModifier={actions.onSellModifier}
+          onMoveModifier={actions.onMoveModifier}
           onToggleSelect={actions.onToggleSelect}
           onPlay={actions.onPlay}
           onDiscard={actions.onDiscard}
@@ -58,6 +62,8 @@ function Screen({ view, actions, tallySpeed, onTallySpeedChange }: Omit<GameShel
           onBuy={actions.onBuy}
           onReroll={actions.onReroll}
           onContinue={actions.onContinue}
+          onSellModifier={actions.onSellModifier}
+          onMoveModifier={actions.onMoveModifier}
         />
       );
     case 'gameOver':

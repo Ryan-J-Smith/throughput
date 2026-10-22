@@ -1,7 +1,7 @@
 // TEMPORARY: presentation for the sim harness's numeric demo cards. Delete with DemoGame once
 // the real design has its own content and presenter.
 import { ContentPresenter } from '../../app';
-import type { CardFace, ModifierFace } from '../../app';
+import type { CardFace, ModifierFace, SortKeys } from '../../app';
 import type { Modifier } from '../../engine/modifiers';
 import type { RunShopDef } from '../../engine/run';
 import type { DemoCard } from '../../sim/demo';
@@ -28,6 +28,11 @@ export class DemoPresenter extends ContentPresenter<DemoCard> {
       value: card.value,
       tooltip: { body, glossary: glossaryFor(`${body} multiplier`) },
     };
+  }
+
+  /** Demo cards have no suits, so "group" splits them into High (7+) and Low. */
+  override sortKeys(card: DemoCard): SortKeys {
+    return { value: card.value, group: card.value >= 7 ? 'High' : 'Low' };
   }
 
   override presentModifier(modifier: Modifier<DemoCard>): ModifierFace {

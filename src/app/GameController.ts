@@ -1,7 +1,9 @@
 import type { Run, RunShopDef } from '../engine/run';
 import type { ShopOffer } from '../engine/shop';
 import { ShellModel } from '../ui/model';
+import type { Modifier } from '../engine/modifiers';
 import type {
+  HandSort,
   HudView,
   ModifierRowView,
   NextRoundView,
@@ -13,6 +15,7 @@ import type {
   ToastView,
 } from '../ui/types';
 import type { GameDefinition } from './GameDefinition';
+import { sortHand } from './handSort';
 import { toggleSelection } from './selection';
 import { toNextRound, toRoundSummary, toScoreTally } from './viewMapping';
 
@@ -43,6 +46,8 @@ export class GameController<TCard extends object> extends ShellModel implements 
   private readonly nextSeed: () => number;
   private run_: Run<TCard> | null = null;
   private selectedIds: readonly string[] = [];
+  /** Display-only hand order; kept across rounds and runs. */
+  private handSort: HandSort = 'dealt';
   private tally: PendingTally | null = null;
   private awaitingCashOut = false;
   /** Offers as last stocked, so sold slots can still show what was bought. */
@@ -168,6 +173,35 @@ export class GameController<TCard extends object> extends ShellModel implements 
     this.changed();
   };
 
+  readonly onSortHand = (sort: HandSort): void => {
+    this.handSort = sort;
+    this.changed();
+  };
+
+  readonly onSellModifier = (modifierId: string): void => {
+    const run = this.run_;
+    if (run === null || this.modifiersLocked(run)) return;
+    const modifier = this.findModifier(run, modifierId);
+    if (modifier === undefined) return;
+    const reason = run.whyCannotSell(modifier);
+    if (reason !== null) return this.refuse(reason);
+    const title = this.game.presenter.presentModifier(modifier).title;
+    const value = run.sell(modifier);
+    this.pushToast('info', `Sold ${title} for $${value}`);
+    this.changed();
+  };
+
+  readonly onMoveModifier = (modifierId: string, toIndex: number): void => {
+    const run = this.run_;
+    if (run === null || this.modifiersLocked(run)) return;
+    const slots = run.modifiers.modifiers;
+    const from = slots.findIndex((m) => this.idOf(m, 'mod') === modifierId);
+    const to = Math.max(0, Math.min(slots.length - 1, Math.trunc(toIndex)));
+    if (from < 0 || from === to) return;
+    run.modifiers.move(from, to);
+    this.changed();
+  };
+
   readonly onDismissToast = (toastId: string): void => {
     this.toasts = this.toasts.filter((t) => t.id !== toastId);
     this.changed();
@@ -214,9 +248,24 @@ export class GameController<TCard extends object> extends ShellModel implements 
     return this.tally !== null || this.awaitingCashOut || run.phase !== 'playing';
   }
 
-  /** Selected hand cards, in hand order (which is the order they score). */
+  /** Modifiers can't be sold or moved mid-tally (the tally already reflects them) or after the run ends. */
+  private modifiersLocked(run: Run<TCard>): boolean {
+    return this.tally !== null || run.phase === 'won' || run.phase === 'lost';
+  }
+
+  private findModifier(run: Run<TCard>, modifierId: string): Modifier<TCard> | undefined {
+    return run.modifiers.modifiers.find((m) => this.idOf(m, 'mod') === modifierId);
+  }
+
+  /** The hand as displayed. Only the display is sorted; the engine's hand keeps its order. */
+  private displayedHand(run: Run<TCard>): TCard[] {
+    const presenter = this.game.presenter;
+    return sortHand(run.deck.hand, this.handSort, (card) => presenter.sortKeys(card));
+  }
+
+  /** Selected hand cards in display order, which is the order they are played and scored. */
   private selectedCards(run: Run<TCard>): TCard[] {
-    return run.deck.hand.filter((card) => this.selectedIds.includes(this.idOf(card, 'card')));
+    return this.displayedHand(run).filter((card) => this.selectedIds.includes(this.idOf(card, 'card')));
   }
 
   private idOf(item: object, prefix: string): string {
@@ -271,9 +320,16 @@ export class GameController<TCard extends object> extends ShellModel implements 
   }
 
   private modifierRow(run: Run<TCard>): ModifierRowView {
+    const locked = this.modifiersLocked(run);
     return {
       slots: run.modifiers.capacity,
-      modifiers: run.modifiers.modifiers.map((m) => ({ id: this.idOf(m, 'mod'), ...this.game.presenter.presentModifier(m) })),
+      locked,
+      modifiers: run.modifiers.modifiers.map((m) => ({
+        id: this.idOf(m, 'mod'),
+        ...this.game.presenter.presentModifier(m),
+        sellValue: run.shop.sellValue(m.price),
+        canSell: !locked && run.whyCannotSell(m) === null,
+      })),
     };
   }
 
@@ -285,7 +341,8 @@ export class GameController<TCard extends object> extends ShellModel implements 
       screen: 'round',
       hud: this.hud(run, true),
       modifierRow: this.modifierRow(run),
-      hand: run.deck.hand.map((card) => ({ id: this.idOf(card, 'card'), ...presenter.presentCard(card) })),
+      hand: this.displayedHand(run).map((card) => ({ id: this.idOf(card, 'card'), ...presenter.presentCard(card) })),
+      handSort: this.handSort,
       selectedIds: this.selectedIds,
       maxSelected: run.config.maxSelection,
       canPlay: !locked && run.whyCannotPlay(selected) === null,
