@@ -73,6 +73,16 @@ export const GLYPHS = {
   // ---- Fixture kinds ----
   station: [{ d: `M1.6 21.8V9.6l5.6 3.6V9.6l5.6 3.6V9.6l5.6 3.6V2.4h4v19.4Z${rect(4.4, 16, 3, 2.6)}${rect(10, 16, 3, 2.6)}${rect(15.6, 16, 3, 2.6)}`, paint: 'evenodd' }],
   mod: [{ d: `M12 1.6l9 5.2v10.4l-9 5.2-9-5.2V6.8Z${circle(12, 12, 4)}`, paint: 'evenodd' }],
+
+  // ---- Shop ----
+  lock: [
+    { d: 'M7.4 10.4V7.2a4.6 4.6 0 0 1 9.2 0v3.2', paint: 'stroke' },
+    { d: `${rect(3.8, 10, 16.4, 12.2, 2.2)}${circle(12, 15, 1.9)}M11.1 15.6h1.8l.5 3.6h-2.8Z`, paint: 'evenodd' },
+  ],
+  unlock: [
+    { d: 'M7.4 10.4V7.2a4.6 4.6 0 0 1 8.9-1.6', paint: 'stroke' },
+    { d: `${rect(3.8, 10, 16.4, 12.2, 2.2)}${circle(12, 15, 1.9)}M11.1 15.6h1.8l.5 3.6h-2.8Z`, paint: 'evenodd' },
+  ],
 } as const satisfies Readonly<Record<string, Glyph>>;
 
 export type IconName = keyof typeof GLYPHS;

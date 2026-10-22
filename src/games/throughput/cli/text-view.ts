@@ -61,6 +61,11 @@ export function cardText(card: Card): string {
   return `${cardName(card)} · ${cardEffect(card)}${extras === '' ? '' : ` (${extras})`}`;
 }
 
+/** An offer's short name: "Influencer-G" for a card, else the Fixture's or Contract's name. */
+export function offerName(offer: Offer): string {
+  return offer.kind === 'card' ? `${offer.def.name}-${offer.category.charAt(0)}` : offer.def.name;
+}
+
 export function offerText(offer: Offer): string {
   switch (offer.kind) {
     case 'fixture':
@@ -202,7 +207,7 @@ export function legalActions(run: ThroughputRun): string[] {
           );
         }
       } else if (run.whyCannotBuy(i) === null) {
-        out.push(`buy ${n} — ${offer.kind === 'card' ? `${offer.def.name}-${offer.category.charAt(0)} into your deck` : offer.def.name} for ${offer.price}C`);
+        out.push(`buy ${n} — ${offerName(offer)}${offer.kind === 'card' ? ' into your deck' : ''} for ${offer.price}C`);
       }
     });
     run.line.forEach((slot, i) => {
@@ -215,7 +220,15 @@ export function legalActions(run: ThroughputRun): string[] {
     if (movable.length > 0 && run.wallet.canAfford(run.config.moveCost)) {
       out.push(`move <from> <to> — move a Fixture for ${run.config.moveCost}C, swapping with any Fixture there (Fixtures in ${list(movable)})`);
     }
-    if (run.whyCannotReroll() === null) out.push(`reroll — new offers for ${run.rerollCost}C (${interestTrade(run, run.rerollCost)})`);
+    const locked = run.lockedOffer;
+    const lockedOffer = locked === null ? null : run.offers[locked];
+    const lockedName = locked === null ? '' : `offer ${locked + 1}${lockedOffer == null ? '' : ` (${offerName(lockedOffer)})`}`;
+    if (run.whyCannotReroll() === null) {
+      out.push(`reroll — new offers for ${run.rerollCost}C (${interestTrade(run, run.rerollCost)})${locked === null ? '' : `; ${lockedName} stays, locked`}`);
+    }
+    const lockable = run.offers.flatMap((_, i) => (run.whyCannotLock(i) === null ? [i] : []));
+    if (lockable.length > 0) out.push(`lock <offer> — ${locked === null ? 'keep an offer through rerolls this visit' : 'move the lock to another offer'} (free; offers ${list(lockable)})`);
+    if (locked !== null) out.push(`unlock — release ${lockedName}`);
     out.push(`continue — start ${quarterLabel(run, run.round + 1)} (round ${run.round + 1}, target $${run.targetFor(run.round + 1)})`);
   }
   if (run.phase === 'shift' || run.phase === 'shop') out.push('deck — list your cards and what is left to draw (free)');
@@ -324,7 +337,8 @@ export function formatView(run: ThroughputRun, context: ViewContext): string {
     lines.push('', `Shop (reroll ${run.rerollCost}C; holding ${run.wallet.cash}C → +${computeInterest(run.wallet.cash, run.interestRule)}C interest):`);
     run.offers.forEach((offer, i) => {
       const blocker = offerBlocker(run, i);
-      lines.push(`  ${i + 1}. ${offer === null ? '(bought; a reroll or the next shop refills it)' : offerText(offer)}${blocker === null ? '' : ` [can't buy: ${blocker}]`}`);
+      const locked = run.lockedOffer === i ? ' [locked: rerolls keep it]' : '';
+      lines.push(`  ${i + 1}. ${offer === null ? '(bought; a reroll or the next shop refills it)' : offerText(offer)}${locked}${blocker === null ? '' : ` [can't buy: ${blocker}]`}`);
     });
     // Deck numbers matter in the shop only for a Contract that targets a card; otherwise keep the screen short.
     const picksCard = run.offers.some((o) => o?.kind === 'contract' && o.def.targetsCard);
@@ -522,7 +536,12 @@ export function stateData(run: ThroughputRun, context: ViewContext): Record<stri
     payout: run.lastPayout,
     shop:
       run.phase === 'shop'
-        ? { rerollCost: run.rerollCost, offers: run.offers.map((o, i) => (o === null ? null : { kind: o.kind, text: offerText(o), price: o.price, blocked: offerBlocker(run, i) })) }
+        ? {
+            rerollCost: run.rerollCost,
+            // 1-based, like the offer numbers in commands.
+            locked: run.lockedOffer === null ? null : run.lockedOffer + 1,
+            offers: run.offers.map((o, i) => (o === null ? null : { kind: o.kind, text: offerText(o), price: o.price, blocked: offerBlocker(run, i) })),
+          }
         : null,
     deck: run.deck.map(card),
     legalActions: legalActions(run),

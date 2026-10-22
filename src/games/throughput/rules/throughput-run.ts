@@ -368,6 +368,11 @@ export class ThroughputRun {
     return this.shop_.rerollCost;
   }
 
+  /** The shop offer that rerolls this visit keep, or null (always null outside the shop). */
+  get lockedOffer(): number | null {
+    return this.phase_ === 'shop' ? this.shop_.locked : null;
+  }
+
   get lastShift(): ShiftResult | null {
     return this.lastShift_;
   }
@@ -709,6 +714,31 @@ export class ThroughputRun {
   reroll(): void {
     this.assert(this.whyCannotReroll());
     this.shop_.reroll(this.wallet, (c) => this.whyContractUnavailable(c) === null);
+  }
+
+  whyCannotLock(offer: number): string | null {
+    if (this.phase_ !== 'shop') return 'The shop is closed';
+    if (this.shop_.offers[offer] == null) return 'Nothing for sale in that slot';
+    return this.shop_.locked === offer ? `Offer ${offer + 1} is already locked` : null;
+  }
+
+  /**
+   * Locks a shop offer so rerolls this visit keep it. Free, and one at a time: locking another
+   * offer moves the lock. Buying the offer or leaving the shop releases it.
+   */
+  lock(offer: number): void {
+    this.assert(this.whyCannotLock(offer));
+    this.shop_.lock(offer);
+  }
+
+  whyCannotUnlock(): string | null {
+    if (this.phase_ !== 'shop') return 'The shop is closed';
+    return this.shop_.locked === null ? 'No offer is locked' : null;
+  }
+
+  unlock(): void {
+    this.assert(this.whyCannotUnlock());
+    this.shop_.unlock();
   }
 
   whyCannotContinue(): string | null {

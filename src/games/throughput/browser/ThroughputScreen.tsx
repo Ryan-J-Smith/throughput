@@ -520,6 +520,9 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
             pending={mode.kind === 'install' || mode.kind === 'contract' || mode.kind === 'grant' ? mode.offer : null}
             replacing={mode.kind === 'fixture' ? mode.slot : null}
             onBuy={buy}
+            onLock={(offer) =>
+              run.lockedOffer === offer ? attempt(run.whyCannotUnlock(), { verb: 'unlock' }, () => run.unlock()) : attempt(run.whyCannotLock(offer), { verb: 'lock', offer }, () => run.lock(offer))
+            }
             onReroll={() => attempt(run.whyCannotReroll(), { verb: 'reroll' }, () => run.reroll())}
             onContinue={() =>
               attempt(run.whyCannotContinue(), { verb: 'continue' }, () => {

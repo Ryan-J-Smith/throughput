@@ -168,6 +168,7 @@ CAPITAL AND THE SHOP
   Overkill: when a round clears, each full ${Math.round(c.overkill.step * 100)}% of the target you sold beyond it pays +1C
   (at most +${c.overkill.cap}C a round).
   Each shop offers 2 Fixtures, 2 Cards and 1 Contract. Reroll: ${c.rerollBaseCost}C, +${c.rerollCostIncrement}C each time per visit.
+  Lock (free) keeps one offer through this visit's rerolls; buying it or leaving the shop releases it.
   Sell a Fixture, or a card you bought, for half its price (rounded down). Starter cards can't be sold.
   Contracts:
 ${contracts}
@@ -210,6 +211,7 @@ COMMANDS
   sell fixture <slot> | sell card <deck card>
   move <from slot> <to slot>
   reroll | continue
+  lock <offer> | unlock  keep one offer through rerolls this visit (free; locking another moves it)
   deck                   list every card you own and what is left to draw (free, not recorded)
   rules                  this text (free); also "npm run -s cli -- rules --game throughput"`;
 }

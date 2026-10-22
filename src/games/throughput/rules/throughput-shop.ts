@@ -36,6 +36,8 @@ export class ThroughputShop {
   private grantOffered = false;
   /** The Year of the round a visit leads into: premium Fixtures wait for their `earliestYear`. */
   private year = 1;
+  /** The offer kept through rerolls this visit, or null. */
+  private locked_: number | null = null;
 
   constructor(config: ThroughputConfig, rng: Rng) {
     this.config = config;
@@ -63,6 +65,21 @@ export class ThroughputShop {
     return this.rerollCost_;
   }
 
+  /** The offer (0-based over all five) that rerolls this visit keep, or null. */
+  get locked(): number | null {
+    return this.locked_;
+  }
+
+  /** Keeps offer `index` through rerolls this visit, moving the lock from any other offer. Free. */
+  lock(index: number): void {
+    if (this.offers[index] == null) throw new Error('Nothing for sale in that slot');
+    this.locked_ = index;
+  }
+
+  unlock(): void {
+    this.locked_ = null;
+  }
+
   /** Offers 1–2 are Fixtures, 3–4 Cards, 5 a Contract; null once bought. */
   get offers(): readonly (Offer | null)[] {
     return [
@@ -79,6 +96,8 @@ export class ThroughputShop {
    */
   restock(allowed: (contract: ContractDef) => boolean, year = 1): void {
     this.year = year;
+    // A lock lasts one visit.
+    this.locked_ = null;
     this.rerollCost_ = this.config.rerollBaseCost;
     this.visits++;
     this.stock(allowed, this.visits >= GRANT_BY_VISIT && !this.grantOffered);
@@ -110,15 +129,18 @@ export class ThroughputShop {
     if (index < 2) this.fixtures.buy(index, wallet);
     else if (index < 4) this.cards.buy(index - 2, wallet);
     else this.contracts.buy(index - 4, wallet);
+    if (this.locked_ === index) this.locked_ = null;
     return offer;
   }
 
   private stock(allowed: (contract: ContractDef) => boolean, grantDue = false): void {
-    this.fixtures.restock((def) => (def.earliestYear ?? 1) <= this.year);
-    this.cards.restock();
+    // The locked offer, if any, holds its slot in its kind's shop (offers 1–2, 3–4, 5).
+    const keep = (first: number, slots: number) => (this.locked_ !== null && this.locked_ >= first && this.locked_ < first + slots ? [this.locked_ - first] : []);
+    this.fixtures.restock((def) => (def.earliestYear ?? 1) <= this.year, keep(0, 2));
+    this.cards.restock(undefined, keep(2, 2));
     const grant = (contract: ContractDef) => contract.effect === 'grant' && allowed(contract);
     const forced = grantDue && CONTRACTS.some(grant);
-    this.contracts.restock((def) => (forced ? grant(def.contract) : allowed(def.contract)));
+    this.contracts.restock((def) => (forced ? grant(def.contract) : allowed(def.contract)), keep(4, 1));
     if (this.contracts.offers.some((o) => o?.def.contract.effect === 'grant')) this.grantOffered = true;
   }
 }

@@ -536,6 +536,45 @@ describe('ThroughputRun: payout and shop', () => {
     expect(run.wallet.cash).toBe(cash - 3);
   });
 
+  it('a locked offer stays through rerolls this visit, for free; buying it or the next shop releases it', () => {
+    const run = new ThroughputRun(1, easyConfig({ startingCapital: 1000, targets: [0, 0, 0] }));
+    expect(run.whyCannotLock(0)).toBe('The shop is closed');
+    run.runShift();
+    expect([run.phase, run.lockedOffer, run.whyCannotUnlock()]).toEqual(['shop', null, 'No offer is locked']);
+    // Any offer (Fixture, card or Contract) holds its place while the rest change.
+    for (const i of [0, 1, 2, 3, 4]) {
+      const cash = run.wallet.cash;
+      run.lock(i);
+      expect(run.wallet.cash).toBe(cash);
+      expect(run.whyCannotLock(i)).toBe(`Offer ${i + 1} is already locked`);
+      const kept = run.offers[i];
+      const others = () => run.offers.filter((_, j) => j !== i).map((o) => o?.def.id);
+      const before = others();
+      let changed = false;
+      for (let r = 0; r < 4; r++) {
+        run.reroll();
+        expect(run.offers[i]).toEqual(kept);
+        changed ||= others().join() !== before.join();
+      }
+      expect(changed).toBe(true);
+    }
+    // One lock at a time: locking another offer moves it; unlock releases it.
+    expect(run.lockedOffer).toBe(4);
+    run.lock(2);
+    expect(run.lockedOffer).toBe(2);
+    run.unlock();
+    expect(run.lockedOffer).toBeNull();
+    run.lock(3);
+    run.buy(3);
+    expect(run.lockedOffer).toBeNull();
+    expect(run.whyCannotLock(3)).toBe('Nothing for sale in that slot');
+    run.lock(2);
+    run.continueToNextRound();
+    expect([run.lockedOffer, run.whyCannotUnlock()]).toEqual([null, 'The shop is closed']);
+    run.runShift();
+    expect([run.phase, run.lockedOffer]).toEqual(['shop', null]);
+  });
+
   it('contracts upgrade or remove deck cards and expand the Line', () => {
     const run = new ThroughputRun(1, easyConfig({ startingCapital: 1000 }));
     makeAndShip(run);

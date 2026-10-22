@@ -91,6 +91,8 @@ describe('parseAction / formatAction', () => {
     ['buy 1 3', 'buy 1 3'],
     ['buy 5 Home Scale', 'buy 5 home scale'],
     ['buy 5 f premium', 'buy 5 food premium'],
+    ['Lock  3', 'lock 3'],
+    ['unlock', 'unlock'],
     ['sell fixture 2', 'sell fixture 2'],
     ['sell card 21', 'sell card 21'],
     ['move 1 4', 'move 1 4'],
@@ -103,12 +105,29 @@ describe('parseAction / formatAction', () => {
     expect(formatAction(parsed.action)).toBe(canonical);
   });
 
-  it.each(['load', 'load 3-1', 'load 0:1', 'retool', 'buy', 'buy x', 'buy 5 home', 'buy 5 toys scale', 'buy 5 home scale 2', 'sell 2', 'move 1', 'run now', 'dance', 'keep', 'keep on'])(
-    'rejects "%s"',
-    (text) => {
-      expect(parseAction(text).ok).toBe(false);
-    },
-  );
+  it.each([
+    'load',
+    'load 3-1',
+    'load 0:1',
+    'retool',
+    'buy',
+    'buy x',
+    'buy 5 home',
+    'buy 5 toys scale',
+    'buy 5 home scale 2',
+    'sell 2',
+    'move 1',
+    'run now',
+    'dance',
+    'keep',
+    'keep on',
+    'lock',
+    'lock 0',
+    'lock 1 2',
+    'unlock 1',
+  ])('rejects "%s"', (text) => {
+    expect(parseAction(text).ok).toBe(false);
+  });
 });
 
 describe('ThroughputTextGame', () => {
@@ -244,6 +263,32 @@ describe('ThroughputTextGame', () => {
     expect(ok(game.take(shop.save, 'reroll')).log).toEqual([expect.stringMatching(/^Rerolled for 2C \(Capital (\d+)C → \d+C\)\. Next reroll 3C\.$/)]);
     const next = ok(game.take(shop.save, 'continue'));
     expect(next.view.state).toMatchObject({ phase: 'shift', round: 2 });
+  });
+
+  it('locks a shop offer through rerolls; the lock is saved, replayed, moved and released', () => {
+    const hand = handOf(game, game.newSave(1));
+    const shop = ok(game.take(play(game, 1, [`load ${numberOf(hand, 'make')}:1 ${numberOf(hand, 'ship')}:2`]), 'run'));
+    expect(shop.view.legalActions).toContain('lock <offer> — keep an offer through rerolls this visit (free; offers 1, 2, 3, 4, 5)');
+    expect(game.take(shop.save, 'unlock')).toMatchObject({ ok: false, reason: 'No offer is locked' });
+
+    const locked = ok(game.take(shop.save, 'lock 3'));
+    expect(locked.save.actions.at(-1)).toBe('lock 3');
+    expect(locked.log).toEqual([expect.stringMatching(/^Locked offer 3 \(.+\): rerolls this visit keep it\. Buying it or leaving the shop releases it\.$/)]);
+    const offer3 = (text: string) => (text.split('\nShop (reroll')[1] ?? '').split('\n').find((line) => line.startsWith('  3. '));
+    expect(offer3(locked.view.text)).toMatch(/ \[locked: rerolls keep it\]$/);
+    expect(locked.view.state).toMatchObject({ shop: { locked: 3 } });
+    expect(locked.view.legalActions).toContainEqual(expect.stringMatching(/^reroll — new offers for 2C \(.+\); offer 3 \(.+\) stays, locked$/));
+    expect(locked.view.legalActions).toContainEqual(expect.stringMatching(/^unlock — release offer 3 \(.+\)$/));
+    expect(locked.view.legalActions).toContain('lock <offer> — move the lock to another offer (free; offers 1, 2, 4, 5)');
+
+    const rerolled = ok(game.take(locked.save, 'reroll'));
+    expect(rerolled.log).toEqual([expect.stringMatching(/^Rerolled for 2C \(Capital \d+C → \d+C\); offer 3 \(.+\) stayed, locked\. Next reroll 3C\.$/)]);
+    expect(offer3(rerolled.view.text)).toBe(offer3(locked.view.text));
+    expect(game.show(rerolled.save).text).toBe(rerolled.view.text);
+
+    const moved = ok(game.take(rerolled.save, 'lock 1'));
+    expect(moved.log[0]).toMatch(/^Locked offer 1 \(.+\): .* Offer 3 is no longer locked\.$/);
+    expect(ok(game.take(moved.save, 'unlock')).log).toEqual([expect.stringMatching(/^Unlocked offer 1 \(.+\)\.$/)]);
   });
 
   it('buys an R&D Grant for a Category with Scale or Premium, and replays it', () => {

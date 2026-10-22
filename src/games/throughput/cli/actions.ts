@@ -16,13 +16,15 @@ export type ThroughputAction =
   | { readonly verb: 'buy'; readonly offer: number; readonly target: number | null; readonly grant?: GrantChoice }
   | { readonly verb: 'sell'; readonly what: 'fixture' | 'card'; readonly index: number }
   | { readonly verb: 'move'; readonly from: number; readonly to: number }
-  | { readonly verb: 'run' | 'reroll' | 'continue' | 'rules' | 'deck' }
+  /** Keep a shop offer through rerolls this visit. */
+  | { readonly verb: 'lock'; readonly offer: number }
+  | { readonly verb: 'run' | 'reroll' | 'continue' | 'unlock' | 'rules' | 'deck' }
   /** After winning: play on past the last planned round (endless). */
   | { readonly verb: 'keep going' };
 
 export type ParsedAction = { readonly ok: true; readonly action: ThroughputAction } | { readonly ok: false; readonly reason: string };
 
-const BARE = ['run', 'reroll', 'continue', 'rules', 'deck'] as const;
+const BARE = ['run', 'reroll', 'continue', 'unlock', 'rules', 'deck'] as const;
 
 export function parseAction(text: string): ParsedAction {
   const [verb = '', ...args] = text.trim().toLowerCase().split(/\s+/);
@@ -71,6 +73,10 @@ export function parseAction(text: string): ParsedAction {
     }
     case 'keep':
       return args.length === 1 && args[0] === 'going' ? { ok: true, action: { verb: 'keep going' } } : fail('did you mean "keep going"?');
+    case 'lock': {
+      const [offer, ...rest] = args.map(number);
+      return offer == null || rest.length > 0 ? fail('lock needs one offer number, e.g. "lock 3"') : { ok: true, action: { verb, offer } };
+    }
     case 'move': {
       const [from, to, ...rest] = args.map(number);
       if (from == null || to == null || rest.length > 0) return fail('move needs two slot numbers, e.g. "move 1 4"');
@@ -99,6 +105,8 @@ export function formatAction(action: ThroughputAction): string {
       return `sell ${action.what} ${one(action.index)}`;
     case 'move':
       return `move ${one(action.from)} ${one(action.to)}`;
+    case 'lock':
+      return `lock ${one(action.offer)}`;
     default:
       return action.verb;
   }

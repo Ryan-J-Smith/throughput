@@ -57,10 +57,13 @@ export class Shop<D extends ContentDef> {
     return this.rerollCost_;
   }
 
-  /** Fresh stock for a new shop visit; resets the reroll cost. */
-  restock(filter: OfferFilter<D> = () => true): void {
+  /**
+   * Fresh stock for a new shop visit; resets the reroll cost. Slots in `keep` hold their offer (one
+   * the player locked, say) and the new offers don't repeat it.
+   */
+  restock(filter: OfferFilter<D> = () => true, keep: readonly number[] = []): void {
     this.rerollCost_ = this.config.rerollBaseCost;
-    this.generate(filter);
+    this.generate(filter, keep);
   }
 
   whyCannotReroll(wallet: Wallet): string | null {
@@ -73,7 +76,7 @@ export class Shop<D extends ContentDef> {
     if (reason !== null) throw new EngineError(reason);
     wallet.spend(this.rerollCost_);
     this.rerollCost_ += this.config.rerollCostIncrement;
-    this.generate(filter);
+    this.generate(filter, []);
   }
 
   whyCannotBuy(slot: number, wallet: Wallet): string | null {
@@ -98,11 +101,17 @@ export class Shop<D extends ContentDef> {
     return Math.floor(price * this.config.sellRate);
   }
 
-  private generate(filter: OfferFilter<D>): void {
-    const taken = new Set<string>();
+  private generate(filter: OfferFilter<D>, keep: readonly number[]): void {
+    const kept = this.offers_.map((offer, slot) => (keep.includes(slot) ? offer : null));
+    const taken = new Set<string>(kept.flatMap((offer) => (offer == null ? [] : [offer.def.id])));
     const accept = (def: D): boolean => !taken.has(def.id) && filter(def);
     this.offers_ = [];
     for (let slot = 0; slot < this.config.slots; slot++) {
+      const held = kept[slot];
+      if (held != null) {
+        this.offers_.push(held);
+        continue;
+      }
       const pools = this.config.pools.filter(
         (pool) => pool.weight > 0 && pool.registry.all().some((def) => accept(def) && pool.registry.weightOf(def) > 0),
       );

@@ -85,6 +85,25 @@ describe('Shop', () => {
     expect(shop.rerollCost).toBe(5);
   });
 
+  it('restock() keeps the offers in `keep` slots, and the new offers never repeat them', () => {
+    for (let seed = 1; seed <= 20; seed++) {
+      const shop = new Shop(config(), new Rng(seed));
+      shop.restock();
+      const held = shop.offers[1];
+      for (let i = 0; i < 10; i++) {
+        shop.restock(undefined, [1]);
+        expect(shop.offers[1]).toBe(held);
+        expect(ids(shop).filter((id) => id === held?.def.id)).toHaveLength(1);
+      }
+    }
+    // A kept slot that was bought out is filled as usual.
+    const shop = new Shop(config(), new Rng(1));
+    shop.restock();
+    shop.buy(1, new Wallet(10));
+    shop.restock(undefined, [1]);
+    expect(shop.offers[1]).not.toBeNull();
+  });
+
   it('buy() charges the price and empties the slot', () => {
     const shop = new Shop(config(), new Rng(5));
     const wallet = new Wallet(4);

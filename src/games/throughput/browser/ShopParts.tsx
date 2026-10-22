@@ -2,7 +2,8 @@ import { useEffect, useRef } from 'react';
 import type { CSSProperties } from 'react';
 import { computeInterest, interestCeiling } from '../../../engine/economy';
 import { Card } from '../../../ui/components';
-import { interestTrade, rulesText } from '../cli';
+import { Icon } from '../../../ui/icons';
+import { interestTrade, offerName, rulesText } from '../cli';
 import { CATEGORIES, cardName, formatAmount } from '../model';
 import type { Category, GrantOption } from '../model';
 import type { Offer, ThroughputRun } from '../rules';
@@ -45,13 +46,17 @@ export type ShelfProps = {
   /** The slot of a picked Line Fixture, which a bought Fixture replaces; null if none is picked. */
   replacing: number | null;
   onBuy: (offer: number) => void;
+  /** Locks an offer through rerolls this visit, or unlocks it if it is the locked one. */
+  onLock: (offer: number) => void;
   onReroll: () => void;
   onContinue: () => void;
 };
 
 /** Five offers on the shop shelf: 2 Fixtures, 2 Cards, 1 Contract. */
-export function Shelf({ run, pending, replacing, onBuy, onReroll, onContinue }: ShelfProps) {
+export function Shelf({ run, pending, replacing, onBuy, onLock, onReroll, onContinue }: ShelfProps) {
   const next = run.round + 1;
+  const locked = run.lockedOffer;
+  const lockedOffer = locked === null ? null : run.offers[locked];
   // An offer bought from its focused Buy button turns into a Sold plate, which takes the focus so
   // a keyboard player's next Tab carries on along the shelf instead of starting over at the top.
   const refocus = useRef<number | null>(null);
@@ -78,7 +83,7 @@ export function Shelf({ run, pending, replacing, onBuy, onReroll, onContinue }: 
           <button
             type="button"
             className={`btn btn--reroll ${run.whyCannotReroll() === null ? '' : 'btn--unaffordable'}`}
-            title={`Reroll for ${run.rerollCost}C: ${interestTrade(run, run.rerollCost)}`}
+            title={`Reroll for ${run.rerollCost}C: ${interestTrade(run, run.rerollCost)}${lockedOffer == null ? '' : `. ${offerName(lockedOffer)} stays (locked)`}`}
             onClick={onReroll}
           >
             Reroll {run.rerollCost}C
@@ -90,7 +95,7 @@ export function Shelf({ run, pending, replacing, onBuy, onReroll, onContinue }: 
       </div>
       <div className="shop__shelf">
         {run.offers.map((offer, i) => (
-          <ShelfItem key={i} run={run} offer={offer} index={i} pending={pending === i} replacing={replacing} onBuy={buy} soldRef={soldRef(i)} />
+          <ShelfItem key={i} run={run} offer={offer} index={i} pending={pending === i} locked={locked === i} replacing={replacing} onBuy={buy} onLock={onLock} soldRef={soldRef(i)} />
         ))}
       </div>
     </section>
@@ -102,16 +107,20 @@ function ShelfItem({
   offer,
   index,
   pending,
+  locked,
   replacing,
   onBuy,
+  onLock,
   soldRef,
 }: {
   run: ThroughputRun;
   offer: Offer | null;
   index: number;
   pending: boolean;
+  locked: boolean;
   replacing: number | null;
   onBuy: (offer: number, button: HTMLButtonElement) => void;
+  onLock: (offer: number) => void;
   soldRef: (plate: HTMLDivElement | null) => void;
 }) {
   if (offer === null) {
@@ -135,6 +144,7 @@ function ShelfItem({
       className={`shop__item ${pending ? 'tp-shop__pending' : ''}`}
       data-kind={offer.kind}
       data-afford={affordable ? 'yes' : 'no'}
+      data-locked={locked || undefined}
       style={{ '--i': index } as CSSProperties}
     >
       <Card card={offerView(offer, `offer-${index}`)} rarity={rarity} />
@@ -149,6 +159,16 @@ function ShelfItem({
       )}
       <button type="button" className={`btn btn--buy ${affordable ? '' : 'btn--unaffordable'}`} onClick={(event) => onBuy(index, event.currentTarget)}>
         {pending ? pendingLabel(offer) : `Buy ${offer.price}C`}
+      </button>
+      <button
+        type="button"
+        className="shop__lock"
+        aria-pressed={locked}
+        title={locked ? 'Locked: rerolls this visit keep this offer. Buying it or leaving the shop releases it. Click to unlock.' : 'Lock (free): rerolls this visit keep this offer'}
+        onClick={() => onLock(index)}
+      >
+        <Icon name={locked ? 'lock' : 'unlock'} size="sm" />
+        {locked ? 'Locked' : 'Lock'}
       </button>
     </div>
   );

@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { GrantPicker, HowToPlay, KEYS_HINT, LineView, MarketBoard, PayoutSlip, Shelf, ThroughputBrowserGame, ThroughputScreen, TpHud, TraceReceipt, cardView, demandBossCut, demandViews, eventHelp, fixtureView, lineNotice, nextBoardNotice, overkillHelp, plateText } from '../browser';
-import { cardText, demandUseText, grownText } from '../cli';
+import { cardText, demandUseText, grownText, offerName } from '../cli';
 import { DEFAULT_CONFIG, REBRAND, SKETCH, TRUCK, WORKSHOP } from '../content';
 import type { BayState } from '../browser';
 import { CATEGORIES, cardEffect, cardName, growthText } from '../model';
@@ -176,7 +176,7 @@ describe('THROUGHPUT browser screen', () => {
       { hand: handIndex(run, 'ship'), slot: 1 },
     ]);
     run.runShift();
-    const shelf = () => renderToStaticMarkup(<Shelf run={run} pending={null} replacing={null} onBuy={() => {}} onReroll={() => {}} onContinue={() => {}} />);
+    const shelf = () => renderToStaticMarkup(<Shelf run={run} pending={null} replacing={null} onBuy={() => {}} onLock={() => {}} onReroll={() => {}} onContinue={() => {}} />);
     const items = () => [...shelf().matchAll(/<div class="shop__item ?" data-kind="(\w+)" data-afford="(yes|no)"/g)].map((m) => [m[1], m[2]]);
     expect(items()).toEqual(run.offers.flatMap((o) => (o === null ? [] : [[o.kind, run.wallet.canAfford(o.price) ? 'yes' : 'no']])));
     expect(shelf()).toMatch(/<span class="tp-shop__interest"[^>]*>Holding \d+C → \+\d+C interest<\/span>/);
@@ -187,13 +187,32 @@ describe('THROUGHPUT browser screen', () => {
     expect(items().map(([, afford]) => afford)).toEqual(run.offers.flatMap((o) => (o === null ? [] : [o.price > 0 ? 'no' : 'yes'])));
   });
 
+  it('each shop offer has a free Lock toggle; the locked one says so, and Reroll says it stays', () => {
+    const run = new ThroughputRun(1, easyConfig({ targets: [0, 0, 0] }));
+    run.runShift();
+    run.lock(2);
+    const html = renderToStaticMarkup(<Shelf run={run} pending={null} replacing={null} onBuy={() => {}} onLock={() => {}} onReroll={() => {}} onContinue={() => {}} />);
+    const offer = (i: number) => html.split('<div class="shop__item')[i + 1] ?? '';
+    expect(offer(2)).toContain('data-locked="true"');
+    expect(offer(2)).toContain(
+      '<button type="button" class="shop__lock" aria-pressed="true" title="Locked: rerolls this visit keep this offer. Buying it or leaving the shop releases it. Click to unlock.">',
+    );
+    expect(offer(2)).toMatch(/<\/svg>Locked<\/button><\/div>$/);
+    expect(offer(0)).not.toContain('data-locked');
+    expect(offer(0)).toContain('<button type="button" class="shop__lock" aria-pressed="false" title="Lock (free): rerolls this visit keep this offer">');
+    const kept = run.offers[2];
+    if (kept == null) throw new Error('no offer 3');
+    expect(html).toContain(`. ${offerName(kept)} stays (locked)">Reroll 2C</button>`);
+  });
+
   it('with a Line Fixture picked, each Fixture offer says what it replaces, and its refund counts toward affording it', () => {
     const run = shopWithFixture();
     const old = run.line[0]?.fixture?.def.name ?? '';
     const refund = run.fixtureRefund(0);
     const price = run.offers[1]?.price ?? 0;
     run.wallet.spend(run.wallet.cash - (price - refund));
-    const shelf = (replacing: number | null) => renderToStaticMarkup(<Shelf run={run} pending={null} replacing={replacing} onBuy={() => {}} onReroll={() => {}} onContinue={() => {}} />);
+    const shelf = (replacing: number | null) =>
+      renderToStaticMarkup(<Shelf run={run} pending={null} replacing={replacing} onBuy={() => {}} onLock={() => {}} onReroll={() => {}} onContinue={() => {}} />);
     const offer = (html: string, i: number) => html.split('<div class="shop__item')[i + 1] ?? '';
     const picked = shelf(0);
     expect(offer(picked, 1)).toContain(`<div class="shop__ledge" aria-hidden="true"></div><p class="shop__note">Replaces ${old} (+${refund}C)</p><button`);

@@ -10,7 +10,7 @@ import type { ThroughputAction } from './actions';
 
 type BuyAction = Extract<ThroughputAction, { verb: 'buy' }>;
 import { rulesText } from './rules-text';
-import { deckText, demandUseText, endlessNote, formatView, grownText, legalActions, movesText, quarterLabel, stateData, traceLines } from './text-view';
+import { deckText, demandUseText, endlessNote, formatView, grownText, legalActions, movesText, offerName, quarterLabel, stateData, traceLines } from './text-view';
 
 /** THROUGHPUT for the text CLI: `npm run -s cli -- new --game throughput --seed N --save FILE`. */
 export class ThroughputTextGame extends ReplayTextGame<ThroughputRun> {
@@ -104,6 +104,10 @@ function whyCannot(run: ThroughputRun, action: ThroughputAction): string | null 
       return run.whyCannotMove(action.from, action.to);
     case 'reroll':
       return run.whyCannotReroll();
+    case 'lock':
+      return run.whyCannotLock(action.offer);
+    case 'unlock':
+      return run.whyCannotUnlock();
     case 'continue':
       return run.whyCannotContinue();
     case 'keep going':
@@ -158,7 +162,7 @@ function apply(run: ThroughputRun, action: ThroughputAction): string[] {
             : grant !== undefined
               ? `: ${grant.category} ${grant.option === 'scale' ? 'Scale' : 'Premium'} ${run.grants[grant.category][grant.option]}`
               : '';
-      const lines = [`Bought ${item.kind === 'card' ? `${item.def.name}-${item.category.charAt(0)}` : item.def.name} for ${item.price}C${where}. Capital ${run.wallet.cash}C.`];
+      const lines = [`Bought ${offerName(item)} for ${item.price}C${where}. Capital ${run.wallet.cash}C.`];
       if (target.slot !== undefined) lines.push(...weldWarning(run, target.slot));
       return lines;
     }
@@ -174,7 +178,20 @@ function apply(run: ThroughputRun, action: ThroughputAction): string[] {
       const cost = run.rerollCost;
       const before = run.wallet.cash;
       run.reroll();
-      return [`Rerolled for ${cost}C (Capital ${before}C → ${run.wallet.cash}C). Next reroll ${run.rerollCost}C.`];
+      const locked = run.lockedOffer;
+      const kept = locked === null ? '' : `; ${offerLabel(run, locked)} stayed, locked`;
+      return [`Rerolled for ${cost}C (Capital ${before}C → ${run.wallet.cash}C)${kept}. Next reroll ${run.rerollCost}C.`];
+    }
+    case 'lock': {
+      const moved = run.lockedOffer;
+      run.lock(action.offer);
+      const unlocked = moved === null ? '' : ` Offer ${moved + 1} is no longer locked.`;
+      return [`Locked ${offerLabel(run, action.offer)}: rerolls this visit keep it. Buying it or leaving the shop releases it.${unlocked}`];
+    }
+    case 'unlock': {
+      const label = offerLabel(run, run.lockedOffer ?? 0);
+      run.unlock();
+      return [`Unlocked ${label}.`];
     }
     case 'continue':
       run.continueToNextRound();
@@ -253,6 +270,12 @@ function weldWarning(run: ThroughputRun, slot: number): string[] {
     .upcomingBoards()
     .filter((b) => b.round > run.round && b.boss.isWelded(slot))
     .map((b) => `Note: ${quarterLabel(run, b.round)} (round ${b.round}) ${b.boss.name} welds slot ${slot + 1}, and its Fixture does nothing that round.`);
+}
+
+/** "offer 3 (Influencer-G)". */
+function offerLabel(run: ThroughputRun, index: number): string {
+  const offer = run.offers[index];
+  return `offer ${index + 1}${offer == null ? '' : ` (${offerName(offer)})`}`;
 }
 
 function nameOf(card: Card | null | undefined): string {
