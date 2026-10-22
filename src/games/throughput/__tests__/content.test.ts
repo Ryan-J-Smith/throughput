@@ -30,6 +30,11 @@ describe('content catalogue', () => {
     }
     for (const item of [...SHOP_CARDS, ...FIXTURES, ...CONTRACTS]) expect(words(item.text), item.id).toBeLessThanOrEqual(20);
   });
+
+  it('gives every Fixture a plate gist of 2 to 4 words', () => {
+    for (const def of FIXTURES) expect(words(def.short ?? ''), def.id).toBeGreaterThanOrEqual(2);
+    for (const def of FIXTURES) expect(words(def.short ?? ''), def.id).toBeLessThanOrEqual(4);
+  });
 });
 
 describe('wave-1 Fixtures', () => {
@@ -43,10 +48,10 @@ describe('wave-1 Fixtures', () => {
     expect(after.steps[1]?.margin).toBe(2 + 2 + 4 + 2);
   });
 
-  it('Packaging Line adds 6 Units before a Ship sells; Cross-Dock adds $1 per Make in the 2 slots before', () => {
+  it('Packaging Line adds 6 Units before a Ship sells; Cross-Dock adds $2 per Make in the 2 slots before', () => {
     expect(scoreLine([slot(fixture('packaging-line'), ship())], context()).demandSold).toEqual({ Home: 6 });
     const dock = scoreLine([slot(null, card(WORKSHOP, 'Food')), slot(null, card(WORKSHOP, 'Apparel')), slot(fixture('cross-dock'), card(TRUCK, 'Home'))], context());
-    expect(dock.steps[2]?.events).toContain('Cross-Dock +$2');
+    expect(dock.steps[2]?.events).toContain('Cross-Dock +$4');
   });
 
   it('Conveyor Belt adds 4 Units per Make in the 2 slots before; Robotics Cell resolves a Make three times', () => {
@@ -60,11 +65,11 @@ describe('wave-1 Fixtures', () => {
     expect(scoreLine(line, context()).steps[1]?.events).toContain('Signature Line +$2');
   });
 
-  it('Logistics Hub adds $1 per 10 Units; Megafactory triples Units for -$2; Superstore multiplies by 1 + Units/50', () => {
+  it('Logistics Hub adds $1 per 10 Units; Megafactory triples Units for -$1; Superstore multiplies by 1 + Units/50', () => {
     const big = [slot(null, card(CONTRACT_MANUFACTURER, 'Food')), slot(fixture('megafactory'), null)];
     const mega = scoreLine(big, context());
     expect(mega.steps[1]?.units).toBe(60);
-    expect(mega.steps[1]?.margin).toBe(2 - 1 - 2);
+    expect(mega.steps[1]?.margin).toBe(2 - 1 - 1);
     const hub = scoreLine([slot(null, card(CONTRACT_MANUFACTURER, 'Food')), slot(fixture('logistics-hub'), null)], context());
     expect(hub.steps[1]?.margin).toBe(2 - 1 + 2);
     const store = scoreLine([slot(null, card(CONTRACT_MANUFACTURER, 'Food')), slot(fixture('superstore'), card(TRUCK, 'Food'))], context());

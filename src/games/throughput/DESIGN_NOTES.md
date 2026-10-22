@@ -456,3 +456,58 @@ Curves tried (500 seeds, except the chosen one; win %):
 
   The two weld bosses are telegraphed and can be countered by moving Fixtures or with a Floor Expansion,
   but they cost a fifth of the Line.
+
+## Item rescue pass (volume family)
+
+- **Finding: Margin, not Demand, is the volume build's bottleneck.**
+  - In mass-market Shifts, 66% end with no leftover Units at all. The rest average about 12.
+  - A volume Batch ends a Shift at only $1–3 Margin, so a sale-side outlet for leftovers adds almost nothing.
+  - What lifts volume is Margin that scales with Units.
+- **Factory Outlet (tried, cut).** It was a Station: leftover Units sell at half the final Margin.
+  - At $1–3 Margin, half Margin is about the $1 clearance every leftover already gets.
+  - As a Station it also costs a card slot and breaks a handoff.
+  - It also duplicated Wholesale Club ("all Units at half Margin").
+  - Result: impact −21%, and 4% win when picked against 25% when skipped.
+  - Variants that also lost to having no Outlet: a flat $2 or $3 per leftover, and a Mod version.
+- **Kept (Margin side):**
+  - Megafactory: −$1 Margin (was −$2), 5C.
+  - Cross-Dock: +$2 per Make (was +$1).
+  - Assembly Line and Automation: 5C. Packaging Line: 3C. Lean Cell: 4C.
+  - Flagship: +0.15 a round (was +0.2). That cost under 1 point.
+- **Units → Margin path at common/uncommon:**
+  - Logistics Hub: common 4C (was uncommon 6C).
+  - Superstore: uncommon 6C (was rare 8C).
+  - Volume now has a multiplicative engine without needing rares.
+- **Express Lane stays uncommon 6C.** At common 4C (500 seeds), greedy fell 14.6 → 8.6 and trend-surfer
+  27.0 → 22.0.
+- **Bots.**
+  - mass-market keeps its original wants. Chasing Outlet, Express Lane and Export Deal cost it 6 points.
+  - rnd-compounder and trend-surfer now take a Lean Cell. trend-surfer also takes a Packaging Line.
+
+Steps, on the same 500 seeds (win %):
+
+| Step | greedy | mass-market | rnd-compounder | trend-surfer |
+|---|---|---|---|---|
+| Before the pass (5b35212) | 12.8 | 12.0 | 36.6 | 27.0 |
+| Pass with Factory Outlet (as specified) | 10.0 | 11.2 | 30.8 | 28.6 |
+| Outlet cut, original mass-market wants | 14.6 | 17.0 | 35.4 | 27.0 |
+| + Express Lane common 4C (rejected) | 8.6 | 19.0 | 32.6 | 22.0 |
+| + Superstore uncommon 6C only | 15.2 | 16.4 | 31.6 | 29.8 |
+| + Logistics Hub common 4C only | 10.6 | 24.8 | 33.8 | 28.2 |
+| **+ both (chosen)** | **13.2** | **26.4** | **32.8** | **32.2** |
+
+- **Result** (1000 seeds): greedy 13.8, mass-market 27.2, rnd-compounder 31.4, trend-surfer 31.8.
+  - By build: design-stack 36.0, mass-market 29.8, rnd-compounder 24.1, skimmer 21.4.
+  - The top build is 1.2× the next, with no runaway.
+- **Items below −10% (aware Δ):**
+  - Before: 9 (Warehouse, Automation, Assembly Line, Cross-Dock, Export Deal, Conveyor Belt, Marketplace,
+    Superstore, Wholesale Club).
+  - Now: 4 — Warehouse −25 (pick 9.5%), Express Lane −15, Automation −13, Luxury Counter −10.
+  - Every pick rate except Warehouse's is within 10–80%.
+- **Still weak.** The "stays on the Line" pair (Automation, Express Lane) holds a slot for good.
+  - The Warehouse stockpile build wins 4%.
+  - These need a design change, not a price.
+- **Spike to watch.** Two Megafactories (Units ×9), then stacked Logistics Hubs, then an Export Deal.
+  - Margin grows with Units, so the payout grows with Units².
+  - The best bot Shift was $84,199 in round 12, 32× its target.
+  - It doesn't raise win rate (mass-market wins less often than design-stack); playtests should judge the feel.

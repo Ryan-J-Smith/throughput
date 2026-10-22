@@ -111,9 +111,9 @@ describe('scoreLine: cards and fixtures', () => {
     expect(scoreLine(line, context()).steps[1]?.units).toBe(12);
   });
 
-  it('Flagship multiplies its sale by 1.2 + 0.2 per round owned', () => {
+  it('Flagship multiplies its sale by 1.2 + 0.15 per round owned', () => {
     const line = [slot(null, card(WORKSHOP, 'Home')), slot(fixture('flagship-store', 2), card(TRUCK, 'Food'))];
-    expect(scoreLine(line, context()).total).toBe(Math.floor(6 * 2 * 1.6));
+    expect(scoreLine(line, context()).total).toBe(Math.floor(6 * 2 * 1.5));
   });
 
   it('tags a Fixture idle where it does nothing for the card on it', () => {

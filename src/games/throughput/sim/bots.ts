@@ -253,6 +253,8 @@ export class RndCompounderBot extends StrategyBot {
       case 'rebrand':
       case 'treasury-bond':
         return 6;
+      case 'lean-cell':
+        return owned('lean-cell') ? 0 : 5;
       case 'prototype':
         return 4;
       case 'flagship-store':
@@ -343,6 +345,8 @@ export class TrendSurferBot extends StrategyBot {
       'rnd-grant': 6,
       'express-lane': 6,
       'signature-line': 3,
+      'lean-cell': 4,
+      'packaging-line': 4,
       'quality-lab': 6,
       showroom: 5,
       'overtime-crew': 5,

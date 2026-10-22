@@ -126,9 +126,14 @@ describe('THROUGHPUT browser autosave', () => {
 
   it('describes the saved run for Continue, and the screen resumes it', () => {
     const game = new ThroughputBrowserGame();
-    const store = new MemoryStore();
+    let store = new MemoryStore();
     expect(game.savedRun(store)).toBeNull();
-    const played = playAndRecord(3, 40, store);
+    // The first seed (from 3) whose run is still going after 40 greedy decisions.
+    let played = playAndRecord(3, 40, store);
+    for (let seed = 4; seed < 50 && !['shift', 'shop'].includes(played.phase); seed++) {
+      store = new MemoryStore();
+      played = playAndRecord(seed, 40, store);
+    }
     expect(['shift', 'shop']).toContain(played.phase);
     const label = game.savedRun(store);
     expect(label).toMatch(/^Year \d (Q\d|Board), (in the shop|Shift \d: \$\d+ of \$\d+)$/);
