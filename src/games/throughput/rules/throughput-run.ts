@@ -54,17 +54,19 @@ export type BuyTarget = { readonly slot?: number; readonly deckCard?: number; re
 type SlotState = { fixture: Fixture | null; card: LineCard | null };
 
 /**
- * One boss per Year, from a shuffled `order`: each Year meets the first boss it hasn't met that may
- * come that Year (`earliestYear`). Once every boss that may come has come, the pool starts over.
+ * One boss per Year, picked uniformly from `rng` among the bosses that may come that Year
+ * (`earliestYear`) and haven't come yet. Once every boss that may come has come, the pool starts
+ * over. One pick per Year, so the same `rng` state for more Years extends the same draw.
  */
-export function assignBosses(order: readonly BoardBoss[], years: number): BoardBoss[] {
+export function assignBosses(pool: readonly BoardBoss[], years: number, rng: Rng): BoardBoss[] {
   const out: BoardBoss[] = [];
-  let unmet = [...order];
+  let unmet = [...pool];
   for (let year = 1; year <= years; year++) {
     const allowed = (boss: BoardBoss) => boss.earliestYear <= year;
-    if (!unmet.some(allowed)) unmet = [...order];
-    const pick = unmet.find(allowed) ?? unmet[0];
-    if (pick === undefined) break;
+    if (!unmet.some(allowed)) unmet = [...pool];
+    const choices = unmet.filter(allowed);
+    if (choices.length === 0) break;
+    const pick = rng.pick(choices);
     out.push(pick);
     unmet = unmet.filter((boss) => boss !== pick);
   }
@@ -109,8 +111,8 @@ export class ThroughputRun {
   /** Market trends per round, fixed by the seed; endless extends the schedule ahead of play. */
   private trends_: Trends[];
   private readonly marketRng: Rng;
-  /** The seeded boss order `assignBosses` draws from; endless Years extend the same draw. */
-  private readonly bossOrder: readonly BoardBoss[];
+  /** The seeded boss draw for the first `count` Years; endless Years extend the same draw. */
+  private readonly drawBosses: (count: number) => BoardBoss[];
   /** One boss per planned Year's Board Review, in Year order (endless Years: `bossOf`). */
   readonly boardBosses: readonly BoardBoss[];
   private readonly deckRng: Rng;
@@ -164,8 +166,8 @@ export class ThroughputRun {
     this.marketRng = rng.fork('market');
     this.trends_ = trendSchedule(config.targets.length, this.marketRng);
     const years = Math.ceil(config.targets.length / config.roundsPerYear);
-    this.bossOrder = rng.fork('bosses').shuffle(BOSSES);
-    this.boardBosses = assignBosses(this.bossOrder, years);
+    this.drawBosses = (count) => assignBosses(BOSSES, count, rng.fork('bosses'));
+    this.boardBosses = this.drawBosses(years);
     this.shop_ = new ThroughputShop(config, rng.fork('shop'));
     this.wallet = new Wallet(config.startingCapital);
     this.demand_ = Object.fromEntries(CATEGORIES.map((c) => [c, config.demand.start])) as Record<Category, number>;
@@ -409,7 +411,7 @@ export class ThroughputRun {
     const info = this.quarterOf(round);
     if (!info.isBoard) return null;
     // The draw is prefix-stable, so a longer draw agrees with the planned Years.
-    const bosses = info.year <= this.boardBosses.length ? this.boardBosses : assignBosses(this.bossOrder, info.year);
+    const bosses = info.year <= this.boardBosses.length ? this.boardBosses : this.drawBosses(info.year);
     return bosses[info.year - 1] ?? null;
   }
 

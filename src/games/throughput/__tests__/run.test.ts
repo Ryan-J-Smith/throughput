@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { Rng } from '../../../engine/rng';
 import { DEFAULT_CONFIG, STARTER_CARDS, fixtureById } from '../content';
 import type { ThroughputConfig } from '../content';
 import { BoardBoss, CATEGORIES, makeUnits } from '../model';
@@ -83,16 +84,35 @@ class YearBoss extends BoardBoss {
 
 describe('assignBosses', () => {
   const ids = (bosses: readonly BoardBoss[]) => bosses.map((b) => b.id);
+  const early = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((id) => new YearBoss(id));
+  const late = [new YearBoss('late1', 3), new YearBoss('late2', 3)];
+  const pool = [...early, ...late];
 
-  it('gives each Year the next boss in order, and starts over once all have come', () => {
-    const order = [new YearBoss('a'), new YearBoss('b'), new YearBoss('c')];
-    expect(ids(assignBosses(order, 2))).toEqual(['a', 'b']);
-    expect(ids(assignBosses(order, 5))).toEqual(['a', 'b', 'c', 'a', 'b']);
+  it('is the same for the same Rng, and a longer draw extends a shorter one', () => {
+    expect(ids(assignBosses(pool, 4, new Rng(7)))).toEqual(ids(assignBosses(pool, 4, new Rng(7))));
+    expect(ids(assignBosses(pool, 12, new Rng(7))).slice(0, 4)).toEqual(ids(assignBosses(pool, 4, new Rng(7))));
   });
 
-  it('holds a boss back until its earliest Year, then gives it the first Year it may come', () => {
-    const order = [new YearBoss('late', 3), new YearBoss('a'), new YearBoss('mid', 2), new YearBoss('b')];
-    expect(ids(assignBosses(order, 4))).toEqual(['a', 'mid', 'late', 'b']);
+  it('never repeats a boss until every one has come, and starts over after', () => {
+    const three = [new YearBoss('x'), new YearBoss('y'), new YearBoss('z')];
+    for (let seed = 1; seed <= 50; seed++) {
+      const drawn = ids(assignBosses(three, 5, new Rng(seed)));
+      expect([...drawn.slice(0, 3)].sort()).toEqual(['x', 'y', 'z']);
+      expect(drawn[3]).not.toBe(drawn[4]);
+    }
+  });
+
+  it('picks uniformly among the bosses a Year allows: a late boss never comes early, and is no likelier at its first Year', () => {
+    const year3 = new Map<string, number>();
+    const seeds = 4000;
+    for (let seed = 1; seed <= seeds; seed++) {
+      const drawn = ids(assignBosses(pool, 4, new Rng(seed)));
+      expect(drawn.slice(0, 2).some((id) => id.startsWith('late'))).toBe(false);
+      year3.set(drawn[2] ?? '', (year3.get(drawn[2] ?? '') ?? 0) + 1);
+    }
+    // Year 3 picks from 7 unmet bosses (5 early left, 2 late): each about 1/7.
+    for (const id of ids(pool)) expect((year3.get(id) ?? 0) / seeds, id).toBeLessThan(0.2);
+    expect(((year3.get('late1') ?? 0) + (year3.get('late2') ?? 0)) / seeds).toBeCloseTo(2 / 7, 1);
   });
 });
 
@@ -515,8 +535,10 @@ describe('ThroughputRun: bosses', () => {
 
   it('the Warehouse stocks its Make\'s Units through the Year and sells the stock in the Board Review', () => {
     const config = easyConfig({ startingCapital: 5000, targets: [10, 10, 10] });
+    // A Board that closes the Warehouse, welds its slot or caps the Shift would hide the sale.
+    const interferes = ['jit-auditor', 'supply-shock', 'quota-cap'];
     let seed = 1;
-    while (new ThroughputRun(seed, config).boardBosses[0]?.id === 'jit-auditor') seed++;
+    while (interferes.includes(new ThroughputRun(seed, config).boardBosses[0]?.id ?? '')) seed++;
     const run = new ThroughputRun(seed, config);
     makeAndShip(run);
     for (let i = 0; i < 300 && run.line[0]?.fixture == null; i++) {
