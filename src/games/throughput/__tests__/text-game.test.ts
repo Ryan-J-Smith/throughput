@@ -117,7 +117,7 @@ describe('ThroughputTextGame', () => {
     const big = new ThroughputTextGame(easyConfig({ targets: [5, 10, 10] }));
     expect(big.show(play(big, 1, [`load ${numberOf(hand, 'make')}:1 ${numberOf(hand, 'ship')}:2`])).text).toContain(`  This Shift clears the target, +${DEFAULT_CONFIG.overkill.cap}C overkill (sold 2.4× the target).`);
     // The multiple rounds down: $323 of $130 is 2.4846×.
-    expect(overkillNote(new ThroughputRun(1), 323)).toBe('clears the target, +3C overkill (sold 2.48× the target)');
+    expect(overkillNote(new ThroughputRun(1, easyConfig({ targets: [130, 130, 130] })), 323)).toBe('clears the target, +3C overkill (sold 2.48× the target)');
   });
 
   it('marks what stays on the Line for later Shifts and what this Shift uses up', () => {
