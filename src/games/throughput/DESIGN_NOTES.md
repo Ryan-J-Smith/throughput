@@ -906,7 +906,9 @@ bot, expert 200.
 - **Keep it on.** It removes the stranded-Hot-pip turns that 7 of 8 testers reported, and round tempo speeds up.
 - Ratios dip slightly, because rounds end on Shift 1 more often: the roster loses 0.6–2 points on 5 of 6 bots, and
   the expert's dip is within noise.
-- The expert's `sampleHand` now mirrors the Hot swap, once tp-r3 is on main.
+- The expert's `sampleHand` mirrors the Hot swap: a sellable Hot Ship replaces the last card of the hand's most common
+  type, never a type's only card, as the run does. Expert on main, 200 seeds: R4–R6 1.84 → 1.92, R7–R12 1.44 → 1.51;
+  wins are within noise (59.5% → 58.0%).
 
 ### Years 1–2 re-firmed (round 3 §7 #3)
 

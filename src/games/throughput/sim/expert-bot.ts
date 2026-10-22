@@ -1,5 +1,5 @@
 import type { Rng } from '../../../engine/rng';
-import { CATEGORIES } from '../model';
+import { CATEGORIES, shipCap } from '../model';
 import type { Card, Category, Fixture, GrantLevels, Stage } from '../model';
 import { designOnlyMod, scoreLine } from '../rules';
 import type { BuyTarget, LineSlot, ShiftContext, ThroughputRun } from '../rules';
@@ -278,7 +278,7 @@ export class ExpertBot extends ThroughputBot {
     let sum = 0;
     for (let k = 0; k < samples; k++) {
       const { round, ctx, open, types } = setups[k % setups.length] as (typeof setups)[number];
-      const hand = this.sampleHand(model.deck, k, run.config.handSize, types);
+      const hand = this.sampleHand(model.deck, k, run.config.handSize, types, run.config.hotOpener ? ctx : null);
       const key = `${round}|${modelKey}|${hand.map((c) => `${c.uid}.${c.upgrades}.${c.growth}`).join(',')}`;
       let total = this.totals.get(key);
       if (total === undefined) {
@@ -291,8 +291,11 @@ export class ExpertBot extends ThroughputBot {
     return sum / samples;
   }
 
-  /** Sample `k`'s opening hand: the cards with the lowest keys, fixed up like the run's opener. */
-  private sampleHand(deck: readonly Card[], k: number, size: number, types: readonly Stage[]): Card[] {
+  /**
+   * Sample `k`'s opening hand: the cards with the lowest keys, fixed up like the run's opener and,
+   * given `hot` (the round's context under `hotOpener`), its Hot-Ship swap.
+   */
+  private sampleHand(deck: readonly Card[], k: number, size: number, types: readonly Stage[], hot: ShiftContext | null): Card[] {
     const ordered = [...deck].sort((a, b) => this.keyOf(a.uid, k) - this.keyOf(b.uid, k));
     const hand = ordered.slice(0, size);
     const pile = ordered.slice(size);
@@ -306,6 +309,7 @@ export class ExpertBot extends ThroughputBot {
       if (out < 0) continue;
       hand[out] = pile.splice(next, 1)[0] as Card;
     }
+    if (hot !== null && hot.hotPipsLeft > 0) swapInHotShip(hand, pile, hot);
     return hand;
   }
 
@@ -327,6 +331,18 @@ export class ExpertBot extends ThroughputBot {
     if (this.rng === null) throw new Error('ExpertBot: beginRun was not called');
     return this.rng;
   }
+}
+
+/** The run's Hot opener on a sampled hand: a sellable Hot Ship from `pile` replaces the last card of the most common type, never a type's only card. */
+function swapInHotShip(hand: Card[], pile: Card[], ctx: ShiftContext): void {
+  const hotShip = (card: Card) => card.def.stage === 'ship' && ctx.trends[card.category] === 'hot' && (shipCap(card) === 'all' || ctx.demandLeft[card.category] > 0);
+  if (hand.some(hotShip)) return;
+  const next = pile.findIndex(hotShip);
+  if (next < 0) return;
+  const count = (s: Stage) => hand.filter((c) => c.def.stage === s).length;
+  const surplus = (['design', 'make', 'ship'] as const).reduce((a, b) => (count(b) > count(a) ? b : a));
+  if (count(surplus) < 2) return;
+  hand[hand.map((c) => c.def.stage).lastIndexOf(surplus)] = pile.splice(next, 1)[0] as Card;
 }
 
 /** The Shift-1 context of a coming `round` with `model`'s Demand and Grants. */
