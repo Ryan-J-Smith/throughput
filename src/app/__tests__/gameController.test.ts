@@ -204,6 +204,7 @@ describe('GameController: shop', () => {
     });
     expect(shop.rerollCost).toBe(2);
     expect(shop.canReroll).toBe(true);
+    expect(shop.offers.every((o) => o.destination === 'modifiers' && o.listPrice === undefined)).toBe(true);
   });
 
   it('buying an affordable modifier marks it sold and fills a slot', () => {

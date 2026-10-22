@@ -681,44 +681,140 @@ button {
   margin-top: 2px;
 }
 
-/* ---------- Modifier row ---------- */
+/* ---------- Staff row (modifiers as an org chart of ID badges) ---------- */
 
 .modifier-row {
-  padding: 10px;
-  background: var(--bg-raised);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  padding: 10px 14px 14px;
+  color: var(--print);
+  background:
+    linear-gradient(rgb(29 78 158 / 0.06) 1px, transparent 1px) 0 0 / 14px 14px,
+    linear-gradient(90deg, rgb(29 78 158 / 0.06) 1px, transparent 1px) 0 0 / 14px 14px,
+    var(--paper);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
 }
 
 .modifier-row__header {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 2px;
+}
+
+.modifier-row .section-label {
+  font-size: var(--text-lg);
+  color: var(--print);
 }
 
 .modifier-row__count {
-  font-size: 0.8rem;
+  font-family: var(--font-display);
+  font-size: var(--text-md);
   font-weight: 800;
-  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+  color: var(--print-dim);
+}
+
+.modifier-row__hint {
+  margin-left: auto;
+  margin-right: 14px;
+  font-size: var(--text-xs);
+  color: var(--print-dim);
 }
 
 .modifier-row__slots {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
+  padding-top: 18px;
+}
+
+/* Org-chart connectors: each slot draws its own stub and its share of the bar above. */
+.modifier-row__slots > * {
+  position: relative;
+}
+
+.modifier-row__slots > *::before {
+  content: '';
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  height: 18px;
+  border-left: 2px solid var(--print);
+}
+
+.modifier-row__slots > *::after {
+  content: '';
+  position: absolute;
+  top: -18px;
+  left: -6px;
+  right: -6px;
+  border-top: 2px solid var(--print);
+}
+
+.modifier-row__slots > :first-child::after {
+  left: 50%;
+}
+
+.modifier-row__slots > :last-child::after {
+  right: 50%;
+}
+
+.modifier-row__slots > :only-child::after {
+  display: none;
 }
 
 .modifier-row__empty {
-  min-height: 72px;
-  border: 2px dashed var(--line);
-  border-radius: var(--radius);
+  display: grid;
+  place-items: center;
+  min-height: 76px;
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: 800;
+  color: rgb(31 26 20 / 0.35);
+  border: 2px dashed rgb(31 26 20 / 0.3);
+  border-radius: var(--radius-card);
+}
+
+/* Empty slots have a 2px border, so their connectors start 2px higher to meet the bar. */
+.modifier-row__slots > .modifier-row__empty::before {
+  top: -20px;
+  border-left-style: dashed;
+  opacity: 0.4;
+}
+
+.modifier-row__slots > .modifier-row__empty::after {
+  top: -20px;
+  left: -8px;
+  right: -8px;
+}
+
+/* Staff ID badge: white plastic, coloured band with a lanyard slot. */
+.modifier-row .card--compact {
+  background: #fffdf8;
+  box-shadow: 0 0 0 1px rgb(31 26 20 / 0.15), 0 4px 8px rgb(0 0 0 / 0.15);
+}
+
+.modifier-row .card--compact .card__band {
+  justify-content: center;
+  min-height: 14px;
+}
+
+.modifier-row .card--compact .card__band::after {
+  content: '';
+  width: 22px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--print);
+  opacity: 0.7;
 }
 
 /* Slot wrappers carry drag state; the card inside stays a normal Card. */
 .modifier-slot {
   min-width: 0;
-  border-radius: var(--radius);
-  transition: opacity 120ms ease, transform 120ms ease;
+  border-radius: var(--radius-card);
+  transition:
+    opacity var(--dur-fast) linear,
+    transform var(--dur-fast) var(--ease-out);
 }
 
 /* Stretch cards so every slot's action strip lines up. */
@@ -743,16 +839,9 @@ button {
 }
 
 .modifier-slot--drop-target {
-  outline: 3px dashed var(--accent-select);
+  outline: 3px dashed var(--focus);
   outline-offset: 3px;
   transform: scale(1.03);
-}
-
-.modifier-row__hint {
-  margin-left: auto;
-  margin-right: 12px;
-  font-size: 0.7rem;
-  color: var(--ink-dim);
 }
 
 .modifier-actions {
@@ -761,23 +850,24 @@ button {
 }
 
 .modifier-actions button {
-  border: 0;
-  border-radius: 6px;
-  padding: 4px 6px;
-  font-size: 0.72rem;
-  font-weight: 900;
-  color: #fff;
-  background: #3a4052;
+  padding: 3px 6px 2px;
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  color: var(--print);
+  background: transparent;
+  border: 1.5px solid var(--print);
+  border-radius: var(--radius-button);
   cursor: pointer;
 }
 
 .modifier-actions button:disabled {
-  opacity: 0.3;
+  opacity: 0.25;
   cursor: not-allowed;
 }
 
 .modifier-actions button:focus-visible {
-  outline: 2px solid var(--accent-select);
+  outline: 2px solid var(--focus);
   outline-offset: 1px;
 }
 
@@ -787,10 +877,8 @@ button {
 
 .modifier-actions__sell {
   flex: 1;
-  background: var(--accent-cash) !important;
-  color: #2a1d00 !important;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  background: var(--dept-mustard) !important;
+  letter-spacing: 0.02em;
 }
 
 /* ---------- Hand sort ---------- */
@@ -854,13 +942,16 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
-/* ---------- Shop ---------- */
+/* ---------- Shop (merchandise on a steel shelf) ---------- */
 
 .shop {
-  padding: 12px;
-  background: var(--bg-raised);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  padding: 14px 16px 18px;
+  background:
+    linear-gradient(90deg, var(--panel-edge) 0 8px, transparent 8px calc(100% - 8px), var(--panel-edge) calc(100% - 8px)),
+    linear-gradient(180deg, rgb(255 255 255 / 0.04), transparent 40%),
+    var(--panel);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
 }
 
 .shop__header {
@@ -869,7 +960,8 @@ button {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 18px;
+  padding: 0 4px;
 }
 
 .shop__actions {
@@ -877,38 +969,169 @@ button {
   gap: 10px;
 }
 
-.shop__grid {
+.shop__shelf {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 12px;
+  gap: 26px 18px;
+  padding: 0 6px;
+}
+
+.shop__item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding-top: 6px;
+  animation: stock-in var(--dur-slow) var(--ease-spring) both;
+  animation-delay: calc(var(--i, 0) * var(--stagger) * 2);
+}
+
+.shop__item > .card-wrap {
+  z-index: 1;
+}
+
+/* Shelf board the item stands on; extends into the gaps so a row reads as one shelf. */
+.shop__ledge {
+  position: relative;
+  height: 12px;
+  margin: 0 -10px 10px;
+  background: linear-gradient(180deg, #8d948f 0 3px, #5d635f 3px 9px, #3f4441 9px);
+  border-radius: 2px;
+  box-shadow: 0 6px 10px rgb(0 0 0 / 0.35);
+}
+
+/* Hanging price tag: a manila tag with a punched hole. */
+.price-tag {
+  position: absolute;
+  top: -4px;
+  right: -8px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 52px;
+  padding: 14px 8px 6px;
+  font-family: var(--font-display);
+  font-weight: 900;
+  line-height: 1;
+  color: var(--print);
+  background:
+    radial-gradient(circle at 50% 7px, transparent 0 3px, var(--print) 3px 4px, transparent 4px),
+    var(--paper);
+  clip-path: polygon(22% 0, 78% 0, 100% 14%, 100% 100%, 0 100%, 0 14%);
+  filter: drop-shadow(0 3px 2px rgb(0 0 0 / 0.35));
+  transform: rotate(9deg);
+  transform-origin: 50% 0;
+  pointer-events: none;
+}
+
+.price-tag__now {
+  font-size: var(--text-xl);
+  font-variant-numeric: tabular-nums;
+}
+
+.price-tag__was {
+  font-size: var(--text-sm);
+  color: var(--print-dim);
+  text-decoration-color: var(--stamp-red);
+  text-decoration-thickness: 2px;
+}
+
+/* Rubber stamps across the merchandise. */
+.stamp {
+  position: absolute;
+  top: 70px;
+  left: 50%;
+  z-index: 2;
+  padding: 2px 10px 0;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--stamp-red);
+  border: 3px solid currentColor;
+  border-radius: 4px;
+  opacity: 0.85;
+  mix-blend-mode: multiply;
+  transform: translateX(-50%) rotate(-14deg);
+  pointer-events: none;
+  animation: stamp-in var(--dur-med) var(--ease-spring) both;
+}
+
+.stamp--sold {
+  color: var(--print);
+}
+
+@keyframes stock-in {
+  from {
+    opacity: 0;
+    transform: translateY(-26px) rotate(-2deg);
+  }
+}
+
+@keyframes stamp-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) rotate(-14deg) scale(2.2);
+  }
 }
 
 /* ---------- Button states ---------- */
-
-.btn--cash {
-  background: var(--accent-cash);
-  color: #2a1d00;
-}
 
 /* Still clickable so the state owner can explain why; just looks unavailable. */
 .btn--unaffordable {
   filter: grayscale(0.7) brightness(0.75);
 }
 
-/* ---------- Rarity ---------- */
+/* ---------- Rarity finishes ---------- */
 
-.card--rarity-common {
-  border-color: var(--rarity-common);
+/* Common is plain matte stock. The others get a finish laid over the card face. */
+.card--rarity-uncommon::before,
+.card--rarity-rare::before,
+.card--rarity-legendary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
 }
-.card--rarity-uncommon {
-  border-color: var(--rarity-uncommon);
+
+/* Satin: a soft sheen across the stock. */
+.card--rarity-uncommon::before {
+  background: linear-gradient(115deg, transparent 30%, rgb(255 255 255 / 0.5) 45%, transparent 60%);
+  mix-blend-mode: soft-light;
 }
+
+/* Holographic foil that shifts as the pointer moves over it. */
 .card--rarity-rare {
-  border-color: var(--rarity-rare);
+  box-shadow: 0 0 0 2px #9fc7e8, var(--shadow-card);
 }
+
+.card--rarity-rare::before {
+  background: var(--finish-rare);
+  background-size: 250% 250%;
+  mix-blend-mode: color-burn;
+  opacity: 0.35;
+  transition: background-position var(--dur-slow) var(--ease-out);
+}
+
+/* Gold foil edge and wash. */
 .card--rarity-legendary {
-  border-color: var(--rarity-legendary);
-  box-shadow: 0 0 0 2px rgb(200 107 255 / 0.25), var(--shadow);
+  box-shadow: 0 0 0 3px #c9a03b, var(--shadow-card);
+}
+
+.card--rarity-legendary::before {
+  background: var(--finish-legendary);
+  background-size: 250% 250%;
+  mix-blend-mode: multiply;
+  opacity: 0.3;
+  transition: background-position var(--dur-slow) var(--ease-out);
+}
+
+.shop__item:hover .card--rarity-rare::before,
+.shop__item:hover .card--rarity-legendary::before {
+  background-position: 100% 100%;
 }
 
 /* ---------- Play area (tally / summary slot) ---------- */
@@ -1239,7 +1462,12 @@ button {
 
 .tooltip-anchor > .card--compact {
   padding-bottom: 8px;
-  padding-right: 30px;
+}
+
+/* Keep compact text clear of the toggle without insetting the colour band. */
+.tooltip-anchor > .card--compact .card__title,
+.tooltip-anchor > .card--compact .card__desc {
+  padding-right: 32px;
 }
 
 .tooltip-anchor--open .tooltip-toggle,
@@ -1511,8 +1739,15 @@ button {
     flex: 1;
   }
 
-  .shop__grid {
+  .shop__shelf {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px 14px;
+  }
+
+  .price-tag {
+    right: -4px;
+    min-width: 44px;
+    padding: 12px 6px 5px;
   }
 
   .play-area {

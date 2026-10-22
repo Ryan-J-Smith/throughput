@@ -83,8 +83,8 @@ export function ModifierRow({ row, onSell, onMove }: ModifierRowProps) {
   return (
     <section className="modifier-row" aria-label="Owned modifiers">
       <div className="modifier-row__header">
-        <span className="section-label">Modifiers</span>
-        {canDrag && <span className="modifier-row__hint">Drag to reorder · applied left to right</span>}
+        <span className="section-label">Staff</span>
+        {canDrag && <span className="modifier-row__hint">They act left to right. Drag to reorder.</span>}
         <span className="modifier-row__count">
           {row.modifiers.length}/{row.slots}
         </span>
@@ -122,7 +122,9 @@ export function ModifierRow({ row, onSell, onMove }: ModifierRowProps) {
             className="modifier-row__empty"
             aria-label="Empty slot"
             {...dropHandlers(row.modifiers.length + i)}
-          />
+          >
+            Open position
+          </div>
         ))}
       </div>
     </section>

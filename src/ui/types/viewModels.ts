@@ -49,6 +49,10 @@ export type ShopOfferView = {
   canBuy: boolean;
   sold: boolean;
   rarity?: Rarity;
+  /** Undiscounted price when `price` is a markdown; shows a SALE stamp. Presentational. */
+  listPrice?: number;
+  /** Where a purchase lands, so the UI can animate it there. Presentational. */
+  destination?: 'modifiers' | 'deck';
 };
 
 export type ScoreContributionKind = 'add' | 'mult' | 'xmult' | 'note';

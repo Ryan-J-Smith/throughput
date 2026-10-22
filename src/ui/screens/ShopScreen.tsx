@@ -1,4 +1,6 @@
+import type { CSSProperties, MouseEvent } from 'react';
 import { Card, Hud, ModifierRow, NextRoundPanel } from '../components';
+import { flyGhost } from '../motion';
 import type { HudView, ModifierRowView, NextRoundView, ShopOfferView } from '../types';
 
 export type ShopScreenProps = {
@@ -15,6 +17,13 @@ export type ShopScreenProps = {
   onMoveModifier: (modifierId: string, toIndex: number) => void;
 };
 
+/** Where a bought item flies: the first open staff slot, or off the bottom of the screen into the deck. */
+function landingBox(offer: ShopOfferView) {
+  const slot = offer.destination === 'modifiers' ? document.querySelector('.modifier-row__empty') : null;
+  if (slot) return slot.getBoundingClientRect();
+  return { left: window.innerWidth / 2 - 40, top: window.innerHeight + 20, width: 80, height: 110 };
+}
+
 export function ShopScreen({
   hud,
   modifierRow,
@@ -28,6 +37,13 @@ export function ShopScreen({
   onSellModifier,
   onMoveModifier,
 }: ShopScreenProps) {
+  const buy = (offer: ShopOfferView, e: MouseEvent<HTMLButtonElement>) => {
+    // Only animate purchases the owner says will go through; refusals just toast.
+    const card = e.currentTarget.closest('.shop__item')?.querySelector('.card');
+    if (offer.canBuy && card) void flyGhost(card, landingBox(offer), { rotate: -6, fadeOut: offer.destination !== 'modifiers' });
+    onBuy(offer.id);
+  };
+
   return (
     <main className="screen screen--shop">
       <Hud hud={hud} />
@@ -49,24 +65,26 @@ export function ShopScreen({
             </button>
           </div>
         </div>
-        <div className="shop__grid">
-          {offers.map((offer) => (
-            <Card
-              key={offer.id}
-              card={offer.card}
-              rarity={offer.rarity}
-              disabled={offer.sold}
-              footer={
-                <button
-                  type="button"
-                  className={`btn btn--buy ${offer.canBuy || offer.sold ? '' : 'btn--unaffordable'}`}
-                  disabled={offer.sold}
-                  onClick={() => onBuy(offer.id)}
-                >
-                  {offer.sold ? 'Sold' : `Buy $${offer.price}`}
-                </button>
-              }
-            />
+        <div className="shop__shelf">
+          {offers.map((offer, i) => (
+            <div key={offer.id} className="shop__item" style={{ '--i': i } as CSSProperties}>
+              <Card card={offer.card} rarity={offer.rarity} disabled={offer.sold} />
+              <span className="price-tag" aria-label={`Price $${offer.price}`}>
+                {offer.listPrice !== undefined && <s className="price-tag__was">${offer.listPrice}</s>}
+                <span className="price-tag__now">${offer.price}</span>
+              </span>
+              {offer.listPrice !== undefined && !offer.sold && <span className="stamp stamp--sale">Sale</span>}
+              {offer.sold && <span className="stamp stamp--sold">Sold</span>}
+              <div className="shop__ledge" aria-hidden="true" />
+              <button
+                type="button"
+                className={`btn btn--buy ${offer.canBuy || offer.sold ? '' : 'btn--unaffordable'}`}
+                disabled={offer.sold}
+                onClick={(e) => buy(offer, e)}
+              >
+                {offer.sold ? 'Sold' : `Buy $${offer.price}`}
+              </button>
+            </div>
           ))}
         </div>
       </section>

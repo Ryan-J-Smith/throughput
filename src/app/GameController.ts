@@ -367,6 +367,8 @@ export class GameController<TCard extends object> extends ShellModel implements 
         sold,
         canBuy: !sold && run.whyCannotBuy(slot) === null,
         rarity: presenter.rarity(offer.def.rarity),
+        listPrice: offer.price < offer.def.price ? offer.def.price : undefined,
+        destination: offer.def.kind === 'modifier' ? 'modifiers' : 'deck',
       });
     });
     return {
