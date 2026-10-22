@@ -32,6 +32,12 @@
   animation: none !important;
 }
 
+/* Same still sheen as the system rule in styles.css, not wherever the sweep happened to stop. */
+:root[data-motion='reduced'] .card--rarity-rare::before,
+:root[data-motion='reduced'] .card--rarity-legendary::before {
+  background-position: 40% 40%;
+}
+
 /* The settings dialog: layout only, coloured from theme tokens. */
 
 .settings {

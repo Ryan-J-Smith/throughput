@@ -2008,6 +2008,7 @@ button {
     animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
   }
 
   /* No foil sweeping across rare cards: hold a still sheen instead. */

@@ -70,7 +70,7 @@ export function ThroughputQa(_props: BrowserGameProps) {
         <div className="shop__shelf">
           {shelf.map((offer, i) => (
             <div key={`${offer.kind}-${offer.def.id}`} className="shop__item">
-              <Card card={offerView(offer, `qa-${i}`)} />
+              <Card card={offerView(offer, `qa-${i}`)} rarity={offer.kind === 'fixture' ? offer.def.rarity : undefined} />
             </div>
           ))}
         </div>
