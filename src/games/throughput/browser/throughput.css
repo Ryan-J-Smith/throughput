@@ -1179,25 +1179,42 @@ body:has(.screen--tp-shop[data-year])::before {
   margin-top: auto;
 }
 
-/* Lock: a quiet toggle under Buy that keeps the offer through this visit's rerolls. A locked offer
-   turns the toggle gold and rims its card in gold. */
+/* Lock: a padlock toggle at the right end of the Buy row that keeps the offer through this visit's
+   rerolls (it stays usable while Buy is out of reach). Its "Lock"/"Locked" text stays for screen
+   readers and the title explains it. A locked offer turns the padlock gold and rims and lights its
+   card in gold, a ring outside the gold frame a rare card already wears. */
+.tp-shop .shop__item > .btn--buy:has(+ .shop__lock) {
+  width: calc(100% - 38px);
+}
+
 .tp-shop .shop__lock {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  margin-top: 6px;
-  padding: 4px 8px;
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: calc(16px + 1.15 * var(--text-sm));
+  padding: 0;
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-button);
-  background: transparent;
+  background: rgb(255 255 255 / 0.05);
   color: var(--chalk-dim);
-  font: 600 var(--text-xs) / 1.2 var(--font-body);
+  font-size: 0;
   cursor: pointer;
+  transition:
+    color var(--dur-fast) linear,
+    border-color var(--dur-fast) linear,
+    box-shadow var(--dur-med) var(--ease-out);
+}
+
+.tp-shop .shop__lock > .icon {
+  width: 15px;
+  height: 15px;
 }
 
 .tp-shop .shop__lock:hover {
-  border-color: rgb(255 255 255 / 0.24);
+  border-color: rgb(255 255 255 / 0.3);
   color: var(--chalk);
 }
 
@@ -1208,14 +1225,16 @@ body:has(.screen--tp-shop[data-year])::before {
 
 .tp-shop .shop__lock[aria-pressed='true'] {
   border-color: var(--rarity-gold);
-  background: rgb(255 207 90 / 0.12);
+  background: rgb(255 207 90 / 0.14);
   color: var(--rarity-gold);
+  box-shadow: 0 0 14px -4px rgb(255 207 90 / 0.8);
 }
 
 .tp-shop .shop__item[data-locked] > .card-wrap {
   border-radius: var(--radius-card);
   outline: 2px solid var(--rarity-gold);
   outline-offset: 3px;
+  box-shadow: 0 0 28px -6px rgb(255 207 90 / 0.7);
 }
 
 /* On a desktop the offers stand in one row whatever the width: the columns shrink together. */
