@@ -388,9 +388,109 @@ export class TrendSurferBot extends StrategyBot {
   }
 }
 
+/**
+ * Express Lane burst (playtest 3's dominant family): hunts an Express Lane, then stacks what a
+ * Shift-1 Ship on it multiplies: Design ×s and Robot Arm, Marketplace, Premium.
+ */
+export class ExpressBurstBot extends StrategyBot {
+  readonly name = 'express-burst';
+
+  protected override want(offer: Offer, run: ThroughputRun): number {
+    if (offer.def.id === 'express-lane') return ownsFixture(run, 'express-lane') ? 0 : 30;
+    const wants: Record<string, number> = {
+      'robot-arm': 12,
+      marketplace: 10,
+      influencer: 10,
+      'design-studio': 9,
+      'quality-lab': 8,
+      rebrand: 8,
+      'floor-expansion': 8,
+      'rnd-grant': 7,
+      clone: 6,
+      'flagship-store': 6,
+      'ad-campaign': 5,
+      boutique: 4,
+      prototype: 4,
+      'overtime-crew': 4,
+      showroom: 4,
+      'training-program': 3,
+    };
+    return wants[offer.def.id] ?? 0;
+  }
+
+  /** Premium on the best seller: Express Lane multiplies price, not Units. */
+  protected override grantTarget(): { category: Category; option: GrantOption } | null {
+    return { category: this.bestSeller(), option: 'premium' };
+  }
+
+  /** Hunt the Lane from the first shop, keeping enough for a buy. */
+  protected override wantsReroll(run: ThroughputRun, rerollsSoFar: number): boolean {
+    return !ownsFixture(run, 'express-lane') && rerollsSoFar < 2 && run.wallet.cash >= run.rerollCost + 6;
+  }
+
+  protected override planOptions(): PlanOptions {
+    return { designPersistence: 0.5 };
+  }
+}
+
+/** Fixtures that multiply a Batch's Units (Stations) or a Make's (Robotics Cell). */
+const UNIT_MULTIPLIERS: readonly string[] = ['megafactory', 'assembly-line', 'robotics-cell'];
+/** Ship cards that sell every Unit, ignoring Demand. */
+const SELL_ALL: readonly string[] = ['export-deal', 'wholesale-club'];
+
+/**
+ * Station × Station volume into a sell-all Ship (playtest 3's other dominant family): Robotics
+ * Cell, Megafactory and Assembly Line multiply Units; Price Gun, Hub and Flagship price them, and
+ * Export Deal or Wholesale Club sells them all.
+ */
+export class StationVolumeBot extends StrategyBot {
+  readonly name = 'station-volume';
+
+  protected override want(offer: Offer, run: ThroughputRun): number {
+    const wants: Record<string, number> = {
+      megafactory: 20,
+      'assembly-line': 16,
+      'robotics-cell': 15,
+      'export-deal': 12,
+      'wholesale-club': 10,
+      'price-gun': ownsFixture(run, 'price-gun') ? 0 : 10,
+      'logistics-hub': 9,
+      'flagship-store': 9,
+      superstore: 8,
+      'floor-expansion': 8,
+      'overtime-crew': 7,
+      'contract-manufacturer': 6,
+      'rnd-grant': 6,
+      '3d-printer': 5,
+      'factory-floor': 5,
+      automation: 4,
+    };
+    if (SELL_ALL.includes(offer.def.id) && SELL_ALL.reduce((n, id) => n + countCards(run, id), 0) >= 2) return 0;
+    return wants[offer.def.id] ?? 0;
+  }
+
+  protected override upgradeTarget(run: ThroughputRun): number | null {
+    return indexOf(run, (c) => c.def.stage === 'make');
+  }
+
+  /** Hunt for a second Units multiplier. */
+  protected override wantsReroll(run: ThroughputRun, rerollsSoFar: number): boolean {
+    const multipliers = run.line.filter((s) => UNIT_MULTIPLIERS.includes(s.fixture?.def.id ?? '')).length;
+    return multipliers < 2 && rerollsSoFar < 2 && run.wallet.cash >= run.rerollCost + 6;
+  }
+
+  protected override planOptions(): PlanOptions {
+    return { designPersistence: 0.3 };
+  }
+}
+
 /** One of each strategy, in report order. */
 export function throughputBots(): ThroughputBot[] {
-  return [new GreedyBot(), new MassMarketBot(), new RndCompounderBot(), new TrendSurferBot()];
+  return [new GreedyBot(), new MassMarketBot(), new RndCompounderBot(), new TrendSurferBot(), new ExpressBurstBot(), new StationVolumeBot()];
+}
+
+function ownsFixture(run: ThroughputRun, id: string): boolean {
+  return run.line.some((s) => s.fixture?.def.id === id);
 }
 
 /** Next round's boss welds a slot holding a Fixture: move it to a free slot (bosses are telegraphed). */

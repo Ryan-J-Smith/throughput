@@ -244,12 +244,18 @@ export function preferredSlot(def: FixtureDef, run: ThroughputRun): number | nul
 
 const VOLUME_FIXTURES: readonly string[] = ['overtime-crew', 'assembly-line', 'automation', 'megafactory', 'logistics-hub', 'superstore', 'robotics-cell', 'conveyor-belt'];
 const VOLUME_CARDS: readonly string[] = ['factory-floor', 'wholesale-club', 'contract-manufacturer', 'export-deal'];
+const UNIT_MULTIPLIERS: readonly string[] = ['megafactory', 'assembly-line', 'robotics-cell'];
+const SELL_ALL_CARDS: readonly string[] = ['export-deal', 'wholesale-club'];
 
 /** What a run ended up building, for archetype breakdowns. */
 export function classifyBuild(run: ThroughputRun): string {
   const fixtures = run.line.flatMap((s) => (s.fixture === null ? [] : [s.fixture.def.id]));
   const cards = run.deck.filter((c) => c.paid > 0).map((c) => c.def.id);
   const has = (id: string) => fixtures.includes(id);
+  // Playtest 3's two burst families first: an Express Lane, or two Units multipliers into a sell-all Ship.
+  if (has('express-lane')) return 'express-burst';
+  const multipliers = fixtures.filter((f) => UNIT_MULTIPLIERS.includes(f)).length;
+  if (multipliers >= 2 && cards.some((c) => SELL_ALL_CARDS.includes(c))) return 'station-volume';
   if (has('rnd-lab') || has('patent-office')) return 'rnd-compounder';
   if (has('price-gun') || has('luxury-counter') || has('lean-cell')) return 'skimmer';
   if (has('warehouse')) return 'stockpile';

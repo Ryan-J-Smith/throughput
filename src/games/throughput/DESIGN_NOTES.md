@@ -807,3 +807,38 @@ differences patched):
 
 **Runtime:** about 2 minutes per 100 seeds on one core (118 s wall for `--runs 100`). The strategy bots take about
 2 s.
+
+## Playtest-3 balance pass
+
+Round 3 found that burst runs (Express Lane or Megafactory) ran R7–R12 at 1.89× with 83% Shift-1 clears. No-burst
+runs ran at 1.21× with 17%. Targets for round 4: burst and no-burst within about 1.3× of each other late, and no
+single item deciding whether a run has tension. Each step below is simmed before and after.
+
+### Roster and baseline
+
+Two bots join the default roster, so the burst builds are measured every run:
+
+| Bot | Plan |
+|---|---|
+| `express-burst` | Rerolls (up to 2 a visit) for Express Lane, then Robot Arm, Marketplace, Influencer, Design Studio. Takes the Premium grant on its best seller. |
+| `station-volume` | Stacks Units-multiplier Stations (Megafactory, Assembly Line, Robotics Cell) with sell-all Ships (Export Deal, Wholesale Club) and a Price Gun. |
+
+`classifyBuild` gains matching `express-burst` and `station-volume` archetypes: Express Lane owned; or 2 Units
+multipliers plus a sell-all Ship.
+
+**Baseline** (`06bb721`, roster 1000 seeds each, expert 200 seeds). "Burst" means the run owns Express Lane or
+Megafactory at the round's start.
+
+| Bot | Wins | R4–R6 | R7–R12 | Burst | No-burst |
+|---|---|---|---|---|---|
+| greedy | 5.4% | 1.52 | 1.17 | 1.19 | 1.16 |
+| mass-market | 6.6% | 1.43 | 1.17 | 1.22 | 1.14 |
+| rnd-compounder | 9.2% | 1.46 | 1.21 | – | 1.21 |
+| trend-surfer | 3.0% | 1.54 | 1.14 | 1.17 | 1.13 |
+| express-burst | 2.5% | 1.55 | 1.15 | 1.20 (S1 23%) | 1.12 |
+| station-volume | 17.5% | 1.47 | 1.26 | 1.33 | 1.22 |
+| expert | 52.5% | 1.96 (S1 85%) | 1.43 | 1.56 (S1 69%) | 1.33 (S1 39%) |
+
+- The expert's Express Lane rounds run at 1.57× late. Its runs that end up as express-burst win 61% (85 runs).
+  Station-volume wins 92% (13 runs).
+- Express Lane's best single rounds reach 7–11× (greedy 11.4×, expert 9.1×). That matches round 3's 8.71× R5.
