@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { SaveFile, TurnResult } from '../../../play/session';
-import { ThroughputTextGame, formatAction, offerText, parseAction, rulesText } from '../cli';
-import { DEFAULT_CONFIG, INFLUENCER, WHOLESALE_CLUB } from '../content';
+import { ThroughputTextGame, formatAction, offerText, parseAction, perksText, rulesText } from '../cli';
+import { BOSSES, CONTRACTS, DEFAULT_CONFIG, INFLUENCER, WHOLESALE_CLUB } from '../content';
 import { CATEGORIES } from '../model';
+import type { Perks } from '../model';
 import { ThroughputRun } from '../rules';
 import { easyConfig } from './fixtures';
 
@@ -211,6 +212,59 @@ describe('Demand text', () => {
     const shop = ok(game.take(loaded, 'run'));
     expect(shop.log.join('\n')).toMatch(new RegExp(`Demand used: ${ship.category} \\d+`));
     expect(shop.view.text).toMatch(/Demand next round: Apparel \d+/);
+  });
+});
+
+/** A run with Contract perks already bought. */
+class PerkRun extends ThroughputRun {
+  private readonly fixedPerks: Perks;
+
+  constructor(perks: Perks) {
+    super(1);
+    this.fixedPerks = perks;
+  }
+
+  override get perks(): Perks {
+    return this.fixedPerks;
+  }
+
+  override get interestRule() {
+    return { ...this.config.interest, cap: this.config.interest.cap + this.fixedPerks.interestCap };
+  }
+}
+
+describe('content wave 1 text', () => {
+  it('the rules list every Board boss and Contract from the content, and how sell-outs grow Demand', () => {
+    const text = rulesText(DEFAULT_CONFIG);
+    const flat = text.replace(/\s+/g, ' ');
+    expect(flat).toContain(`A run meets 4 of these ${BOSSES.length}, drawn at random`);
+    for (const boss of BOSSES.filter((b) => b.id !== 'line-shift')) expect(flat).toContain(`${boss.name}: ${boss.text}`);
+    expect(flat).toContain('Line Shift: Shift 1 runs on your layout.');
+    for (const contract of CONTRACTS) expect(flat).toContain(`- ${contract.name}${contract.targetsCard ? ' (pick a deck card)' : ''}: ${contract.text}`);
+    expect(flat).toContain('by half of itself (at least +10) when a Shift sells the last of it');
+    expect(flat).toContain('Wholesale Club and Export Deal ignore Demand');
+  });
+
+  it('a Short Week Board shows 3 Shifts in the state and the run action', () => {
+    const config = easyConfig();
+    const seed = Array.from({ length: 300 }, (_, i) => i + 1).find((s) => new ThroughputRun(s, config).boardBosses[0]?.id === 'short-week');
+    if (seed === undefined) throw new Error('no seed opens with a Short Week Board');
+    const game = new ThroughputTextGame(config);
+    let save = game.newSave(seed);
+    while ((game.show(save).state as { round: number }).round < 3) {
+      const hand = handOf(game, save);
+      save = play(game, seed, [...save.actions, `load ${numberOf(hand, 'make')}:1 ${numberOf(hand, 'ship')}:2`, 'run', 'continue']);
+    }
+    const view = game.show(save);
+    expect(view.text).toContain('Shift 1 of 3 · Sales');
+    expect(view.legalActions.find((a) => a.startsWith('run —'))).toMatch(/^run — run Shift 1 of 3 /);
+    expect(view.state).toMatchObject({ shiftsThisRound: 3 });
+  });
+
+  it('lists Contract perks and the raised interest cap', () => {
+    expect(perksText(new ThroughputRun(1))).toBe('');
+    const run = new PerkRun({ hotPips: 1, retools: 2, interestCap: 2 });
+    expect(perksText(run)).toBe(`Perks: +1 Hot pip a round, +2 Retools a round, interest cap ${DEFAULT_CONFIG.interest.cap + 2}C.`);
   });
 });
 

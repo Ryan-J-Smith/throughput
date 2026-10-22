@@ -107,6 +107,8 @@ export type DemandView = {
   readonly using: number;
   /** Saturated this round (in the shop: next round), so its Demand is halved. */
   readonly halved: boolean;
+  /** A Board boss cutting every Category's Demand that round, e.g. "Recession ×0.5". */
+  readonly bossCut: string | null;
   /** Permanent Demand already earned this round; it counts from next round. */
   readonly earned: number;
   /** Permanent Demand running the current Line would earn. */
@@ -120,12 +122,13 @@ export type DemandView = {
 /** Demand per Category for the Market: this round's during a Shift (with `preview`'s use), next round's in the shop. */
 export function demandViews(run: ThroughputRun, preview: ShiftResult | null): DemandView[] {
   const next = run.round + 1;
+  const bossCut = demandBossCut(run, run.phase === 'shift' ? run.round : next);
   return CATEGORIES.map((category) => {
     const { scale, premium } = run.grants[category];
     if (run.phase !== 'shift') {
       const full = next <= run.rounds ? run.demandIn(next, category) : run.demand[category];
       const halved = run.trends[next - 1]?.[category] === 'saturated';
-      return { category, left: full, full, using: 0, halved, earned: 0, wouldEarn: 0, sellsOut: false, scale, premium };
+      return { category, left: full, full, using: 0, halved, bossCut, earned: 0, wouldEarn: 0, sellsOut: false, scale, premium };
     }
     return {
       category,
@@ -133,6 +136,7 @@ export function demandViews(run: ThroughputRun, preview: ShiftResult | null): De
       full: run.roundDemand[category],
       using: preview?.demandSold[category] ?? 0,
       halved: run.trendsNow[category] === 'saturated',
+      bossCut,
       earned: run.demandEarned[category],
       wouldEarn: preview?.demandGrowth[category] ?? 0,
       sellsOut: preview?.soldOut.includes(category) ?? false,
@@ -140,6 +144,13 @@ export function demandViews(run: ThroughputRun, preview: ShiftResult | null): De
       premium,
     };
   });
+}
+
+/** "Recession ×0.5" when `round`'s Board boss cuts Demand, else null. */
+export function demandBossCut(run: ThroughputRun, round: number): string | null {
+  const boss = round <= run.rounds ? run.bossOf(round) : null;
+  const mul = boss?.demandMul() ?? 1;
+  return boss == null || mul === 1 ? null : `${boss.name} ×${formatAmount(mul)}`;
 }
 
 /** What the end-of-run screen shows. */

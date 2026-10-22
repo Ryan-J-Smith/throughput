@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { GrantPicker, HowToPlay, LineView, ThroughputBrowserGame, ThroughputScreen, TraceReceipt, demandViews, lineNotice } from '../browser';
+import { GrantPicker, HowToPlay, LineView, ThroughputBrowserGame, ThroughputScreen, TraceReceipt, demandBossCut, demandViews, lineNotice } from '../browser';
 import type { BayState } from '../browser';
 import { CATEGORIES } from '../model';
 import type { Category, Stage } from '../model';
@@ -157,6 +157,15 @@ describe('THROUGHPUT Demand in the browser', () => {
     expect(html.match(/class="tp-demand__row"/g)).toHaveLength(4);
     expect(html).toContain(`data-category="${category}"`);
     expect(html).toContain('Saturated: halved');
+  });
+
+  it('names a Board boss that cuts Demand (Recession) on the round it plays', () => {
+    const seed = Array.from({ length: 300 }, (_, i) => i + 1).find((x) => new ThroughputRun(x, easyConfig()).boardBosses[0]?.id === 'recession');
+    if (seed === undefined) throw new Error('no seed opens with a Recession Board');
+    const run = new ThroughputRun(seed, easyConfig());
+    expect(demandBossCut(run, 1)).toBeNull();
+    expect(demandBossCut(run, 3)).toBe('Recession ×0.5');
+    expect(run.demandIn(3, 'Food')).toBe(Math.floor(run.demand.Food * 0.5 * (run.trends[2]?.Food === 'saturated' ? 0.5 : 1)));
   });
 
   it('the R&D Grant picker shows each option\'s effect per Category', () => {

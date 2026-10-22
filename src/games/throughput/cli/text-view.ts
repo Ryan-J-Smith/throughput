@@ -148,7 +148,7 @@ export function legalActions(run: ThroughputRun): string[] {
     const preview = run.preview();
     const after = Math.max(0, run.sales + preview.total);
     const clears = overkillNote(run, after);
-    out.push(`run — run Shift ${run.shift} of ${run.config.shiftsPerRound} (makes $${preview.total}; round reaches $${after} of $${run.target}${clears === '' ? '' : `; ${clears}`})`);
+    out.push(`run — run Shift ${run.shift} of ${run.shiftsThisRound} (makes $${preview.total}; round reaches $${after} of $${run.target}${clears === '' ? '' : `; ${clears}`})`);
   }
   if (run.phase === 'shop') {
     run.offers.forEach((offer, i) => {
@@ -205,15 +205,28 @@ function lineCardNote(run: ThroughputRun, slot: number): string {
   return `[${since}; ${run.staysAfterShift(slot) ? 'stays after the run' : 'dispatched after the run'}${recall}]`;
 }
 
+/** Run-long perks from Contracts, e.g. "Perks: +1 Hot pip, +1 Retool, interest cap 7C", or '' if none. */
+export function perksText(run: ThroughputRun): string {
+  const { hotPips, retools, interestCap } = run.perks;
+  const plural = (n: number, word: string) => `+${n} ${word}${n === 1 ? '' : 's'}`;
+  const parts = [
+    hotPips > 0 ? `${plural(hotPips, 'Hot pip')} a round` : '',
+    retools > 0 ? `${plural(retools, 'Retool')} a round` : '',
+    interestCap > 0 ? `interest cap ${run.interestRule.cap}C` : '',
+  ].filter(Boolean);
+  return parts.length === 0 ? '' : `Perks: ${parts.join(', ')}.`;
+}
+
 export function formatView(run: ThroughputRun, context: ViewContext): string {
   const lines = [`THROUGHPUT · seed ${context.seed} · ${context.actionsTaken} actions`];
   const where = `${quarterLabel(run, run.round)} (round ${run.round} of ${run.rounds})`;
   switch (run.phase) {
     case 'shift':
       lines.push(
-        `${where} · Shift ${run.shift} of ${run.config.shiftsPerRound} · Sales $${run.sales} of $${run.target} target · Capital ${run.wallet.cash}C`,
+        `${where} · Shift ${run.shift} of ${run.shiftsThisRound} · Sales $${run.sales} of $${run.target} target · Capital ${run.wallet.cash}C`,
         `Retools left ${run.retoolsLeft} · Draw pile ${run.drawPile.length} · Discard pile ${run.discardPile.length}${restockText(run)}${run.stored > 0 ? ` · Stored ${run.stored} Units` : ''}`,
       );
+      if (perksText(run) !== '') lines.push(perksText(run));
       if (run.boss !== null) lines.push(`BOARD REVIEW: ${run.boss.name}: ${run.boss.text}`);
       if (run.fixtureMoves.length > 0) lines.push(`${run.boss?.name ?? 'The boss'} moved your Fixtures before this Shift: ${movesText(run.fixtureMoves)}.`);
       break;
@@ -221,8 +234,10 @@ export function formatView(run: ThroughputRun, context: ViewContext): string {
       lines.push(`Shop after ${where} · Capital ${run.wallet.cash}C${run.stored > 0 ? ` · Stored ${run.stored} Units` : ''}`);
       if (run.lastPayout !== null) lines.push(`Payout: ${run.lastPayout.map((l) => `${l.source} ${l.amount}C`).join(', ')}`);
       if (run.storageNotice !== null) lines.push(run.storageNotice);
-      const interest = computeInterest(run.wallet.cash, run.config.interest);
-      lines.push(`Interest: holding ${run.wallet.cash}C when the next round clears pays +${interest}C (${run.config.interest.amount}C per full ${run.config.interest.per}C, at most +${run.config.interest.cap}C).`);
+      const rule = run.interestRule;
+      const interest = computeInterest(run.wallet.cash, rule);
+      lines.push(`Interest: holding ${run.wallet.cash}C when the next round clears pays +${interest}C (${rule.amount}C per full ${rule.per}C, at most +${rule.cap}C).`);
+      if (perksText(run) !== '') lines.push(perksText(run));
       break;
     }
     case 'won':
@@ -315,6 +330,8 @@ function demandLine(run: ThroughputRun): string {
     const notes: string[] = [];
     const saturated = (shop ? run.trends[next - 1]?.[c] : run.trendsNow[c]) === 'saturated';
     if (saturated) notes.push(shop ? `Saturated: halved from ${run.demand[c]}` : 'Saturated: halved');
+    const boss = run.bossOf(shop ? next : run.round);
+    if (boss != null && boss.demandMul() !== 1 && (shop ? next : run.round) <= run.rounds) notes.push(`${boss.name} ×${formatAmount(boss.demandMul())}`);
     if (!shop && run.demandEarned[c] > 0) notes.push(`+${run.demandEarned[c]} from next round`);
     if (scale > 0) notes.push(`Scale ${scale}`);
     if (premium > 0) notes.push(`Premium ×${formatAmount(1 + run.config.grant.premiumStep * premium)}`);
@@ -367,7 +384,9 @@ export function stateData(run: ThroughputRun, context: ViewContext): Record<stri
     target: run.target,
     sales: run.sales,
     shift: run.shift,
+    shiftsThisRound: run.shiftsThisRound,
     capital: run.wallet.cash,
+    perks: run.perks,
     retoolsLeft: run.retoolsLeft,
     drawPile: run.drawPile.length,
     discardPile: run.discardPile.length,

@@ -1,5 +1,25 @@
-import { BOUTIQUE } from '../content';
+import { BOSSES, BOUTIQUE, CONTRACTS } from '../content';
 import type { ThroughputConfig } from '../content';
+
+/** Line Shift needs more than its one-line text to play well, so the rules spell it out. */
+const LINE_SHIFT_RULES = `Line Shift: Shift 1 runs on your layout. From Shift 2 on, all Fixtures move one slot right before
+    each Shift (the last wraps to slot 1). Cards on the Line do NOT move, so parked Designs end up
+    over other Fixtures, and one that lands on a Station sits idle; but this round you may unload
+    parked cards back to your hand and load them again. The state lists each move. Your shop
+    layout comes back after the round.`;
+
+/** `text` wrapped to about 100 columns, continuation lines indented by `indent`. */
+function wrap(text: string, indent: string): string {
+  const lines: string[] = [];
+  let line = '';
+  for (const word of text.split(' ')) {
+    if (line !== '' && line.length + word.length + 1 > 98) {
+      lines.push(line);
+      line = indent + word;
+    } else line = line === '' ? word : `${line} ${word}`;
+  }
+  return [...lines, line].join('\n');
+}
 
 /**
  * Full rules, shown by the free `rules` command and the browser's How to play. Written so a new
@@ -8,6 +28,9 @@ import type { ThroughputConfig } from '../content';
 export function rulesText(config: ThroughputConfig): string {
   const c = config;
   const boutiqueCap = BOUTIQUE.stage === 'ship' ? String(BOUTIQUE.cap) : '?';
+  const sellOutShare = c.demand.sellOutRate === 0.5 ? 'half' : `${Math.round(c.demand.sellOutRate * 100)}%`;
+  const contracts = CONTRACTS.map((k) => `  - ${wrap(`${k.name}${k.targetsCard ? ' (pick a deck card)' : ''}: ${k.text}`, '    ')}`).join('\n');
+  const bosses = BOSSES.map((b) => `  ${b.id === 'line-shift' ? LINE_SHIFT_RULES : wrap(`${b.name}: ${b.text}`, '    ')}`).join('\n');
   const rounds = c.targets.length;
   const years = Math.ceil(rounds / c.roundsPerYear);
   const quarters = Array.from({ length: c.roundsPerYear - 1 }, (_, i) => `Q${i + 1}`).join(', ');
@@ -70,11 +93,13 @@ HOW A SALE IS PRICED
   slots. So order matters: Quality Lab's +$4 under an Influencer lands before the Influencer's ×1.5,
   and a Tooling Upgrade's +$1 on an Influencer is added before its ×1.5.
   A Ship sells each Unit at:
-    Margin × the Ship card's own × (Boutique ×2, Wholesale Club ×0.5)
-      × Hot ×${c.hotMultiplier} (while a buzz pip is left) × Flagship Store × R&D Premium
-  These sale bonuses apply to that one sale only and do not carry on.
+    Margin × the Ship card's own × (Boutique ×2, Wholesale Club ×0.5, Export Deal ×0.75)
+      × Hot ×${c.hotMultiplier} (while a buzz pip is left) × Flagship Store × Luxury Counter × R&D Premium
+  These sale bonuses apply to that one sale only and do not carry on. Fixtures that change Margin
+  itself (Logistics Hub, Superstore, Price Gun, Quality Lab and the like) carry on to later slots.
   Caps: a Truck sells up to its Category's Demand left; Boutique sells up to ${boutiqueCap} (and Demand left).
-  Price Gun halves what later Ships may sell. Wholesale Club sells every Unit and ignores Demand.
+  Price Gun halves what later Ships may sell. Wholesale Club and Export Deal sell every Unit and
+  ignore Demand.
   Revenue is rounded down once per sale. Margin itself is kept exact and shown to 2 decimals.
 
 DEMAND
@@ -82,11 +107,11 @@ DEMAND
   together (${c.demand.start} to start). It refills at the start of each round; a Saturated Category gets
   ×${c.demand.saturatedMul} of it that round. The Market shows what is left.
   Demand grows for good, counting from the next round:
-  - +${c.demand.sellOutGrowth} when a Shift sells the last of it (sells out);
+  - by ${sellOutShare} of itself (at least +${c.demand.sellOutGrowth}) when a Shift sells the last of it (sells out);
   - +${c.demand.emergingGrowth} for each Shift that sells it while it is Emerging;
   - +${c.grant.scaleDemand} for each R&D Grant Scale, which also adds +${c.grant.scaleUnits} Units at each of its Ship cards.
   An R&D Grant Premium instead raises that Category's sale price +${Math.round(c.grant.premiumStep * 100)}% per level.
-  Wholesale Club ignores Demand and doesn't use it up.
+  Wholesale Club and Export Deal ignore Demand and don't use it up.
 
 MARKET (trends)
   Each round every Category has a trend stage. Each new round the conveyor moves
@@ -107,8 +132,10 @@ CAPITAL AND THE SHOP
   (at most +${c.overkill.cap}C a round).
   Each shop offers 2 Fixtures, 2 Cards and 1 Contract. Reroll: ${c.rerollBaseCost}C, +${c.rerollCostIncrement}C each time per visit.
   Sell a Fixture, or a card you bought, for half its price (rounded down). Starter cards can't be sold.
-  Contracts: Tooling Upgrade (a deck card gets Design +$1, Make +3 Units or Ship +5 cap),
-  Downsizing (remove a deck card), Floor Expansion (+1 slot, up to ${c.maxSlots}).
+  Contracts:
+${contracts}
+  Perks from Contracts (extra Hot pips, Retools, interest cap) last for the rest of the run; the
+  state lists them.
 
 FIXTURES
   Each slot holds one Fixture. A new Fixture goes free into the slot you choose; moving one later
@@ -122,16 +149,9 @@ FIXTURES
     ${c.storagePerCapital} stored Units (rounded up), or lose them.
 
 BOARD REVIEWS (bosses)
-  The last round of each Year has a boss rule. The next two Board bosses are always shown.
-  Line Shift: Shift 1 runs on your layout. From Shift 2 on, all Fixtures move one slot right before
-    each Shift (the last wraps to slot 1). Cards on the Line do NOT move, so parked Designs end up
-    over other Fixtures, and one that lands on a Station sits idle; but this round you may unload
-    parked cards back to your hand and load them again. The state lists each move. Your shop
-    layout comes back after the round.
-  Turnover: Designs are dispatched after each Shift like every other card.
-  Supply Shock: slot 1 is welded shut: no card, and its Fixture does nothing.
-  JIT Auditor: leftover Units cost $2 each instead of selling, and the Warehouse is closed (stored
-    Units stay stored).
+  The last round of each Year has a boss rule. A run meets ${Math.min(years, BOSSES.length)} of these ${BOSSES.length}, drawn at random; the next
+  two Board bosses are always shown.
+${bosses}
 
 COMMANDS
   Numbers are as listed in the state: hand cards, slots, shop offers, deck cards.

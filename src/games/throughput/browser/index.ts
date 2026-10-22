@@ -8,7 +8,7 @@ export { ThroughputBrowserGame } from './ThroughputBrowserGame';
 export { ThroughputScreen } from './ThroughputScreen';
 export { TraceReceipt } from './TraceReceipt';
 export type { TraceReceiptProps } from './TraceReceipt';
-export { CATEGORY_ACCENT, cardView, demandViews, fixtureView, lineNotice, money, offerView, runProgressLabel, runSummary } from './present';
+export { CATEGORY_ACCENT, cardView, demandBossCut, demandViews, fixtureView, lineNotice, money, offerView, runProgressLabel, runSummary } from './present';
 export type { DemandView, RunSummary } from './present';
 export { RunAutosave, handNumber } from './run-autosave';
 export { RunSummaryView } from './RunSummary';

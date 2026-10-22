@@ -1,8 +1,9 @@
+import { perksText } from '../cli';
 import type { ThroughputRun } from '../rules';
 
 export type TpHudProps = { run: ThroughputRun };
 
-/** The quarterly-report header: quarter, Sales against target, Shift, Retools, Capital, and the Board rule. */
+/** The quarterly-report header: quarter, Sales against target, Shift, Retools, Capital, perks, and the Board rule. */
 export function TpHud({ run }: TpHudProps) {
   const inShop = run.phase === 'shop';
   const round = inShop ? run.round + 1 : run.round;
@@ -37,7 +38,7 @@ export function TpHud({ run }: TpHudProps) {
       </div>
       <div className="hud__stat">
         <span className="hud__label">{inShop ? 'Deck' : 'Shift'}</span>
-        <span className="hud__value">{inShop ? run.deck.length : `${run.shift} of ${run.config.shiftsPerRound}`}</span>
+        <span className="hud__value">{inShop ? run.deck.length : `${run.shift} of ${run.shiftsThisRound}`}</span>
       </div>
       <div className="hud__stat">
         <span className="hud__label">{inShop ? 'Slots' : 'Retools'}</span>
@@ -47,6 +48,7 @@ export function TpHud({ run }: TpHudProps) {
         <span className="hud__label">Capital</span>
         <span className="hud__value">{run.wallet.cash}C</span>
       </div>
+      {perksText(run) !== '' && <p className="tp-hud__perks">{perksText(run)}</p>}
       {boss !== null && (
         <div className="hud__boss">
           <span className="hud__boss-label">Board review</span>

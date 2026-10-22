@@ -65,7 +65,7 @@ function MarketRow({ run, stage, quarters }: { run: ThroughputRun; stage: TrendS
             ))}
             {pips !== null && (
               <span className="tp-pips" aria-label={`${pips} buzz pips left`}>
-                {Array.from({ length: run.config.hotPips }, (_, i) => (
+                {Array.from({ length: run.hotPipsPerRound }, (_, i) => (
                   <span key={i} className={`tp-pip ${i < pips ? 'is-on' : ''}`} />
                 ))}
               </span>
@@ -88,6 +88,7 @@ function DemandBars({ views, inShop, premiumStep }: { views: readonly DemandView
           const using = Math.min(v.using, v.left);
           const cues = [
             v.halved ? 'Saturated: halved' : '',
+            v.bossCut ?? '',
             v.scale > 0 ? `Scale ${v.scale}` : '',
             v.premium > 0 ? `Premium ×${formatAmount(1 + premiumStep * v.premium)}` : '',
             v.earned > 0 ? `+${v.earned} from next round` : '',
