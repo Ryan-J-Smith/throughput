@@ -247,17 +247,104 @@ Labelled by what the run actually built (all bots pooled):
 | market-maker | 17.8 |
 | unbuilt | 5.3 |
 
+### Playtest round 1: monoculture and auto-picks
+- **Desk Fan monoculture.** All 4 LLM personas made Desk Fan their main Product, and the sim agrees. Desk
+  Fan was the top-revenue Product in:
+  - 92% of greedy runs;
+  - 70% of assembly-chain runs;
+  - 72% of market-maker runs.
+
+  It is the only starter with a Sub slot, and an Overtime-stocked Motor adds about 16 free Units.
+- **Rejected levers** (500 seeds each):
+  - **Desk Fan $3.** Greedy drops 23% → 12% wins, and Desk Fan is still the main Product 78% of the time.
+  - **Desk Fan Demand 35.** It is even more dominant (93%).
+  - **Gizmo and Flatpack at $3.** Little diversity gained.
+- **Applied: starter niches.**
+  - Gizmo goes from 8 Units · $2 · Demand 30 to 6 · $4 · 20. It becomes a small Price product that
+    sells out easily.
+  - Flatpack goes from 12 Units · Demand 40 to 18 · 50, a volume product.
+  - Market-maker finds its sell-out engine: Gizmo is its main Product in 32% of runs, and it wins 11.0%
+    → 30.7%.
+  - Round 1 is no longer a walkover (mean margin +79% → +37%).
+  - Greedy still mains Desk Fan in 87% of runs. The naive line remains, but each archetype now has a
+    better one.
+- **Rules tests.** They run on `FIXTURE_BLUEPRINTS` (the doc's starter stats) so tuning doesn't move
+  their arithmetic.
+- **Auto-pick cross-check** (aware Δ win rate, 1000 seeds × 4 bots):
+
+  | Item | Aware Δ | Read |
+  |---|---:|---|
+  | Flagship Store | +1pp | Not overpowered. Bought 5/5 because it's cheap, Common and fits any build. |
+  | Discount Warehouse | +14pp | The strongest Common. |
+  | Product Catalog | +19pp | The strongest item, and it rewards diversity, so it is kept. |
+  | R&D Grant | — | Unmeasurable: almost every run buys it. |
+
+- **Discount Warehouse trim tried and reverted.** At +6 Units (was +8), bargain-bin fell 33.6% → 25.7%
+  and nothing else improved.
+
+Results with starter niches (1000 seeds):
+
+| Bot | Win % |
+|---|---:|
+| bargain-bin | 33.6 |
+| market-maker | 30.7 |
+| greedy | 23.3 |
+| assembly-chain | 18.6 |
+
+Mean margin by round:
+
+| Bot | Round 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| bargain-bin | 37 | 65 | 47 | 53 | 52 | 38 | 44 | 36 | 27 | 20 | 13 | −9 |
+| assembly-chain | 37 | 52 | 35 | 37 | 33 | 34 | 43 | 47 | 43 | 45 | 35 | 10 |
+| market-maker | 37 | 53 | 37 | 41 | 38 | 32 | 42 | 37 | 26 | 20 | 11 | 2 |
+
 ### Status against the goals
+After the starter-niches pass:
 - **Met:**
   - Targets grow 21.5×.
-  - Tempo leads on margin in rounds 2–5, and assembly-chain leads in rounds 8–12.
+  - The best bot (bargain-bin) wins 33.6%.
+  - The best tempo and best slow-burn bots are 2.9pp apart (bargain-bin 33.6% vs market-maker 30.7%).
+  - Tempo leads on margin in rounds 2–5. Slow-burn leads in rounds 8–12 (assembly-chain) and 9–12
+    (market-maker).
   - Tempo stalls at the Q4 Boss.
-- **Borderline:**
-  - The best bot wins 29.3% (goal 30–60%).
-  - The best tempo and best slow-burn bots are 11.5pp apart (goal ~10pp). By archetype label the
-    gap is 5pp.
 - **Open:**
-  - Market-maker trails assembly-chain. Bookshelf's $3 Price limits it.
   - The greedy baseline posts the highest mid-run margins because it buys whatever shows up. An
     adaptive bot would be a better "best player" reference.
   - The impact table pools all bots, so archetype items partly reflect which bots buy them.
+
+## Proposed rule changes (awaiting stratgame-24's decision; not implemented)
+- **Revenue over target.** All 5 playtesters flagged "under-ship to win". Today about half of all
+  Builds come after the target and earn nothing.
+  - **Prototype.** The final Ship's overshoot paid as cash, $1 per 25% over (max $3), credited by the
+    sim harness without touching the rules. It averages about $1 per clear. Bots still pick the cheapest
+    clearing Ship, so real players would earn more. Win rates over 1000 seeds:
+
+    | Bot | Today | Prototype |
+    |---|---:|---:|
+    | assembly-chain | 18.6% | 26.9% |
+    | bargain-bin | 33.6% | 39.1% |
+    | greedy | 23.3% | 26.5% |
+    | market-maker | 30.7% | 31.4% |
+
+    Big-Ship engines gain the most. A milder $1 per 50% (max $2) moved bargain-bin to 37.0%,
+    assembly-chain to 22.4% and market-maker to 29.9%.
+  - **Recommendation: Overtime Ships for cash.** Keep Ship legal in Overtime and pay $1 per 25% of the
+    target that an Overtime Ship earns (cap $5 per round). Overtime then becomes a three-way choice
+    each round:
+    - Ship for cash (tempo);
+    - Fab to stock the Bench (slow-burn);
+    - collect $1 per Build (bank).
+
+    Re-centre the targets afterwards (about +5–10%).
+  - **Not recommended: carrying revenue into the next round.** It double-counts Ships against the
+    escalation and makes the target line misleading.
+- **Overtime busywork.** In the sim, 50–58% of Builds are post-target. Of those, greedy fabs 0%,
+  bargain-bin about 15%, and assembly-chain and market-maker 35–40%. The rest are collected.
+  Testers spent about 40% of their actions on free Overtime Scraps digging for a Chip 4 + Bolt 4.
+  - **Recommendation 1: lock Scraps in Overtime.** A one-line rule that closes the free dig. The bots
+    never scrap in Overtime, so the sim balance is unchanged.
+  - **Recommendation 2: a `stock` shortcut** in the CLI and browser that fabs the best Sub part a
+    Product needs. It is UI only, with no rule change.
+  - With Overtime Ships for cash added, Overtime becomes one real decision instead of a loop.
+
