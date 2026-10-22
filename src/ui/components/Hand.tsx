@@ -7,12 +7,24 @@ export type HandProps = {
   maxSelected: number;
   canPlay: boolean;
   canDiscard: boolean;
+  /** Freeze selection (e.g. while a tally plays). */
+  locked?: boolean;
   onToggleSelect: (cardId: string) => void;
   onPlay: () => void;
   onDiscard: () => void;
 };
 
-export function Hand({ cards, selectedIds, maxSelected, canPlay, canDiscard, onToggleSelect, onPlay, onDiscard }: HandProps) {
+export function Hand({
+  cards,
+  selectedIds,
+  maxSelected,
+  canPlay,
+  canDiscard,
+  locked = false,
+  onToggleSelect,
+  onPlay,
+  onDiscard,
+}: HandProps) {
   const atCapacity = selectedIds.length >= maxSelected;
 
   return (
@@ -25,7 +37,7 @@ export function Hand({ cards, selectedIds, maxSelected, canPlay, canDiscard, onT
               key={card.id}
               card={card}
               selected={selected}
-              disabled={!selected && atCapacity}
+              disabled={locked || (!selected && atCapacity)}
               onClick={() => onToggleSelect(card.id)}
             />
           );

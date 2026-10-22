@@ -12,6 +12,12 @@
   --accent-cash: #ffc23e;
   --accent-value: #2fbf71;
   --accent-select: #ffc23e;
+  --accent-mult: #ff4d6d;
+  --accent-xmult: #c04dff;
+  --rarity-common: #d9cba7;
+  --rarity-uncommon: #4fc38a;
+  --rarity-rare: #4f9dff;
+  --rarity-legendary: #c86bff;
   --radius: 10px;
   --shadow: 0 4px 0 rgb(0 0 0 / 0.45);
   --font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -474,6 +480,493 @@ button {
   gap: 12px;
 }
 
+/* ---------- Button states ---------- */
+
+.btn--cash {
+  background: var(--accent-cash);
+  color: #2a1d00;
+}
+
+/* Still clickable so the state owner can explain why; just looks unavailable. */
+.btn--unaffordable {
+  filter: grayscale(0.7) brightness(0.75);
+}
+
+/* ---------- Rarity ---------- */
+
+.card--rarity-common {
+  border-color: var(--rarity-common);
+}
+.card--rarity-uncommon {
+  border-color: var(--rarity-uncommon);
+}
+.card--rarity-rare {
+  border-color: var(--rarity-rare);
+}
+.card--rarity-legendary {
+  border-color: var(--rarity-legendary);
+  box-shadow: 0 0 0 2px rgb(200 107 255 / 0.25), var(--shadow);
+}
+
+/* ---------- Play area (tally / summary slot) ---------- */
+
+.play-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 150px;
+}
+
+.play-area__hint {
+  margin: 0;
+  color: var(--ink-dim);
+  font-weight: 700;
+}
+
+/* ---------- Score tally ---------- */
+
+.tally {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+  user-select: none;
+}
+
+.tally:focus-visible {
+  outline: 3px solid var(--accent-select);
+  outline-offset: 2px;
+}
+
+.tally__readouts {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.tally__box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 96px;
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.tally__box--a {
+  background: var(--accent-score);
+  color: #00222f;
+}
+
+.tally__box--b {
+  background: var(--accent-mult);
+  color: #2b0008;
+}
+
+.tally__box--bump {
+  animation: tally-bump 220ms ease-out;
+}
+
+.tally__box-label {
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.tally__box-value {
+  font-size: 1.8rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.tally__op {
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: var(--ink-dim);
+}
+
+.tally__total {
+  min-width: 120px;
+  font-size: 2.4rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--ink);
+}
+
+.tally__total--slam {
+  color: var(--accent-cash);
+  animation: tally-slam 380ms cubic-bezier(0.2, 1.6, 0.4, 1);
+  text-shadow: 0 4px 0 rgb(0 0 0 / 0.5);
+}
+
+.tally__sources {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tally__source {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  background: #262b38;
+  border: 2px solid transparent;
+  transition: opacity 150ms ease;
+}
+
+.tally__source--pending {
+  opacity: 0.3;
+}
+
+.tally__source--pending .tally__source-amount {
+  visibility: hidden;
+}
+
+.tally__source--active {
+  border-color: var(--accent-select);
+  animation: tally-pulse 300ms ease-out;
+}
+
+.tally__source--active .tally__source-amount {
+  display: inline-block;
+  animation: tally-pop 300ms cubic-bezier(0.2, 1.8, 0.4, 1);
+}
+
+.tally__source--note {
+  font-style: italic;
+  color: var(--ink-dim);
+}
+
+.tally__source--add .tally__source-amount {
+  color: var(--accent-score);
+}
+.tally__source--mult .tally__source-amount {
+  color: var(--accent-mult);
+}
+.tally__source--xmult .tally__source-amount {
+  color: var(--accent-xmult);
+}
+
+.tally__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--ink-dim);
+}
+
+.tally__speed {
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-dim);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+
+.tally__hint {
+  margin-left: auto;
+}
+
+@keyframes tally-bump {
+  50% {
+    transform: scale(1.12);
+  }
+}
+
+@keyframes tally-pulse {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes tally-pop {
+  0% {
+    transform: translateY(6px) scale(0.4);
+    opacity: 0;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes tally-slam {
+  0% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ---------- Round summary ---------- */
+
+.summary {
+  width: min(100%, 420px);
+  padding: 16px;
+  background: var(--bg-raised);
+  border: 2px solid var(--accent-cash);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  animation: tally-pop 260ms ease-out;
+}
+
+.summary__heading {
+  margin: 0 0 10px;
+  font-size: 1.2rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.summary__lines {
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+}
+
+.summary__line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--line);
+  color: var(--ink-dim);
+}
+
+.summary__amount {
+  font-weight: 900;
+  color: var(--accent-cash);
+  font-variant-numeric: tabular-nums;
+}
+
+.summary .btn {
+  width: 100%;
+}
+
+/* ---------- Tooltip ---------- */
+
+.tooltip-anchor {
+  position: relative;
+}
+
+.tooltip-toggle {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #3a4052;
+  color: var(--bg-card);
+  font-size: 0.7rem;
+  font-weight: 900;
+  font-style: italic;
+  line-height: 20px;
+  cursor: pointer;
+  opacity: 0.55;
+}
+
+/* Keep card text clear of the toggle. */
+.tooltip-anchor > .card {
+  padding-bottom: 30px;
+}
+
+.tooltip-anchor > .card--compact {
+  padding-bottom: 8px;
+  padding-right: 30px;
+}
+
+.tooltip-anchor--open .tooltip-toggle,
+.tooltip-toggle:focus-visible {
+  opacity: 1;
+}
+
+.tooltip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  z-index: 50;
+  width: 240px;
+  padding: 10px 12px;
+  transform: translateX(-50%);
+  background: #0b0d12;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.6);
+  color: var(--ink);
+  font-size: 0.8rem;
+  text-align: left;
+  pointer-events: none;
+  animation: tooltip-in 120ms ease-out 200ms both;
+}
+
+.tooltip--pinned {
+  pointer-events: auto;
+  animation-delay: 0ms;
+}
+
+.tooltip__body {
+  margin: 0;
+  line-height: 1.35;
+}
+
+.tooltip__glossary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.tooltip__entry dt {
+  display: inline;
+  font-weight: 900;
+  color: var(--accent-select);
+}
+
+.tooltip__entry dt::after {
+  content: ': ';
+}
+
+.tooltip__entry dd {
+  display: inline;
+  margin: 0;
+  color: var(--ink-dim);
+}
+
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+}
+
+/* Touch devices and narrow screens: tooltips become a bottom sheet so they never clip off-screen. */
+@media (hover: none), (max-width: 640px) {
+  .tooltip {
+    position: fixed;
+    top: auto;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    transform: none;
+    font-size: 0.9rem;
+    animation: sheet-in 160ms ease-out both;
+  }
+
+  .tooltip-toggle {
+    width: 26px;
+    height: 26px;
+    line-height: 26px;
+    opacity: 0.8;
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+/* ---------- Toasts ---------- */
+
+.toast-stack {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  animation: toast-in 260ms cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+
+.toast__button {
+  padding: 10px 22px;
+  border: 0;
+  border-radius: var(--radius);
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #fff;
+  background: #3a4052;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+
+.toast--success .toast__button {
+  background: var(--accent-value);
+}
+
+.toast--error .toast__button {
+  background: var(--accent-discard);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.9);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
+  }
+}
+
 /* ---------- Phone ---------- */
 
 @media (max-width: 640px) {
@@ -548,5 +1041,43 @@ button {
 
   .shop__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .play-area {
+    min-height: 0;
+  }
+
+  .tally {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .tally__readouts {
+    gap: 6px;
+  }
+
+  .tally__box {
+    min-width: 0;
+    flex: 1;
+    padding: 4px 8px;
+  }
+
+  .tally__box-value {
+    font-size: 1.3rem;
+  }
+
+  .tally__op {
+    font-size: 1.1rem;
+  }
+
+  .tally__total {
+    min-width: 0;
+    flex: 1.3;
+    font-size: 1.7rem;
+  }
+
+  .tally__source {
+    font-size: 0.7rem;
+    padding: 3px 8px;
   }
 }

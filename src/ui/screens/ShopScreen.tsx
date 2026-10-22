@@ -21,7 +21,11 @@ export function ShopScreen({ hud, modifierRow, offers, rerollCost, canReroll, on
         <div className="shop__header">
           <span className="section-label">Shop</span>
           <div className="shop__actions">
-            <button type="button" className="btn btn--reroll" disabled={!canReroll} onClick={onReroll}>
+            <button
+              type="button"
+              className={`btn btn--reroll ${canReroll ? '' : 'btn--unaffordable'}`}
+              onClick={onReroll}
+            >
               Reroll ${rerollCost}
             </button>
             <button type="button" className="btn btn--play" onClick={onContinue}>
@@ -34,12 +38,13 @@ export function ShopScreen({ hud, modifierRow, offers, rerollCost, canReroll, on
             <Card
               key={offer.id}
               card={offer.card}
+              rarity={offer.rarity}
               disabled={offer.sold}
               footer={
                 <button
                   type="button"
-                  className="btn btn--buy"
-                  disabled={!offer.canBuy}
+                  className={`btn btn--buy ${offer.canBuy || offer.sold ? '' : 'btn--unaffordable'}`}
+                  disabled={offer.sold}
                   onClick={() => onBuy(offer.id)}
                 >
                   {offer.sold ? 'Sold' : `Buy $${offer.price}`}
