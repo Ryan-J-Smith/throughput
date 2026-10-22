@@ -26,7 +26,8 @@ describe('NextRoundPanel', () => {
         }}
       />,
     );
-    expect(html).toContain('Round 4');
+    expect(html).toContain('Q4, Year 1');
+    expect(html).toContain('Next round: round 4');
     expect(html).toContain('450');
     expect(html).toContain('Short Hand');
     expect(html).toContain('next-round--boss');

@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
+import { shake } from '../motion';
 import type { ScoreTallyView, TallySpeed } from '../types';
 import { formatContribution, formatNumber, NEXT_SPEED, TALLY_TIMING, tallyFrame } from './tally';
+import { useTickingNumber } from './useTickingNumber';
 
 export type ScoreTallyProps = {
   tally: ScoreTallyView;
@@ -14,39 +16,9 @@ export type ScoreTallyProps = {
 
 type Phase = 'running' | 'slam' | 'done';
 
-/** Animate `value` toward its latest target; integers tick as integers. */
-function useTickingNumber(target: number, durationMs: number): number {
-  const [shown, setShown] = useState(target);
-  const current = useRef(target);
-
-  useEffect(() => {
-    const from = current.current;
-    if (from === target || durationMs <= 0) {
-      current.current = target;
-      setShown(target);
-      return;
-    }
-    const start = performance.now();
-    const integral = Number.isInteger(target) && Number.isInteger(from);
-    let raf = 0;
-    const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / durationMs);
-      const eased = 1 - (1 - t) ** 3;
-      const raw = from + (target - from) * eased;
-      const value = t === 1 ? target : integral ? Math.round(raw) : Math.round(raw * 10) / 10;
-      current.current = value;
-      setShown(value);
-      if (t < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [target, durationMs]);
-
-  return shown;
-}
-
 /**
- * Balatro-style score breakdown. Reveals contributions one at a time, then slams the final total.
+ * Score breakdown printed like a register receipt: one line per contribution, a running
+ * subtotal, then the final total stamped at the end. Big ×mult lines flash and shake the screen.
  * Click (or Enter/Space) skips to the total; a second click finishes immediately.
  * Mount with `key={tally.id}` so each play restarts the animation.
  */
@@ -102,6 +74,11 @@ export function ScoreTally({ tally, speed, onComplete, onSpeedChange }: ScoreTal
   const shownTotal = useTickingNumber(frame.total, phase === 'running' ? tickMs : 0);
   const active = phase === 'running' ? revealed - 1 : -1;
   const latest = active >= 0 ? tally.contributions[active] : undefined;
+  const bigHit = latest?.kind === 'xmult';
+
+  useEffect(() => {
+    if (bigHit) shake(document.querySelector('.screen'));
+  }, [bigHit, revealed]);
 
   return (
     <section
@@ -112,51 +89,62 @@ export function ScoreTally({ tally, speed, onComplete, onSpeedChange }: ScoreTal
       onClick={skip}
       onKeyDown={onKeyDown}
     >
-      <div className="tally__readouts">
-        <div className={`tally__box tally__box--a ${latest?.kind === 'add' ? 'tally__box--bump' : ''}`} key={`a-${revealed}`}>
-          <span className="tally__box-label">{tally.labelA ?? 'Base'}</span>
-          <span className="tally__box-value">{formatNumber(shownA)}</span>
+      <div className="receipt">
+        {bigHit && <div className="receipt__flash" key={`flash-${revealed}`} aria-hidden="true" />}
+        <div className="receipt__head">
+          <span className="receipt__store">Shelf Life Co.</span>
+          <span className="receipt__kind">Sales receipt</span>
         </div>
-        <span className="tally__op">×</span>
-        <div
-          className={`tally__box tally__box--b ${latest?.kind === 'mult' || latest?.kind === 'xmult' ? 'tally__box--bump' : ''}`}
-          key={`b-${revealed}`}
-        >
-          <span className="tally__box-label">{tally.labelB ?? 'Mult'}</span>
-          <span className="tally__box-value">{formatNumber(shownB)}</span>
-        </div>
-        <span className="tally__op">=</span>
-        <div className={`tally__total ${phase !== 'running' ? 'tally__total--slam' : ''}`}>
-          {formatNumber(shownTotal)}
-        </div>
-      </div>
 
-      <ol className="tally__sources">
-        {tally.contributions.map((c, i) => {
-          const state = i === active ? 'active' : i < revealed ? 'done' : 'pending';
-          return (
-            <li key={c.id} className={`tally__source tally__source--${state} tally__source--${c.kind}`}>
-              <span className="tally__source-label">{c.sourceLabel}</span>
-              {c.kind !== 'note' && <span className="tally__source-amount">{formatContribution(c)}</span>}
-            </li>
-          );
-        })}
-      </ol>
+        <ol className="tally__sources">
+          {tally.contributions.map((c, i) => {
+            const state = i === active ? 'active' : i < revealed ? 'done' : 'pending';
+            return (
+              <li key={c.id} className={`tally__source tally__source--${state} tally__source--${c.kind}`}>
+                <span className="tally__source-label">{c.sourceLabel}</span>
+                {c.kind !== 'note' && <span className="tally__source-amount">{formatContribution(c)}</span>}
+              </li>
+            );
+          })}
+        </ol>
 
-      <div className="tally__footer">
-        {onSpeedChange && (
-          <button
-            type="button"
-            className="tally__speed"
-            onClick={(e) => {
-              e.stopPropagation();
-              onSpeedChange(NEXT_SPEED[speed]);
-            }}
+        <div className="tally__readouts">
+          <span className={`tally__box tally__box--a ${latest?.kind === 'add' ? 'tally__box--bump' : ''}`} key={`a-${revealed}`}>
+            <span className="tally__box-label">{tally.labelA ?? 'Base'}</span>
+            <span className="tally__box-value">{formatNumber(shownA)}</span>
+          </span>
+          <span className="tally__op">×</span>
+          <span
+            className={`tally__box tally__box--b ${latest?.kind === 'mult' || bigHit ? 'tally__box--bump' : ''}`}
+            key={`b-${revealed}`}
           >
-            Speed: {speed}
-          </button>
-        )}
-        <span className="tally__hint">{phase === 'running' ? 'Click to skip' : 'Click to continue'}</span>
+            <span className="tally__box-label">{tally.labelB ?? 'Mult'}</span>
+            <span className="tally__box-value">{formatNumber(shownB)}</span>
+          </span>
+        </div>
+
+        <div className="receipt__total">
+          <span className="receipt__total-label">Total</span>
+          <span className={`tally__total ${phase !== 'running' ? 'tally__total--slam' : ''}`}>
+            {formatNumber(shownTotal)}
+          </span>
+        </div>
+
+        <div className="tally__footer">
+          {onSpeedChange && (
+            <button
+              type="button"
+              className="tally__speed"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSpeedChange(NEXT_SPEED[speed]);
+              }}
+            >
+              Speed: {speed}
+            </button>
+          )}
+          <span className="tally__hint">{phase === 'running' ? 'Click to skip' : 'Click to continue'}</span>
+        </div>
       </div>
     </section>
   );
