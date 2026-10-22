@@ -1006,8 +1006,8 @@ button {
 
 /* An edge in the rarity's metal; uncommon catches the light on hover, rare+ sweep a foil sheen. */
 .card--rarity-uncommon {
-  border-color: rgb(214 222 236 / 0.55);
-  box-shadow: 0 0 0 1px rgb(214 222 236 / 0.25), var(--shadow-card), 0 0 18px -6px rgb(214 222 236 / 0.5);
+  border-color: rgb(214 222 236 / 0.8);
+  box-shadow: 0 0 0 1px rgb(150 225 255 / 0.3), var(--shadow-card), 0 0 20px -6px rgb(170 225 255 / 0.55);
 }
 
 .card--rarity-rare {
@@ -1018,6 +1018,44 @@ button {
 .card--rarity-legendary {
   border-color: transparent;
   box-shadow: 0 0 0 2px #c08bff, var(--shadow-card), 0 0 32px -4px rgb(192 139 255 / 0.65);
+}
+
+/* A cut gem at the end of the band names the rarity at a glance: satin, silver, gold, violet. */
+[class*='card--rarity-'] .card__band::after {
+  content: '';
+  flex: none;
+  width: 9px;
+  height: 9px;
+  rotate: 45deg;
+  border-radius: 2px;
+  background: linear-gradient(135deg, #fff 0%, var(--gem) 45%, color-mix(in srgb, var(--gem) 55%, #000) 100%);
+  box-shadow: 0 0 8px -1px var(--gem);
+}
+
+/* With a cost badge too, the badge and gem sit together on the right. */
+[class*='card--rarity-'] .card__band > .badge--cost {
+  margin-left: auto;
+}
+
+.card--rarity-common {
+  --gem: var(--rarity-satin);
+}
+
+.card--rarity-common .card__band::after {
+  box-shadow: none;
+  opacity: 0.8;
+}
+
+.card--rarity-uncommon {
+  --gem: #b9ecff;
+}
+
+.card--rarity-rare {
+  --gem: var(--rarity-gold);
+}
+
+.card--rarity-legendary {
+  --gem: #c08bff;
 }
 
 .card--rarity-uncommon::before,
