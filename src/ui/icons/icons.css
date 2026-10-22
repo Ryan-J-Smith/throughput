@@ -1,0 +1,29 @@
+/* Inline SVG icons. Sizes are tokens from ui/theme/tokens.css; colour is the text colour. */
+
+.icon {
+  display: inline-block;
+  flex: none;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.125em;
+}
+
+.icon--sm {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+.icon--md {
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+.icon--lg {
+  width: var(--icon-lg);
+  height: var(--icon-lg);
+}
+
+.icon--xl {
+  width: var(--icon-xl);
+  height: var(--icon-xl);
+}

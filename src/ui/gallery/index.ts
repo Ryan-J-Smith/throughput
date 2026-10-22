@@ -1,0 +1,1 @@
+export { ArtGalleryBrowserGame } from './ArtGalleryBrowserGame';

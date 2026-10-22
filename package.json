@@ -8,9 +8,10 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p scripts",
     "sim": "vite-node src/sim/cli/sim-cli.ts --",
-    "cli": "vite-node src/cli/cli-main.ts --"
+    "cli": "vite-node src/cli/cli-main.ts --",
+    "art": "vite-node scripts/art/art-cli.ts --"
   },
   "dependencies": {
     "react": "18.3.1",
@@ -20,6 +21,7 @@
     "@types/react": "18.3.12",
     "@types/react-dom": "18.3.1",
     "@vitejs/plugin-react": "4.3.3",
+    "sharp": "0.34.5",
     "typescript": "5.6.3",
     "vite": "5.4.21",
     "vite-node": "2.1.9",
