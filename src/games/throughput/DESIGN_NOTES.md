@@ -35,12 +35,12 @@ These notes record where the docs were silent or ambiguous, and what was chosen.
 | Expediter | Cut (doc allows it as "next cut"). | Its flip from the deck would make the exact preview leak the hidden top card. |
 | Scrap vs Unload | `unload` returns cards loaded this Shift to hand; `scrap` discards only cards parked from earlier Shifts. In a round whose boss `recallsParked` (Line Shift), `unload` also takes parked cards back to hand. | Scrapping fresh cards and then drawing back to 7 would be a free, unlimited Retool. A recalled card goes to hand, not the discards, so recall is no free Retool either. |
 | Handoff, Showroom | Change the Batch's Margin, which carries on. | Matches the worked example's Margin column ($30 → $33). |
-| Equity | +$1 per point on that Category's *sale only*, before multipliers. | Spec says "on that Category's Ship cards"; a persistent bump would leak into other Categories. |
-| Sale price | `(Margin + Equity) × card ×(Boutique/Wholesale) × Hot ×2 × Flagship`, revenue floored per sale. | Multipliers are sale-only like Boutique; flooring once per sale keeps traces exact. |
+| Demand (replaces Equity) | Each Category buys up to its Demand in Units per round, shared by all its Ship cards (start 20). Selling the last of it grows it +10 for good. Equity and Loyal are gone. | BoM graft b. See "BoM grafts" below. |
+| Sale price | `Margin × card ×(Boutique/Wholesale) × Hot ×2 × Flagship × R&D Premium`, revenue floored per sale. | Multipliers are sale-only like Boutique; flooring once per sale keeps traces exact. |
 | Buzz pips | 2 per round. A Shift that sells ≥1 Unit of the Hot Category spends one pip, and every Hot sale that Shift gets ×2. | "first 2 Shifts of the round that ship it." |
-| Emerging Equity | +1 per Category per Shift that sells ≥1 of its Units. | Spec wording. |
-| Saturated | That Category's Ship caps ×0.5 (stacks with Gun), unless Loyal (Equity ≥ 3). | Spec. |
-| Wholesale Club | "Ships all Units" ignores cap cuts (Gun, Saturation). | "All" has no cap to halve; keeps it the volume dump it is meant to be. |
+| Emerging | +10 Demand for good per Shift that sells ≥1 Unit of it (from next round). | Replaces +1 Equity: Emerging now prepares a Category for its Hot round. |
+| Saturated | That Category has ×0.5 of its Demand that round. | Replaces caps ×0.5 and Loyal. |
+| Wholesale Club | "Ships all Units" ignores cap cuts (Gun) and Demand, and doesn't use any up. | "All" has no cap to halve; keeps it the volume dump, now the overflow outlet once Demand runs out. |
 | Ending a round | The round clears as soon as Sales ≥ target after a Shift; unused Shifts pay 2C each. | Doc's "+2C per unused Shift". |
 | Overkill pay | When a round clears, +1C per full 25% of the target sold beyond it, at most 5C (`config.overkill`). Paid after unused Shifts, before Interest. | BoM graft (convergence plan): overshoot was wasted (playtest N6). See "BoM grafts" below. |
 | Interest | +1C per 5C held *before* the round's income, max 5C. | Balatro convention. |
@@ -100,7 +100,7 @@ These notes record where the docs were silent or ambiguous, and what was chosen.
   browser's How to play is the same text without COMMANDS.
 - The state always shows:
   - the exact "If you run now" trace;
-  - the Market strip (this round and the next 3, with Equity, and what spends a buzz pip);
+  - the Market strip (this round and the next 3, with Demand left / Demand, and what spends a buzz pip);
   - the next two Board bosses;
   - for each card on the Line, whether it stays after the run;
   - the Fixtures a boss moved before this Shift (Line Shift), also logged after `run` and `continue`;
@@ -134,7 +134,7 @@ The bots differ only in shopping:
 | `greedy` | Buys the priciest affordable item. Baseline. |
 | `mass-market` (tempo) | Overtime Crews, Assembly Line, Factory Floors, Wholesale Club; spends everything. |
 | `rnd-compounder` (slow burn) | Banks 15C for interest in Year 1, except for R&D Lab / Flagship / Robot Arm. Parks the most-grown Sketch on the R&D Lab, then buys multiplicative scaling. |
-| `trend-surfer` | Buys cards in next round's Hot/Emerging Categories; values shipping Emerging goods for Equity. |
+| `trend-surfer` | Buys cards in next round's Hot/Emerging Categories; values shipping Emerging goods for Equity. (Reworked with the Demand graft; see below.) |
 
 ### Targets
 
@@ -214,4 +214,110 @@ The user chose THROUGHPUT and approved three Bill of Materials ideas to graft on
   (+10–20%), so it gains little.
 - **Kept at step 0.25 / cap 5.** The target re-fit absorbs the extra power, and step 0.1 mostly feeds the
   compounder.
+
+### Per-Category Demand (graft b)
+
+**Rule (orchestrator-approved, variant F):**
+- Each Category has **Demand**: the Units it buys per round. It is shared by all of that Category's
+  Ship cards, refills each round, and starts at 20.
+- A **Truck** sells up to its Category's Demand left. It has no flat cap any more; 20 was the old one.
+- A **Boutique** sells up to 8 *and* up to Demand left.
+- **Wholesale Club** sells every Unit, ignores Demand and uses none of it. It is the overflow outlet.
+- **Price Gun** halves what later Ships may take. For a Truck that is half the Demand left.
+- **Sell-out:** a Shift that sells the last of a Category's Demand grows it +10 for good, from the next round.
+- **Trends merge Equity into Demand.**
+  - Emerging: +10 Demand per Shift that sells the Category, so a Category grows deep before its Hot round.
+  - Saturated: ×0.5 Demand that round.
+  - Hot is unchanged.
+  - Equity, Loyal and their +$1 are removed. Playtest N13 found them to be noise.
+- **Tooling Upgrade** can't target Trucks or Wholesale Clubs, since they have no cap to raise. A Boutique
+  still gets +5 cap.
+- **Hooks:**
+  - `ShiftContext.demandLeft` and `ShiftContext.grants`.
+  - `ShiftResult.demandSold`, `soldOut`, `emergingSold` and `demandGrowth`.
+  - `ThroughputRun.demand`, `demandLeft` and `grants`.
+
+**Variants simmed** (500 seeds; overkill on, before the Restock/Opener rules; win %):
+
+| Variant | greedy | mass-market | rnd-compounder | trend-surfer |
+|---|---|---|---|---|
+| No Demand (overkill only, 1000 seeds) | 26.4 | 5.2 | 32.7 | 2.8 |
+| A: Demand budget only, Truck keeps cap 20 (start 20, +5) | 20.2 | 0.0 | 23.2 | 1.2 |
+| B: as A, start 30 | 21.2 | 0.2 | 28.4 | 1.8 |
+| C: Trucks sell to Demand (start 20, sell-out +5, Emerging +5) | 24.4 | 3.2 | 24.8 | 1.0 |
+| E: as C, sell-out +10 | 26.4 | 7.0 | 25.2 | 1.0 |
+| **F: as E, Emerging +10 (chosen)** | 27.2 | 9.0 | 24.2 | 1.2 |
+| I: as C, sell-out +15 | 27.2 | 8.6 | 25.4 | 1.0 |
+
+- **Why not A or B.** A budget on top of the old caps only taxes volume: mass-market fell to 0%.
+- **Why "Trucks sell to Demand".** Growing Demand then raises what one Truck can sell. That gives volume
+  a persistent, compounding axis, the way R&D growth and Flagship give margin one.
+- **Why F over E.** The two are within noise for the bots. F's Emerging +10 makes "ship it while Emerging,
+  cash it while Hot" a visible plan. It also narrows the margin-versus-volume gap most:
+  rnd-compounder 32.7 → 24.2, mass-market 5.2 → 9.0.
+- **Items (variant E, 1000 seeds, aware Δ):**
+  - Price Gun +11 → +19 (skimming conserves Demand).
+  - Assembly Line −14 → −9.
+  - Automation −12 → −6.
+  - Robot Arm +33 → +24.
+  - R&D Lab +30 → +25.
+- **Where Demand binds.** Bot sell-outs run at about 0.2–0.6 a round for margin builds and 1.2–1.5 for
+  mass-market. Mean Demand grows from 20 to about 45 (margin bots) or 77 (mass-market) by round 12.
+  Bots spread Ships over Categories, so Demand mostly binds early and for volume. Players who
+  concentrate on the Hot Category hit it whenever they ship it twice in a round.
+
+### R&D Grant (graft c)
+
+- **Rule:** a Contract (5C). Pick a Category and an option (`buy 5 <category> scale|premium`).
+  - **Scale:** +10 Demand, and +3 Units added at each of that Category's Ship cards.
+  - **Premium:** that Category's sales ×(1 + 0.25 per level). The bonus is additive per level
+    (×1.25, ×1.5, …), not compounding, so it can't run away.
+  - Both are permanent.
+  - Sizes are in `config.grant`.
+- **Why Scale adds Units.** With Demand alone (+10, +20 or +30), Scale was worth almost nothing to the
+  bots, because Demand rarely binds after sell-out growth: all-Scale bots won 4–6 points less than
+  all-Premium. +3 Units per Ship is a +25% sale on a 12-Unit Ship, which matches Premium there.
+  - Scale wins on small, high-Margin Ships.
+  - Premium wins on big ones.
+  - So the choice depends on the build. It is not an auto-pick.
+- **Option A/B** (500 seeds, F, win %):
+
+| Grant choice | greedy | mass-market | rnd-compounder | trend-surfer |
+|---|---|---|---|---|
+| Scale +10 Demand only, all Scale | 17.2–19.8 | 2.8–4.8 | 21–22 | 0.6 |
+| Premium ×0.25, all Premium | 23.4 | 9.4 | 26.2 | 1.8 |
+| Scale +10 Demand +3 Units, all Scale | 25.2 | 8.4 | 33.6 | 2.0 |
+| Scale +3 Units vs Premium, chosen by build (bots) | 24.2 | 9.6 | 28.6 | 2.2 |
+| Scale +4 Units, all Scale (too strong) | 28.0 | 8.6 | 35.0 | 4.0 |
+
+- **How the bots choose:**
+  - They track Units sold per Category.
+  - They grant their best seller.
+  - They Scale when its Units per Ship are below `scaleUnits / premiumStep` (12), and take Premium otherwise.
+  - Trend-surfer Scales next round's Emerging Category.
+
+### Bots after the grafts
+
+- **Trend-surfer's shopping was the reason it was weak, not trends.** It now buys:
+  - Boutiques in the Categories turning Hot or Emerging, plus Influencers;
+  - Flagship, Robot Arm, Floor Expansion, Quality Lab, Showroom and Overtime Crew;
+  - R&D Grants that Scale next round's Emerging Category.
+  It also values Emerging Ships at +15 for the Demand they grow.
+- **Default Tooling Upgrade target:** a Boutique, then an Influencer, then a Design. Trucks can't be
+  upgraded any more.
+
+1000 seeds, all three grafts, on main's Restock/Opener and Line Shift rules (win %, mean round reached):
+
+| Bot | Win | Reach |
+|---|---|---|
+| trend-surfer | 50.6% | 10.72 |
+| rnd-compounder | 34.0% | 9.20 |
+| greedy | 25.0% | 8.60 |
+| mass-market | 11.3% | 8.93 |
+
+- **The target re-fit and content expansion come next.**
+- **Item impact now leans on what trend-surfer buys:**
+  - Up: Quality Lab, Influencer and Boutique (+20–24%).
+  - Down: volume Fixtures (Automation −25%, Assembly Line −26%), Warehouse −20% and Price Gun −7%.
+  - The content pass has to give these a real niche.
 

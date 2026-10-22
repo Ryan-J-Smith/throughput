@@ -33,10 +33,14 @@ export type MakeDef = CardDefBase & {
   readonly marginAdd: number;
 };
 
-/** Ship: sells up to `cap` Units (or all of them) at the Batch's Margin times `marginMul`. */
+/**
+ * Ship: sells Units at the Batch's Margin times `marginMul`. `cap` is how many: up to a number (and
+ * the Category's Demand left), up to the Category's Demand left ('demand'), or every Unit, ignoring
+ * Demand ('all').
+ */
 export type ShipDef = CardDefBase & {
   readonly stage: 'ship';
-  readonly cap: number | 'all';
+  readonly cap: number | 'demand' | 'all';
   readonly marginMul: number;
 };
 
@@ -49,13 +53,19 @@ export type Card = {
   readonly category: Category;
   /** Capital paid in the shop (0 for starter cards); sells for half. */
   readonly paid: number;
-  /** Tooling Upgrades applied: each is Design +$1, Make +3 Units or Ship +5 cap. */
+  /** Tooling Upgrades applied: each is Design +$1, Make +3 Units or (numeric-cap) Ship +5 cap. */
   upgrades: number;
   /** R&D Lab growth: +$1 Margin per point when this Design resolves. */
   growth: number;
 };
 
-export type ContractEffect = 'tooling' | 'downsize' | 'expand';
+export type ContractEffect = 'tooling' | 'downsize' | 'expand' | 'grant';
+
+/** What an R&D Grant buys for its Category: Scale (more Demand and Units) or Premium (a higher sale price). */
+export type GrantOption = 'scale' | 'premium';
+
+/** R&D Grant levels a Category has bought. */
+export type GrantLevels = { readonly scale: number; readonly premium: number };
 
 /** A one-off shop purchase that changes the deck or the floor. */
 export type ContractDef = {
@@ -66,4 +76,6 @@ export type ContractDef = {
   readonly effect: ContractEffect;
   /** True when buying it needs a deck card to act on. */
   readonly targetsCard: boolean;
+  /** True when buying it needs a Category and a Grant option (R&D Grant). */
+  readonly targetsCategory: boolean;
 };

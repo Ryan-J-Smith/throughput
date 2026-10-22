@@ -1,5 +1,6 @@
-import type { Card, Category } from '../model';
-import type { BuyTarget, Offer, ThroughputRun } from '../rules';
+import { CATEGORIES } from '../model';
+import type { Card, Category, GrantOption } from '../model';
+import type { BuyTarget, Offer, ShiftResult, ThroughputRun } from '../rules';
 import { classifyBuild, planLoad, preferredSlot, retoolChoice, scrapChoice } from './planner';
 import type { PlanOptions } from './planner';
 import { ThroughputBot } from './throughput-bot';
@@ -17,6 +18,40 @@ abstract class StrategyBot extends ThroughputBot {
   private retooledAt = '';
   private rerollsThisVisit = 0;
   private visit = -1;
+  /** Units sold and sell-outs per Category this run, read from each Shift's result. */
+  private sold = new Map<Category, number>();
+  private soldOuts = new Map<Category, number>();
+  private ships = new Map<Category, number>();
+  private seenShift: ShiftResult | null = null;
+
+  override beginRun(): void {
+    this.sold = new Map();
+    this.soldOuts = new Map();
+    this.ships = new Map();
+    this.seenShift = null;
+  }
+
+  /** Records the last Shift's sales once. */
+  private observe(run: ThroughputRun): void {
+    const last = run.lastShift;
+    if (last === null || last === this.seenShift) return;
+    this.seenShift = last;
+    for (const [c, n] of Object.entries(last.demandSold) as [Category, number][]) {
+      this.sold.set(c, (this.sold.get(c) ?? 0) + n);
+      this.ships.set(c, (this.ships.get(c) ?? 0) + 1);
+    }
+    for (const c of last.soldOut) this.soldOuts.set(c, (this.soldOuts.get(c) ?? 0) + 1);
+  }
+
+  /** The Category this run has sold most Units of (first on ties). */
+  protected bestSeller(): Category {
+    return CATEGORIES.reduce((a, b) => ((this.sold.get(b) ?? 0) > (this.sold.get(a) ?? 0) ? b : a));
+  }
+
+  /** Mean Units sold per Shift that sold `category`. */
+  protected unitsPerShip(category: Category): number {
+    return (this.sold.get(category) ?? 0) / Math.max(1, this.ships.get(category) ?? 0);
+  }
 
   /** How much the bot wants an offer (0 or less: never buys it). */
   protected abstract want(offer: Offer, run: ThroughputRun): number;
@@ -33,9 +68,20 @@ abstract class StrategyBot extends ThroughputBot {
     return false;
   }
 
-  /** Deck card for a Tooling Upgrade, or null to skip it. */
+  /** Deck card for a Tooling Upgrade, or null to skip it: a Boutique (+5 cap), else an Influencer, else a Sketch. */
   protected upgradeTarget(run: ThroughputRun): number | null {
-    return indexOf(run, (c) => c.def.stage === 'ship');
+    return indexOf(run, (c) => c.def.id === 'boutique') ?? indexOf(run, (c) => c.def.id === 'influencer') ?? indexOf(run, (c) => c.def.stage === 'design');
+  }
+
+  /**
+   * Category and option for an R&D Grant, or null to skip it: by default the best-selling Category,
+   * Scaled if its Demand ran out in at least half the rounds so far, else Premium.
+   */
+  protected grantTarget(run: ThroughputRun): { category: Category; option: GrantOption } | null {
+    const category = this.bestSeller();
+    const grant = run.config.grant;
+    // Scale's extra Units beat Premium's price rise on Ships smaller than scaleUnits / premiumStep.
+    return { category, option: this.unitsPerShip(category) * grant.premiumStep < grant.scaleUnits ? 'scale' : 'premium' };
   }
 
   /** Deck card for Downsizing, or null to skip it. */
@@ -44,6 +90,7 @@ abstract class StrategyBot extends ThroughputBot {
   }
 
   override shiftTurn(run: ThroughputRun): ShiftDecision {
+    this.observe(run);
     const key = `${run.round}/${run.shift}`;
     if (this.retooledAt !== key) {
       this.retooledAt = key;
@@ -57,6 +104,7 @@ abstract class StrategyBot extends ThroughputBot {
   }
 
   override shopTurn(run: ThroughputRun): ShopDecision {
+    this.observe(run);
     if (this.visit !== run.round) {
       this.visit = run.round;
       this.rerollsThisVisit = 0;
@@ -117,6 +165,7 @@ abstract class StrategyBot extends ThroughputBot {
         return {};
       case 'contract': {
         if (offer.def.effect === 'expand') return {};
+        if (offer.def.targetsCategory) return this.grantTarget(run);
         const deckCard = offer.def.effect === 'tooling' ? this.upgradeTarget(run) : this.downsizeTarget(run);
         return deckCard === null ? null : { deckCard };
       }
@@ -149,6 +198,7 @@ export class MassMarketBot extends StrategyBot {
       'wholesale-club': 7,
       automation: 6,
       'floor-expansion': 5,
+      'rnd-grant': 3,
       'tooling-upgrade': 4,
       showroom: 3,
     };
@@ -185,6 +235,8 @@ export class RndCompounderBot extends StrategyBot {
         return 8;
       case 'floor-expansion':
         return 7;
+      case 'rnd-grant':
+        return 5;
       case 'quality-lab':
         return 6;
       case 'price-gun':
@@ -238,25 +290,48 @@ export class RndCompounderBot extends StrategyBot {
 /** Items the slow-burn bot buys even while banking for interest. */
 const COMPOUNDERS = new Set(['rnd-lab', 'flagship-store', 'robot-arm']);
 
-/** Rides the Market: buys cards in next round's Hot and Emerging Categories, ships Emerging goods for Equity. */
+/**
+ * Rides the Market: Boutiques in the Categories turning Hot or Emerging next, margin pieces that
+ * Hot's ×2 multiplies, and R&D Grants that Scale next round's Emerging Category so its Demand is
+ * deep when it turns Hot. Ships Emerging goods for the Demand they grow.
+ */
 export class TrendSurferBot extends StrategyBot {
   readonly name = 'trend-surfer';
 
   protected override want(offer: Offer, run: ThroughputRun): number {
     const next = run.trends[run.round] ?? run.trendsNow;
     if (offer.kind === 'card') {
+      if (offer.def.id === 'influencer') return 7;
       const stage = next[offer.category];
-      if (stage === 'hot' || stage === 'emerging') return offer.def.stage === 'ship' ? 8 : 6;
+      if (stage === 'hot' || stage === 'emerging') return offer.def.id === 'boutique' ? 8 : 4;
       return 0;
     }
-    const wants: Record<string, number> = { 'flagship-store': 7, showroom: 6, 'quality-lab': 4, 'tooling-upgrade': 4, downsizing: 3 };
+    const wants: Record<string, number> = {
+      'flagship-store': 9,
+      'robot-arm': 8,
+      'floor-expansion': 7,
+      'rnd-grant': 6,
+      'quality-lab': 6,
+      showroom: 5,
+      'overtime-crew': 5,
+      'brand-manager': 4,
+      'tooling-upgrade': 3,
+      downsizing: 3,
+    };
     return wants[offer.def.id] ?? 0;
   }
 
-  /** Upgrade a Truck in next round's Hot Category, else any Ship. */
+  /** Scale the Category that is Emerging next round (Hot the round after), else the one Hot next. */
+  protected override grantTarget(run: ThroughputRun): { category: Category; option: GrantOption } | null {
+    const next = run.trends[run.round] ?? run.trendsNow;
+    const category = CATEGORIES.find((c) => next[c] === 'emerging') ?? hotNext(run);
+    return category === undefined ? null : { category, option: 'scale' };
+  }
+
+  /** Upgrade a Boutique in next round's Hot Category, else as usual. */
   protected override upgradeTarget(run: ThroughputRun): number | null {
     const hot = hotNext(run);
-    return indexOf(run, (c) => c.def.stage === 'ship' && c.category === hot) ?? indexOf(run, (c) => c.def.stage === 'ship');
+    return indexOf(run, (c) => c.def.id === 'boutique' && c.category === hot) ?? super.upgradeTarget(run);
   }
 
   /** Drop a starter card of next round's Saturated Category. */
@@ -269,8 +344,8 @@ export class TrendSurferBot extends StrategyBot {
     const trends = run.trendsNow;
     return {
       designPersistence: 0.5,
-      // Equity is permanent: shipping an Emerging Category is worth more than today's sale.
-      bias: (card) => (card.def.stage === 'ship' && trends[card.category] === 'emerging' ? 10 : 0),
+      // Emerging sales grow Demand for good: shipping an Emerging Category is worth more than today's sale.
+      bias: (card) => (card.def.stage === 'ship' && trends[card.category] === 'emerging' ? 15 : 0),
     };
   }
 }

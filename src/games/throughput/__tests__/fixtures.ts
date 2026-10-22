@@ -1,7 +1,7 @@
 import { BOSSES, DEFAULT_CONFIG, fixtureById } from '../content';
 import type { ThroughputConfig } from '../content';
 import { CATEGORIES } from '../model';
-import type { BoardBoss, Card, CardDef, Category, Fixture, TrendStage } from '../model';
+import type { BoardBoss, Card, CardDef, Category, Fixture, GrantLevels, TrendStage } from '../model';
 import type { LineSlot, ShiftContext, Trends } from '../rules';
 
 let uid = 1000;
@@ -25,14 +25,22 @@ export function trends(overrides: Partial<Record<Category, TrendStage>> = {}): T
   return out;
 }
 
-export function equity(overrides: Partial<Record<Category, number>> = {}): Record<Category, number> {
+/** Demand left per Category: the starting Demand (20) unless overridden. */
+export function demandLeft(overrides: Partial<Record<Category, number>> = {}): Record<Category, number> {
   const out = {} as Record<Category, number>;
-  for (const c of CATEGORIES) out[c] = overrides[c] ?? 0;
+  for (const c of CATEGORIES) out[c] = overrides[c] ?? DEFAULT_CONFIG.demand.start;
+  return out;
+}
+
+/** R&D Grant levels per Category: none unless overridden. */
+export function grants(overrides: Partial<Record<Category, Partial<GrantLevels>>> = {}): Record<Category, GrantLevels> {
+  const out = {} as Record<Category, GrantLevels>;
+  for (const c of CATEGORIES) out[c] = { scale: 0, premium: 0, ...overrides[c] };
   return out;
 }
 
 export function context(overrides: Partial<ShiftContext> = {}): ShiftContext {
-  return { config: DEFAULT_CONFIG, trends: trends(), equity: equity(), hotPipsLeft: 2, stored: 0, boss: null, ...overrides };
+  return { config: DEFAULT_CONFIG, trends: trends(), demandLeft: demandLeft(), grants: grants(), hotPipsLeft: 2, stored: 0, boss: null, ...overrides };
 }
 
 export function boss(id: string): BoardBoss {

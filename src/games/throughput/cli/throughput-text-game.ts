@@ -174,7 +174,8 @@ function runLog(run: ThroughputRun): string[] {
   const lines = [`Shift ${shift}:`, ...traceLines(result)];
   const extras: string[] = [];
   if (result.hotPipUsed) extras.push('a Hot buzz pip was used');
-  if (result.equityGained.length > 0) extras.push(`+1 Equity for ${result.equityGained.join(', ')}`);
+  const grown = Object.entries(result.demandGrowth).map(([c, n]) => `${c} +${n}`);
+  if (grown.length > 0) extras.push(`Demand grows from next round: ${grown.join(', ')}`);
   if (result.grown.length > 0) extras.push(`R&D growth: ${result.grown.map(cardName).join(', ')}`);
   if (extras.length > 0) lines.push(`  ${extras.join('; ')}.`);
   lines.push(`Round sales $${run.sales} of $${target}.`);
