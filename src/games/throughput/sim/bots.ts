@@ -1,3 +1,4 @@
+import type { Rng } from '../../../engine/rng';
 import { CATEGORIES } from '../model';
 import type { Card, Category, GrantOption } from '../model';
 import type { BuyTarget, Offer, ShiftResult, ThroughputRun } from '../rules';
@@ -24,7 +25,7 @@ abstract class StrategyBot extends ThroughputBot {
   private ships = new Map<Category, number>();
   private seenShift: ShiftResult | null = null;
 
-  override beginRun(): void {
+  override beginRun(_run: ThroughputRun, _rng: Rng): void {
     this.sold = new Map();
     this.soldOuts = new Map();
     this.ships = new Map();
