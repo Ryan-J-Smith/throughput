@@ -13,7 +13,7 @@ export type Offer =
   | { readonly kind: 'contract'; readonly def: ContractDef; readonly price: number };
 
 type CardOfferDef = { readonly id: string; readonly rarity: 'common'; readonly price: number; readonly card: CardDef; readonly category: Category };
-type ContractOfferDef = { readonly id: string; readonly rarity: 'common'; readonly price: number; readonly contract: ContractDef };
+type ContractOfferDef = { readonly id: string; readonly rarity: 'common'; readonly price: number; readonly weight?: number; readonly contract: ContractDef };
 
 /** Chance of each Fixture rarity per offer; split evenly among the Fixtures of that rarity. */
 const FIXTURE_ODDS: Readonly<Record<Rarity, number>> = { common: 70, uncommon: 25, rare: 5 };
@@ -41,7 +41,9 @@ export class ThroughputShop {
       }
     }
     const contractRegistry = new Registry<ContractOfferDef>({ common: 1 });
-    CONTRACTS.forEach((contract) => contractRegistry.register({ id: contract.id, rarity: 'common', price: contract.price, contract }));
+    CONTRACTS.forEach((contract) =>
+      contractRegistry.register({ id: contract.id, rarity: 'common', price: contract.price, ...(contract.weight === undefined ? {} : { weight: contract.weight }), contract }),
+    );
 
     const shopConfig = { rerollBaseCost: 0, rerollCostIncrement: 0, sellRate: config.sellRate };
     this.fixtures = new Shop({ ...shopConfig, slots: 2, pools: [{ id: 'fixture', registry: fixtureRegistry, weight: 1 }] }, rng.fork('fixtures'));

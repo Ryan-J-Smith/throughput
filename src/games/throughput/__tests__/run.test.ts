@@ -364,7 +364,7 @@ describe('ThroughputRun: bosses', () => {
   });
 
   it('the Warehouse stores leftovers and charges 1C per 10 on entering the shop', () => {
-    const run = new ThroughputRun(1, easyConfig({ startingCapital: 100, targets: [10, 10, 10] }));
+    const run = new ThroughputRun(1, easyConfig({ startingCapital: 5000, targets: [10, 10, 10] }));
     makeAndShip(run);
     for (let i = 0; i < 50 && run.line[2]?.fixture == null; i++) {
       const offer = run.offers.findIndex((o) => o?.kind === 'fixture' && o.def.id === 'warehouse');
@@ -391,7 +391,7 @@ describe('ThroughputRun: bosses', () => {
 });
 
 describe('ThroughputRun: Demand and R&D Grants', () => {
-  const tight = (start: number) => easyConfig({ targets: [10_000, 10_000, 10_000], demand: { start, sellOutGrowth: 10, emergingGrowth: 0, saturatedMul: 0.5 } });
+  const tight = (start: number) => easyConfig({ targets: [10_000, 10_000, 10_000], demand: { start, sellOutGrowth: 10, sellOutRate: 0, emergingGrowth: 0, saturatedMul: 0.5 } });
 
   it('each Category starts with the configured Demand, halved in its Saturated round', () => {
     const run = findRun(easyConfig(), () => {}, (r) => Object.values(r.trendsNow).includes('saturated'));

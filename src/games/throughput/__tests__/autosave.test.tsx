@@ -150,8 +150,13 @@ describe('THROUGHPUT browser autosave', () => {
   });
 
   it('offers no Continue for a run that already ended', () => {
-    const store = new MemoryStore();
-    const played = playAndRecord(29, 400, store);
+    // The first seed (from 29) that the greedy bot loses within 400 decisions.
+    let store = new MemoryStore();
+    let played = playAndRecord(29, 400, store);
+    for (let seed = 30; seed < 80 && played.phase !== 'lost'; seed++) {
+      store = new MemoryStore();
+      played = playAndRecord(seed, 400, store);
+    }
     expect(played.phase).toBe('lost');
     expect(new ThroughputBrowserGame().savedRun(store)).toBeNull();
   });

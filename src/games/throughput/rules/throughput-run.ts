@@ -4,7 +4,7 @@ import { Rng } from '../../../engine/rng';
 import { BOSSES, DEFAULT_CONFIG, STARTER_CARDS } from '../content';
 import type { ThroughputConfig } from '../content';
 import { CATEGORIES, cardName } from '../model';
-import type { BoardBoss, Card, CardDef, Category, ContractEffect, Fixture, FixtureDef, GrantLevels, GrantOption, Stage } from '../model';
+import type { BoardBoss, Card, CardDef, Category, ContractEffect, Fixture, FixtureDef, GrantLevels, GrantOption, Perks, Stage } from '../model';
 import { trendSchedule } from './market';
 import { scoreLine } from './score-line';
 import type { LineSlot, ShiftContext, ShiftResult, Trends } from './score-line';
@@ -76,6 +76,8 @@ export class ThroughputRun {
   private readonly roundDemand_: Record<Category, number>;
   private readonly demandAtStart_: Record<Category, number>;
   private readonly grants_: Record<Category, { scale: number; premium: number }>;
+  /** Run-long bonuses from Ad Campaign, Training Program and Treasury Bond. */
+  private readonly perks_ = { hotPips: 0, retools: 0, interestCap: 0 };
   private readonly history_: RoundRecord[] = [];
   private phase_: Phase = 'shift';
   private round_ = 1;
@@ -192,15 +194,41 @@ export class ThroughputRun {
     return Object.fromEntries(CATEGORIES.map((c) => [c, this.demand_[c] - this.demandAtStart_[c]])) as Record<Category, number>;
   }
 
-  /** What `category` buys in `round` at its current Demand: halved while Saturated. */
+  /** What `category` buys in `round` at its current Demand: halved while Saturated, and by a Recession boss. */
   demandIn(round: number, category: Category): number {
     const saturated = this.trends[round - 1]?.[category] === 'saturated';
-    return Math.floor(this.demand_[category] * (saturated ? this.config.demand.saturatedMul : 1));
+    const boss = this.bossOf(round)?.demandMul() ?? 1;
+    return Math.floor(this.demand_[category] * (saturated ? this.config.demand.saturatedMul : 1) * boss);
   }
 
   /** R&D Grant levels bought per Category. */
   get grants(): Readonly<Record<Category, GrantLevels>> {
     return this.grants_;
+  }
+
+  /** Run-long bonuses bought with Contracts. */
+  get perks(): Perks {
+    return this.perks_;
+  }
+
+  /** Shifts in the current round (a boss may shorten it). */
+  get shiftsThisRound(): number {
+    return this.boss?.shiftsPerRound(this.config.shiftsPerRound) ?? this.config.shiftsPerRound;
+  }
+
+  /** Hot buzz pips per round, with Ad Campaigns. */
+  get hotPipsPerRound(): number {
+    return this.config.hotPips + this.perks_.hotPips;
+  }
+
+  /** Retools per round, with Training Programs. */
+  get retoolsPerRound(): number {
+    return this.config.retoolsPerRound + this.perks_.retools;
+  }
+
+  /** The interest rule in force, with Treasury Bonds raising the cap. */
+  get interestRule(): ThroughputConfig['interest'] {
+    return { ...this.config.interest, cap: this.config.interest.cap + this.perks_.interestCap };
   }
 
   get trendsNow(): Trends {
@@ -457,7 +485,7 @@ export class ThroughputRun {
     this.lastShift_ = result;
 
     if (this.sales_ >= this.target) this.clearRound();
-    else if (this.shift_ >= this.config.shiftsPerRound) this.loseRound();
+    else if (this.shift_ >= this.shiftsThisRound) this.loseRound();
     else {
       this.shift_++;
       this.beginShift();
@@ -586,8 +614,8 @@ export class ThroughputRun {
     this.phase_ = 'shift';
     this.sales_ = 0;
     this.shift_ = 1;
-    this.retools_ = this.config.retoolsPerRound;
-    this.hotPips_ = this.config.hotPips;
+    this.retools_ = this.retoolsPerRound;
+    this.hotPips_ = this.hotPipsPerRound;
     for (const c of CATEGORIES) {
       this.demandAtStart_[c] = this.demand_[c];
       this.demandLeft_[c] = this.demandIn(this.round_, c);
@@ -689,11 +717,11 @@ export class ThroughputRun {
     const info = this.quarter;
     const payout = new Payout();
     payout.add(info.isBoard ? 'Board Review cleared' : `Q${info.quarter} cleared`, this.config.income[info.quarter - 1] ?? 0);
-    const unused = this.config.shiftsPerRound - this.shift_;
+    const unused = this.shiftsThisRound - this.shift_;
     if (unused > 0) payout.add(`${unused} unused Shift${unused === 1 ? '' : 's'}`, unused * this.config.unusedShiftBonus);
     const overkill = this.overkillPayFor(this.sales_);
     if (overkill > 0) payout.add(`Overkill (${Math.floor((100 * (this.sales_ - this.target)) / this.target)}% over target)`, overkill);
-    const interest = computeInterest(this.wallet.cash, this.config.interest);
+    const interest = computeInterest(this.wallet.cash, this.interestRule);
     if (interest > 0) payout.add('Interest', interest);
     this.wallet.earn(payout.total());
     this.lastPayout_ = payout.lines;
@@ -763,6 +791,20 @@ export class ThroughputRun {
       case 'expand':
         this.slots_.push({ fixture: null, card: null });
         return;
+      case 'clone': {
+        const card = this.deck_[deckCard as number] as Card;
+        this.deck_.push({ ...this.newCard(card.def, card.category, 0), upgrades: card.upgrades, growth: card.growth });
+        return;
+      }
+      case 'campaign':
+        this.perks_.hotPips++;
+        return;
+      case 'training':
+        this.perks_.retools++;
+        return;
+      case 'bond':
+        this.perks_.interestCap += 2;
+        return;
     }
   }
 
@@ -780,6 +822,7 @@ export class ThroughputRun {
       hotPipsLeft: this.hotPips_,
       stored: this.stored_,
       boss: this.boss,
+      demand: { ...this.demand_ },
       demandLeft: { ...this.demandLeft_ },
       grants: Object.fromEntries(CATEGORIES.map((c) => [c, { ...this.grants_[c] }])) as Record<Category, GrantLevels>,
     };

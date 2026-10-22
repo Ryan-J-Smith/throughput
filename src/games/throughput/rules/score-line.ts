@@ -14,7 +14,8 @@ export type Trends = Readonly<Record<Category, TrendStage>>;
 export type ShiftContext = {
   readonly config: ThroughputConfig;
   readonly trends: Trends;
-  /** Units each Category still buys this round (its Demand left). */
+  /** Each Category's full Demand, and what it still buys this round (its Demand left). */
+  readonly demand: Readonly<Record<Category, number>>;
   readonly demandLeft: Readonly<Record<Category, number>>;
   /** R&D Grant levels per Category. */
   readonly grants: Readonly<Record<Category, GrantLevels>>;
@@ -118,7 +119,7 @@ export function scoreLine(line: readonly LineSlot[], ctx: ShiftContext, options:
     demandSold: Object.fromEntries(sale.demandSold),
     soldOut: [...sale.soldOut],
     emergingSold: [...sale.emergingSold],
-    demandGrowth: demandGrowth(sale, config),
+    demandGrowth: demandGrowth(sale, ctx),
   };
 }
 
@@ -139,11 +140,13 @@ class SaleState {
   }
 }
 
-/** Sell-outs and Emerging sales grow Demand for good. */
-function demandGrowth(sale: SaleState, config: ThroughputConfig): Partial<Record<Category, number>> {
+/** Sell-outs and Emerging sales grow Demand for good; a sell-out grows it by a share of itself. */
+function demandGrowth(sale: SaleState, ctx: ShiftContext): Partial<Record<Category, number>> {
+  const { demand } = ctx.config;
   const growth: Partial<Record<Category, number>> = {};
   for (const c of CATEGORIES) {
-    const amount = (sale.soldOut.has(c) ? config.demand.sellOutGrowth : 0) + (sale.emergingSold.has(c) ? config.demand.emergingGrowth : 0);
+    const sellOut = Math.max(demand.sellOutGrowth, Math.ceil(demand.sellOutRate * ctx.demand[c]));
+    const amount = (sale.soldOut.has(c) ? sellOut : 0) + (sale.emergingSold.has(c) ? demand.emergingGrowth : 0);
     if (amount > 0) growth[c] = amount;
   }
   return growth;
@@ -156,7 +159,7 @@ function resolveCard(card: Card, fixture: Fixture | null, batch: Batch, sale: Sa
     case 'design': {
       const add = designAdd(card);
       if (add !== 0) batch.addMargin(add, 'Design');
-      if (def.marginMul !== 1) batch.mulMargin(def.marginMul, 'Design');
+      if (def.marginMul !== 1 && (sale.ctx.boss?.designMultipliers() ?? true)) batch.mulMargin(def.marginMul, 'Design');
       return;
     }
     case 'make':

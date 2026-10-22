@@ -38,11 +38,17 @@ export type ThroughputConfig = {
   readonly hotMultiplier: number;
   /**
    * Each Category's Demand: the Units it buys per round, shared by all its Ship cards. It starts at
-   * `start` and grows for good by `sellOutGrowth` when a Shift sells the last of it, and by
-   * `emergingGrowth` per Shift that sells the Category while it is Emerging. A Saturated round has
-   * ×`saturatedMul` of it.
+   * `start` and grows for good when a Shift sells the last of it, by `sellOutRate` × Demand (at least
+   * `sellOutGrowth`), and by `emergingGrowth` per Shift that sells the Category while it is Emerging.
+   * A Saturated round has ×`saturatedMul` of it.
    */
-  readonly demand: { readonly start: number; readonly sellOutGrowth: number; readonly emergingGrowth: number; readonly saturatedMul: number };
+  readonly demand: {
+    readonly start: number;
+    readonly sellOutGrowth: number;
+    readonly sellOutRate: number;
+    readonly emergingGrowth: number;
+    readonly saturatedMul: number;
+  };
   /**
    * R&D Grant, per level bought for a Category. Scale: +`scaleDemand` Demand and +`scaleUnits` Units at
    * each of its Ship cards. Premium: its sales ×(1 + `premiumStep` × level).
@@ -82,7 +88,7 @@ export const DEFAULT_CONFIG: ThroughputConfig = {
   hotPips: 2,
   hotMultiplier: 2,
   // BoM graft b (DESIGN_NOTES "Demand"): variant F of the sims.
-  demand: { start: 20, sellOutGrowth: 10, emergingGrowth: 10, saturatedMul: 0.5 },
+  demand: { start: 20, sellOutGrowth: 10, sellOutRate: 0.5, emergingGrowth: 10, saturatedMul: 0.5 },
   grant: { scaleDemand: 10, scaleUnits: 3, premiumStep: 0.25 },
   warehouseCap: 40,
   storagePerCapital: 10,

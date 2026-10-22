@@ -321,3 +321,91 @@ The user chose THROUGHPUT and approved three Bill of Materials ideas to graft on
   - Down: volume Fixtures (Automation −25%, Assembly Line −26%), Warehouse −20% and Price Gun −7%.
   - The content pass has to give these a real niche.
 
+
+## Content wave 1 (completion plan)
+
+Orchestrator-approved, including three new BoardBoss hooks: `demandMul`, `designMultipliers`,
+`shiftsPerRound`. All modifier text is ≤ 20 words, which `content.test.ts` enforces.
+
+| Kind | Added |
+|---|---|
+| Shop cards (4 → 12) | Prototype (+$3, 3C) · Rebrand (−$2 then ×2, 6C) · 3D Printer (+4 Units +$2, 3C) · Contract Manufacturer (+20 Units −$1, 5C) · Pop-Up Shop (5 at ×3, 4C) · Marketplace (up to Demand at ×1.25, 5C) · Subscription Box (12 at ×1.5, 4C) · Export Deal (all at ×0.75, ignores Demand, 6C) |
+| Fixtures (11 → 24) | Commons: Design Studio, Packaging Line, Conveyor Belt, Signature Line, Cross-Dock · Uncommons: Logistics Hub, Luxury Counter, Express Lane, Lean Cell (Station), Megafactory (Station) · Rares: Patent Office, Superstore, Robotics Cell |
+| Contracts (4 → 8) | Clone (copy a deck card with upgrades and growth, 5C) · Ad Campaign (+1 Hot pip a round, 5C) · Training Program (+1 Retool a round, 4C) · Treasury Bond (+2C interest cap, 4C). Floor Expansion has shop weight 2. |
+| Bosses (4 → 8) | Bottleneck (slot 3 welded) · Recession (Demand ×0.5) · Ethics Review (Design ×s off) · Short Week (3 Shifts) |
+
+**Design intent**
+
+- **Every archetype gets a multiplicative path.**
+  - Volume:
+    - Logistics Hub turns Units into Margin (+$1 per 10).
+    - Superstore gives ×(1 + Units/50) on a Ship.
+    - Megafactory and Robotics Cell feed both of them.
+  - Skimmer: Luxury Counter ×2 on Ships capped at 8 or less (Pop-Up ×3 · Luxury ×2 · Hot ×2 = ×12).
+  - R&D: Patent Office ×(1 + 0.1 per growth). It competes with the R&D Lab for the grown Design, so you choose between growing it and cashing it.
+  - Hot / trend: Ad Campaign pips and Pop-Up/Boutique.
+- **Positional pieces read the 2 cards before:** Design Studio, Conveyor Belt, Signature Line, Cross-Dock.
+- **Bosses pressure one archetype each, with a generic counterplay:**
+  - Ethics Review: the Influencer tower. Counter with additive Designs or volume.
+  - Recession: volume. Counter with Wholesale or Export.
+  - Short Week: slow setups. Counter with burst Shifts.
+  - Bottleneck: chains and Gun→Ship runs. Counter by re-laying the Line in the shop.
+- **Treasury Bond gives holding cash a reason** (playtest N4).
+
+**Tuning during the wave**
+
+- **Sell-out growth now scales:** +50% of Demand, at least +10 (`demand.sellOutRate`). Volume's
+  linear +10 couldn't keep up with ×-scaled Margin.
+
+  | Sell-out growth | mass-market win (500 seeds) |
+  |---|---|
+  | linear +10 | 3.6% |
+  | +25% | 3.6% |
+  | +50% | 6.2% |
+
+  The other bots are unchanged.
+- **Contract Manufacturer:** −$3 → −$1. It drove the Batch Margin negative.
+- **Megafactory:** Margin ×0.5 → −$2.
+- **Logistics Hub:** ×1.5 at 30+ Units → +$1 per 10 Units.
+- **Superstore:** ÷100 → ÷50.
+
+**1000 seeds, before the target re-fit** (default curve):
+
+| Bot | Win % |
+|---|---|
+| trend-surfer | 21.8 |
+| rnd-compounder | 19.4 |
+| greedy | 7.3 |
+| mass-market | 6.0 |
+
+Content dilution (Flagship, Robot Arm and Influencer are rarer) and the harder Board pool lower every bot.
+
+**By build:**
+
+| Build | Win % |
+|---|---|
+| design-stack | 26.4 |
+| mass-market | 15.5 |
+| skimmer | 14.8 |
+| rnd-compounder | 13.2 |
+| mixed | 0.6 |
+| stockpile | 1.1 |
+
+**Board clear rates** (300 seeds × 4 bots):
+
+| Boss | Clears |
+|---|---|
+| Supply Shock | 56% |
+| Bottleneck | 57% |
+| Short Week | 70% |
+| Recession | 73% |
+| Line Shift | 80% |
+| Ethics Review | 82% |
+| Turnover | 82% |
+| JIT Auditor | 87% |
+
+**Pick rates** are 10.6% (Lean Cell) to 66.5% (Flagship): no auto-pick over 80%, nothing under 10%.
+
+**Aware Δ:**
+- Leaders: Flagship +34%, Quality Lab +20%, Robot Arm +17%.
+- Still negative: Megafactory −16%, Warehouse −15%, Assembly Line −14%, Lean Cell −13%. These are follow-up tuning targets.

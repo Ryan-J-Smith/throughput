@@ -1,4 +1,22 @@
-export { BOUTIQUE, FACTORY_FLOOR, INFLUENCER, SHOP_CARDS, SKETCH, STARTER_CARDS, TRUCK, WHOLESALE_CLUB, WORKSHOP } from './cards';
+export {
+  BOUTIQUE,
+  CONTRACT_MANUFACTURER,
+  EXPORT_DEAL,
+  FACTORY_FLOOR,
+  INFLUENCER,
+  MARKETPLACE,
+  POP_UP_SHOP,
+  PRINTER_3D,
+  PROTOTYPE,
+  REBRAND,
+  SHOP_CARDS,
+  SKETCH,
+  STARTER_CARDS,
+  SUBSCRIPTION_BOX,
+  TRUCK,
+  WHOLESALE_CLUB,
+  WORKSHOP,
+} from './cards';
 export { FIXTURES, fixtureById, flagshipMultiplier } from './fixtures';
 export { CONTRACTS } from './contracts';
 export { BOSSES } from './bosses';

@@ -42,4 +42,19 @@ export abstract class BoardBoss {
   recallsParked(): boolean {
     return false;
   }
+
+  /** Multiplier on every Category's Demand this round. */
+  demandMul(): number {
+    return 1;
+  }
+
+  /** False if Design cards' Margin × (Influencer, Rebrand) don't apply this round; their +$ still do. */
+  designMultipliers(): boolean {
+    return true;
+  }
+
+  /** Shifts this round, given the normal number. */
+  shiftsPerRound(normal: number): number {
+    return normal;
+  }
 }

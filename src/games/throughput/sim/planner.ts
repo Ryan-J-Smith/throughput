@@ -52,7 +52,7 @@ export function planLoad(run: ThroughputRun, options: PlanOptions): Placement[] 
   const ctx = run.shiftContext();
   const base: LineSlot[] = run.line.map((s) => ({ fixture: s.fixture, card: s.card?.card ?? null }));
   const open = run.hand.length === 0 ? [] : run.line.map((_, i) => i).filter((i) => run.whyCannotLoad([{ hand: 0, slot: i }]) === null);
-  const shiftsAfter = run.config.shiftsPerRound - run.shift;
+  const shiftsAfter = run.shiftsThisRound - run.shift;
   const needed = run.target - run.sales;
   // A parked Design takes its slot all round; past this many, the Line can't both make and ship.
   const maxDesigns = cardSlots(run) - MAKE_AND_SHIP_SLOTS;
@@ -166,7 +166,20 @@ export function retoolChoice(run: ThroughputRun): number[] {
 /** Where a Fixture works best along the Line, from 0 (left) to 1 (right). */
 const FIXTURE_POSITION: Readonly<Record<string, number>> = {
   'rnd-lab': 0,
+  'patent-office': 0,
+  'design-studio': 0.1,
   'quality-lab': 0,
+  'lean-cell': 0.3,
+  'conveyor-belt': 0.4,
+  'robotics-cell': 0.4,
+  megafactory: 0.6,
+  'logistics-hub': 0.7,
+  'signature-line': 0.6,
+  'cross-dock': 0.8,
+  'packaging-line': 1,
+  'luxury-counter': 1,
+  'express-lane': 1,
+  superstore: 1,
   'price-gun': 0.4,
   'overtime-crew': 0.5,
   automation: 0.5,
@@ -186,17 +199,22 @@ export function preferredSlot(def: FixtureDef, run: ThroughputRun): number | nul
   return free[0]?.i ?? null;
 }
 
+const VOLUME_FIXTURES: readonly string[] = ['overtime-crew', 'assembly-line', 'automation', 'megafactory', 'logistics-hub', 'superstore', 'robotics-cell', 'conveyor-belt'];
+const VOLUME_CARDS: readonly string[] = ['factory-floor', 'wholesale-club', 'contract-manufacturer', 'export-deal'];
+
 /** What a run ended up building, for archetype breakdowns. */
 export function classifyBuild(run: ThroughputRun): string {
   const fixtures = run.line.flatMap((s) => (s.fixture === null ? [] : [s.fixture.def.id]));
   const cards = run.deck.filter((c) => c.paid > 0).map((c) => c.def.id);
   const has = (id: string) => fixtures.includes(id);
-  if (has('rnd-lab')) return 'rnd-compounder';
-  if (has('price-gun')) return 'skimmer';
+  if (has('rnd-lab') || has('patent-office')) return 'rnd-compounder';
+  if (has('price-gun') || has('luxury-counter') || has('lean-cell')) return 'skimmer';
   if (has('warehouse')) return 'stockpile';
-  const volume = fixtures.filter((f) => ['overtime-crew', 'assembly-line', 'automation'].includes(f)).length;
-  const volumeCards = cards.filter((c) => c === 'factory-floor' || c === 'wholesale-club').length;
+  const volume = fixtures.filter((f) => VOLUME_FIXTURES.includes(f)).length;
+  const volumeCards = cards.filter((c) => VOLUME_CARDS.includes(c)).length;
   if (volume + volumeCards >= 2) return 'mass-market';
+  const designs = cards.filter((c) => c === 'influencer' || c === 'rebrand').length;
+  if (designs > 0 && (has('quality-lab') || has('design-studio') || has('robot-arm'))) return 'design-stack';
   if (fixtures.length + cards.length === 0) return 'starter';
   return 'mixed';
 }

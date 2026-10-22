@@ -40,7 +40,7 @@ export function grants(overrides: Partial<Record<Category, Partial<GrantLevels>>
 }
 
 export function context(overrides: Partial<ShiftContext> = {}): ShiftContext {
-  return { config: DEFAULT_CONFIG, trends: trends(), demandLeft: demandLeft(), grants: grants(), hotPipsLeft: 2, stored: 0, boss: null, ...overrides };
+  return { config: DEFAULT_CONFIG, trends: trends(), demand: demandLeft(), demandLeft: demandLeft(), grants: grants(), hotPipsLeft: 2, stored: 0, boss: null, ...overrides };
 }
 
 export function boss(id: string): BoardBoss {

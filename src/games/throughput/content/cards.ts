@@ -41,8 +41,78 @@ export const WHOLESALE_CLUB: CardDef = {
   text: 'Ship all Units at half Margin (ignores Demand and cap cuts)',
 };
 
+export const PROTOTYPE: CardDef = { id: 'prototype', name: 'Prototype', stage: 'design', price: 3, marginAdd: 3, marginMul: 1, text: '+$3 Margin' };
+export const REBRAND: CardDef = {
+  id: 'rebrand',
+  name: 'Rebrand',
+  stage: 'design',
+  price: 6,
+  marginAdd: -2,
+  marginMul: 2,
+  text: '-$2 Margin, then Margin ×2',
+};
+export const PRINTER_3D: CardDef = { id: '3d-printer', name: '3D Printer', stage: 'make', price: 3, units: 4, marginAdd: 2, text: '+4 Units, +$2 Margin' };
+export const CONTRACT_MANUFACTURER: CardDef = {
+  id: 'contract-manufacturer',
+  name: 'Contract Manufacturer',
+  stage: 'make',
+  price: 5,
+  units: 20,
+  marginAdd: -1,
+  text: '+20 Units, -$1 Margin',
+};
+export const POP_UP_SHOP: CardDef = {
+  id: 'pop-up-shop',
+  name: 'Pop-Up Shop',
+  stage: 'ship',
+  price: 4,
+  cap: 5,
+  marginMul: 3,
+  text: 'Ship 5 at Margin ×3 (this sale only)',
+};
+export const MARKETPLACE: CardDef = {
+  id: 'marketplace',
+  name: 'Marketplace',
+  stage: 'ship',
+  price: 5,
+  cap: 'demand',
+  marginMul: 1.25,
+  text: 'Ship up to Demand at Margin ×1.25 (this sale only)',
+};
+export const SUBSCRIPTION_BOX: CardDef = {
+  id: 'subscription-box',
+  name: 'Subscription Box',
+  stage: 'ship',
+  price: 4,
+  cap: 12,
+  marginMul: 1.5,
+  text: 'Ship 12 at Margin ×1.5 (this sale only)',
+};
+export const EXPORT_DEAL: CardDef = {
+  id: 'export-deal',
+  name: 'Export Deal',
+  stage: 'ship',
+  price: 6,
+  cap: 'all',
+  marginMul: 0.75,
+  text: 'Ship all Units at Margin ×0.75 (ignores Demand and cap cuts)',
+};
+
 /** Per Category: 1 Sketch, 2 Workshops, 2 Trucks (20 cards over 4 Categories). */
 export const STARTER_CARDS: readonly CardDef[] = [SKETCH, WORKSHOP, WORKSHOP, TRUCK, TRUCK];
 
 /** Cards the shop sells, each in any Category. Expediter is cut for the MVP (see DESIGN_NOTES). */
-export const SHOP_CARDS: readonly CardDef[] = [INFLUENCER, FACTORY_FLOOR, BOUTIQUE, WHOLESALE_CLUB];
+export const SHOP_CARDS: readonly CardDef[] = [
+  INFLUENCER,
+  PROTOTYPE,
+  REBRAND,
+  FACTORY_FLOOR,
+  PRINTER_3D,
+  CONTRACT_MANUFACTURER,
+  BOUTIQUE,
+  WHOLESALE_CLUB,
+  POP_UP_SHOP,
+  MARKETPLACE,
+  SUBSCRIPTION_BOX,
+  EXPORT_DEAL,
+];

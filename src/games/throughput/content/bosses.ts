@@ -59,4 +59,57 @@ class JitAuditor extends BoardBoss {
   }
 }
 
-export const BOSSES: readonly BoardBoss[] = [new LineShift(), new Turnover(), new SupplyShock(), new JitAuditor()];
+class Bottleneck extends BoardBoss {
+  readonly id = 'bottleneck';
+  readonly name = 'Bottleneck';
+  readonly text = 'Slot 3 is welded shut: no card, and its Fixture does nothing. It breaks Handoff chains.';
+  readonly pressures = 'Brand Chain and Skimmer: chains and Gun-to-Ship runs are cut in the middle';
+
+  override isWelded(slot: number): boolean {
+    return slot === 2;
+  }
+}
+
+class Recession extends BoardBoss {
+  readonly id = 'recession';
+  readonly name = 'Recession';
+  readonly text = "Every Category's Demand is halved this round. Wholesale Club and Export Deal still sell everything.";
+  readonly pressures = 'Mass Market: volume runs out of buyers';
+
+  override demandMul(): number {
+    return 0.5;
+  }
+}
+
+class EthicsReview extends BoardBoss {
+  readonly id = 'ethics-review';
+  readonly name = 'Ethics Review';
+  readonly text = "Design cards' Margin × (Influencer, Rebrand) don't apply this round. Their +$ still do.";
+  readonly pressures = 'Design stacks: the Influencer multiplier tower';
+
+  override designMultipliers(): boolean {
+    return false;
+  }
+}
+
+class ShortWeek extends BoardBoss {
+  readonly id = 'short-week';
+  readonly name = 'Short Week';
+  readonly text = 'This round has 3 Shifts instead of 4.';
+  readonly pressures = 'Slow setups: parked-Design and setup-Shift plays get one fewer Shift';
+
+  override shiftsPerRound(normal: number): number {
+    return normal - 1;
+  }
+}
+
+export const BOSSES: readonly BoardBoss[] = [
+  new LineShift(),
+  new Turnover(),
+  new SupplyShock(),
+  new JitAuditor(),
+  new Bottleneck(),
+  new Recession(),
+  new EthicsReview(),
+  new ShortWeek(),
+];

@@ -59,7 +59,7 @@ export type Card = {
   growth: number;
 };
 
-export type ContractEffect = 'tooling' | 'downsize' | 'expand' | 'grant';
+export type ContractEffect = 'tooling' | 'downsize' | 'expand' | 'grant' | 'clone' | 'campaign' | 'training' | 'bond';
 
 /** What an R&D Grant buys for its Category: Scale (more Demand and Units) or Premium (a higher sale price). */
 export type GrantOption = 'scale' | 'premium';
@@ -78,4 +78,9 @@ export type ContractDef = {
   readonly targetsCard: boolean;
   /** True when buying it needs a Category and a Grant option (R&D Grant). */
   readonly targetsCategory: boolean;
+  /** Shop weight relative to other Contracts (default 1). */
+  readonly weight?: number;
 };
+
+/** Run-long bonuses bought with Contracts. */
+export type Perks = { readonly hotPips: number; readonly retools: number; readonly interestCap: number };

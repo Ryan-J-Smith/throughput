@@ -85,6 +85,11 @@ abstract class StrategyBot extends ThroughputBot {
     return { category, option: this.unitsPerShip(category) * grant.premiumStep < grant.scaleUnits ? 'scale' : 'premium' };
   }
 
+  /** Deck card for a Clone, or null to skip it: an Influencer, else a Rebrand, else the most-grown Design. */
+  protected cloneTarget(run: ThroughputRun): number | null {
+    return indexOf(run, (c) => c.def.id === 'influencer') ?? indexOf(run, (c) => c.def.id === 'rebrand') ?? bestIndex(run, (c) => (c.def.stage === 'design' ? 1 + c.growth : 0));
+  }
+
   /** Deck card for Downsizing, or null to skip it. */
   protected downsizeTarget(run: ThroughputRun): number | null {
     return indexOf(run, (c) => c.def.id === 'workshop');
@@ -165,9 +170,10 @@ abstract class StrategyBot extends ThroughputBot {
       case 'card':
         return {};
       case 'contract': {
-        if (offer.def.effect === 'expand') return {};
         if (offer.def.targetsCategory) return this.grantTarget(run);
-        const deckCard = offer.def.effect === 'tooling' ? this.upgradeTarget(run) : this.downsizeTarget(run);
+        if (!offer.def.targetsCard) return {};
+        const deckCard =
+          offer.def.effect === 'tooling' ? this.upgradeTarget(run) : offer.def.effect === 'clone' ? this.cloneTarget(run) : this.downsizeTarget(run);
         return deckCard === null ? null : { deckCard };
       }
     }
@@ -193,17 +199,28 @@ export class MassMarketBot extends StrategyBot {
 
   protected override want(offer: Offer, run: ThroughputRun): number {
     const wants: Record<string, number> = {
+      superstore: 12,
+      'logistics-hub': 11,
       'overtime-crew': 10,
       'assembly-line': 9,
+      megafactory: 9,
+      'robotics-cell': 9,
       'factory-floor': 8,
+      'contract-manufacturer': 8,
       'wholesale-club': 7,
+      'export-deal': 7,
       automation: 6,
+      'conveyor-belt': 6,
+      marketplace: 6,
       'floor-expansion': 5,
-      'rnd-grant': 3,
+      'cross-dock': 5,
+      'packaging-line': 4,
       'tooling-upgrade': 4,
+      'rnd-grant': 3,
+      'training-program': 3,
       showroom: 3,
     };
-    if (offer.def.id === 'wholesale-club' && countCards(run, 'wholesale-club') >= 2) return 0;
+    if ((offer.def.id === 'wholesale-club' || offer.def.id === 'export-deal') && countCards(run, 'wholesale-club') + countCards(run, 'export-deal') >= 2) return 0;
     return wants[offer.def.id] ?? 0;
   }
 
@@ -228,6 +245,16 @@ export class RndCompounderBot extends StrategyBot {
     switch (offer.def.id) {
       case 'rnd-lab':
         return owned('rnd-lab') ? 0 : 20;
+      case 'patent-office':
+        return owned('patent-office') ? 0 : 15;
+      case 'clone':
+        return 9;
+      case 'design-studio':
+      case 'rebrand':
+      case 'treasury-bond':
+        return 6;
+      case 'prototype':
+        return 4;
       case 'flagship-store':
         return 12;
       case 'robot-arm':
@@ -304,14 +331,18 @@ export class TrendSurferBot extends StrategyBot {
     if (offer.kind === 'card') {
       if (offer.def.id === 'influencer') return 7;
       const stage = next[offer.category];
-      if (stage === 'hot' || stage === 'emerging') return offer.def.id === 'boutique' ? 8 : 4;
-      return 0;
+      if (stage !== 'hot' && stage !== 'emerging') return 0;
+      return ({ boutique: 8, 'pop-up-shop': 8, 'subscription-box': 6, marketplace: 5 } as Record<string, number>)[offer.def.id] ?? 4;
     }
     const wants: Record<string, number> = {
       'flagship-store': 9,
       'robot-arm': 8,
+      'ad-campaign': 8,
+      'luxury-counter': 8,
       'floor-expansion': 7,
       'rnd-grant': 6,
+      'express-lane': 6,
+      'signature-line': 3,
       'quality-lab': 6,
       showroom: 5,
       'overtime-crew': 5,
