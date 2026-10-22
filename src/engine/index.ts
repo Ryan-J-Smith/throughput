@@ -8,3 +8,4 @@ export * from './economy';
 export * from './modifiers';
 export * from './shop';
 export * from './run';
+export * from './bosses';

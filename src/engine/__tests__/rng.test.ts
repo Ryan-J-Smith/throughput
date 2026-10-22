@@ -76,4 +76,21 @@ describe('Rng', () => {
     expect(sequence(a.fork('shop'), 5)).not.toEqual(sequence(a.fork('deck'), 5));
     expect(sequence(a.fork('shop'), 5)).not.toEqual(sequence(new Rng(5), 5));
   });
+
+  it('getState()/fromState() resume a stream exactly, through JSON', () => {
+    const rng = new Rng('save-me');
+    sequence(rng, 17);
+    const saved = JSON.parse(JSON.stringify(rng.getState())) as ReturnType<Rng['getState']>;
+    const expected = sequence(rng, 10);
+    expect(sequence(Rng.fromState(saved), 10)).toEqual(expected);
+  });
+
+  it('restore() rewinds and rejects states from another seed', () => {
+    const rng = new Rng(3);
+    const start = rng.getState();
+    const first = sequence(rng, 5);
+    rng.restore(start);
+    expect(sequence(rng, 5)).toEqual(first);
+    expect(() => rng.restore(new Rng(4).getState())).toThrow(EngineError);
+  });
 });

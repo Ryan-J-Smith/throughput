@@ -3,6 +3,8 @@ import type { EngineEvent } from './events';
 export type ModifierInfo = {
   readonly id: string;
   readonly name: string;
+  /** Player-facing rules text. */
+  readonly description: string;
   readonly rarity: string;
   readonly price: number;
 };
@@ -15,12 +17,14 @@ export type ModifierInfo = {
 export abstract class Modifier<TCard> {
   readonly id: string;
   readonly name: string;
+  readonly description: string;
   readonly rarity: string;
   readonly price: number;
 
   constructor(info: ModifierInfo) {
     this.id = info.id;
     this.name = info.name;
+    this.description = info.description;
     this.rarity = info.rarity;
     this.price = info.price;
   }

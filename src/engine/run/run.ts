@@ -1,3 +1,4 @@
+import type { BossRule } from '../bosses';
 import { Deck } from '../deck';
 import { computeInterest, Payout, Wallet } from '../economy';
 import { EngineError } from '../errors';
@@ -5,12 +6,22 @@ import { ModifierBus } from '../modifiers';
 import type { EngineEvent, Modifier } from '../modifiers';
 import { ScoreContext } from '../scoring';
 import { Shop } from '../shop';
+import type { Rng } from '../rng';
 import type { ShopOffer } from '../shop';
-import type { RoundInfo, RunConfig, RunDeps, RunPhase, RunShopDef } from './run-config';
+import type { RoundInfo, RoundRules, RunConfig, RunDeps, RunPhase, RunShopDef } from './run-config';
 
 export type PlayResult = {
   readonly score: ScoreContext;
   readonly total: number;
+};
+
+/** Everything decided about a round before it starts. */
+type RoundPlan<TCard> = {
+  readonly info: RoundInfo;
+  readonly rules: RoundRules;
+  readonly boss: BossRule<TCard> | null;
+  /** Temporary hand size change applied for the round and undone afterwards. */
+  readonly handSizeDelta: number;
 };
 
 /**
@@ -19,6 +30,7 @@ export type PlayResult = {
  * Actions throw EngineError when not allowed; each has a `whyCannot…` query returning the
  * reason (or null) so a UI can disable controls without try/catch.
  * `playsLeft` and `discardsLeft` are public so modifiers can grant or remove them.
+ * On boss rounds the boss rule adjusts the round's rules and sees every event before modifiers.
  */
 export class Run<TCard> {
   readonly config: RunConfig<TCard>;
@@ -31,7 +43,9 @@ export class Run<TCard> {
 
   private readonly deps: RunDeps<TCard>;
   private phase_: RunPhase = 'setup';
-  private round_: RoundInfo;
+  private readonly bossRng: Rng;
+  private plan: RoundPlan<TCard>;
+  private bossActive = false;
   private roundScore_ = 0;
   private payout_: Payout | null = null;
 
@@ -45,15 +59,27 @@ export class Run<TCard> {
     this.modifiers = new ModifierBus(config.modifierSlots);
     this.wallet = new Wallet(config.startingCash);
     this.shop = new Shop(config.shop, deps.rng.fork('shop'));
-    this.round_ = this.makeRound(1);
+    this.bossRng = deps.rng.fork('boss');
+    this.plan = this.makeRound(1);
   }
 
   get phase(): RunPhase {
     return this.phase_;
   }
 
+  /** The current round, or the upcoming one while in the shop or before it starts. */
   get round(): RoundInfo {
-    return this.round_;
+    return this.plan.info;
+  }
+
+  /** Rules for the current/upcoming round, after any boss adjustment. */
+  get roundRules(): RoundRules {
+    return this.plan.rules;
+  }
+
+  /** Boss rule for the current/upcoming round, or null. */
+  get boss(): BossRule<TCard> | null {
+    return this.plan.boss;
   }
 
   /** Score accumulated so far this round. */
@@ -79,10 +105,12 @@ export class Run<TCard> {
     this.requirePhase('roundStart');
     this.phase_ = 'playing';
     this.roundScore_ = 0;
-    this.playsLeft = this.config.playsPerRound;
-    this.discardsLeft = this.config.discardsPerRound;
+    this.playsLeft = this.plan.rules.plays;
+    this.discardsLeft = this.plan.rules.discards;
+    this.deck.handSize = Math.max(0, this.deck.handSize + this.plan.handSizeDelta);
+    this.bossActive = this.plan.boss !== null;
     this.deck.resetForRound();
-    this.emit({ type: 'roundStart', run: this, round: this.round_ });
+    this.emit({ type: 'roundStart', run: this, round: this.plan.info });
     this.deck.fillHand();
     this.loseIfStuck();
   }
@@ -96,7 +124,7 @@ export class Run<TCard> {
 
   leaveShop(): void {
     this.requirePhase('shop');
-    this.round_ = this.makeRound(this.round_.number + 1);
+    this.plan = this.makeRound(this.plan.info.number + 1);
     this.phase_ = 'roundStart';
   }
 
@@ -125,7 +153,7 @@ export class Run<TCard> {
     this.deck.discard(cards);
     this.emit({ type: 'afterPlay', run: this, played: cards, score, total });
 
-    if (this.roundScore_ >= this.round_.target) {
+    if (this.roundScore_ >= this.plan.info.target) {
       this.winRound();
     } else if (this.playsLeft <= 0) {
       this.loseRound();
@@ -202,7 +230,7 @@ export class Run<TCard> {
   // ---- internals ----
 
   private winRound(): void {
-    const { number, isBoss } = this.round_;
+    const { number, isBoss } = this.plan.info;
     const payout = new Payout();
     const lines: [string, number][] = [
       ['Round reward', this.config.roundReward(number, isBoss)],
@@ -213,7 +241,8 @@ export class Run<TCard> {
     for (const [source, amount] of lines) {
       if (amount !== 0) payout.add(source, amount);
     }
-    this.emit({ type: 'roundEnd', run: this, round: this.round_, won: true, roundScore: this.roundScore_, payout });
+    this.emit({ type: 'roundEnd', run: this, round: this.plan.info, won: true, roundScore: this.roundScore_, payout });
+    this.finishRound();
     this.wallet.earn(payout.total());
     this.payout_ = payout;
     this.phase_ = number >= this.config.rounds ? 'won' : 'roundEnd';
@@ -224,11 +253,18 @@ export class Run<TCard> {
     this.emit({
       type: 'roundEnd',
       run: this,
-      round: this.round_,
+      round: this.plan.info,
       won: false,
       roundScore: this.roundScore_,
       payout: new Payout(),
     });
+    this.finishRound();
+  }
+
+  /** Ends the boss's influence and undoes its temporary hand size change. */
+  private finishRound(): void {
+    this.bossActive = false;
+    this.deck.handSize = Math.max(0, this.deck.handSize - this.plan.handSizeDelta);
   }
 
   /** With no cards to play, the round cannot be won. */
@@ -236,9 +272,22 @@ export class Run<TCard> {
     if (this.phase_ === 'playing' && this.deck.hand.length === 0) this.loseRound();
   }
 
-  private makeRound(number: number): RoundInfo {
+  private makeRound(number: number): RoundPlan<TCard> {
     const isBoss = this.config.bossEvery > 0 && number % this.config.bossEvery === 0;
-    return { number, isBoss, target: this.config.target(number, isBoss) };
+    const base: RoundRules = {
+      target: this.config.target(number, isBoss),
+      plays: this.config.playsPerRound,
+      discards: this.config.discardsPerRound,
+      handSize: this.deck.handSize,
+    };
+    const boss = isBoss ? (this.config.bossPool?.pick(this.bossRng)?.create() ?? null) : null;
+    const rules = boss === null ? base : boss.adjustRoundConfig(base);
+    return {
+      info: { number, isBoss, target: rules.target },
+      rules,
+      boss,
+      handSizeDelta: rules.handSize - base.handSize,
+    };
   }
 
   /** Hides modifiers the player already owns. */
@@ -263,6 +312,7 @@ export class Run<TCard> {
   }
 
   private emit(event: EngineEvent<TCard>): void {
+    if (this.bossActive) this.plan.boss?.onEvent(event);
     this.modifiers.emit(event);
   }
 }
