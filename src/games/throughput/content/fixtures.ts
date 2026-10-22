@@ -147,7 +147,7 @@ class SignatureLine extends FixtureEffect {
 class CrossDock extends FixtureEffect {
   override onSlot(batch: Batch, here: SlotContext): void {
     const makes = makesBefore(here);
-    if (here.card?.def.stage === 'ship' && makes > 0) batch.addMargin(makes, 'Cross-Dock');
+    if (here.card?.def.stage === 'ship' && makes > 0) batch.addMargin(2 * makes, 'Cross-Dock');
   }
 
   override appliesTo(card: Card): boolean {
@@ -192,7 +192,7 @@ class LeanCell extends FixtureEffect {
 class Megafactory extends FixtureEffect {
   override onSlot(batch: Batch): void {
     batch.mulUnits(3, 'Megafactory');
-    batch.addMargin(-2, 'Megafactory');
+    batch.addMargin(-1, 'Megafactory');
   }
 }
 
@@ -226,14 +226,14 @@ class RoboticsCell extends FixtureEffect {
   }
 }
 
-/** ×1.2, +0.2 per round cleared since the Flagship was bought. */
+/** ×1.2, +0.15 per round cleared since the Flagship was bought. */
 export function flagshipMultiplier(roundsOwned: number): number {
-  return Math.round((1.2 + 0.2 * roundsOwned) * 100) / 100;
+  return Math.round((1.2 + 0.15 * roundsOwned) * 100) / 100;
 }
 
 export const FIXTURES: readonly FixtureDef[] = [
-  { id: 'quality-lab', name: 'Quality Lab', kind: 'mod', rarity: 'common', price: 4, text: 'A Design here gets +$4.', effect: new QualityLab() },
-  { id: 'overtime-crew', name: 'Overtime Crew', kind: 'mod', rarity: 'common', price: 4, text: 'A Make card here gets +8 Units.', effect: new OvertimeCrew() },
+  { id: 'quality-lab', name: 'Quality Lab', kind: 'mod', rarity: 'common', price: 4, text: 'A Design here gets +$4.', short: '+$4 to a Design', effect: new QualityLab() },
+  { id: 'overtime-crew', name: 'Overtime Crew', kind: 'mod', rarity: 'common', price: 4, text: 'A Make card here gets +8 Units.', short: 'Make +8 Units', effect: new OvertimeCrew() },
   {
     id: 'design-studio',
     name: 'Design Studio',
@@ -241,9 +241,10 @@ export const FIXTURES: readonly FixtureDef[] = [
     rarity: 'common',
     price: 4,
     text: 'A Design here gets +$2, or +$4 if the slot before holds a Design.',
+    short: 'Design +$2 (+$4 stacked)',
     effect: new DesignStudio(),
   },
-  { id: 'packaging-line', name: 'Packaging Line', kind: 'mod', rarity: 'common', price: 4, text: 'A Ship card here gets +6 Units before it sells.', effect: new PackagingLine() },
+  { id: 'packaging-line', name: 'Packaging Line', kind: 'mod', rarity: 'common', price: 3, text: 'A Ship card here gets +6 Units before it sells.', short: 'Ship +6 Units', effect: new PackagingLine() },
   {
     id: 'conveyor-belt',
     name: 'Conveyor Belt',
@@ -251,6 +252,7 @@ export const FIXTURES: readonly FixtureDef[] = [
     rarity: 'common',
     price: 3,
     text: 'A Make card here gets +4 Units for each Make card in the 2 slots before it.',
+    short: '+4 Units/Make before',
     effect: new ConveyorBelt(),
   },
   {
@@ -260,6 +262,7 @@ export const FIXTURES: readonly FixtureDef[] = [
     rarity: 'common',
     price: 3,
     text: 'A card here gets +$2 Margin if the card just before shares its Category.',
+    short: '+$2 after same Category',
     effect: new SignatureLine(),
   },
   {
@@ -268,10 +271,11 @@ export const FIXTURES: readonly FixtureDef[] = [
     kind: 'mod',
     rarity: 'common',
     price: 3,
-    text: 'A Ship card here gets +$1 Margin for each Make card in the 2 slots before it.',
+    text: 'A Ship card here gets +$2 Margin for each Make card in the 2 slots before it.',
+    short: '+$2 per Make before',
     effect: new CrossDock(),
   },
-  { id: 'showroom', name: 'Showroom', kind: 'mod', rarity: 'common', price: 4, text: 'With a Ship card here: +$3 Margin before it sells (carries on to later slots).', effect: new Showroom() },
+  { id: 'showroom', name: 'Showroom', kind: 'mod', rarity: 'common', price: 4, text: 'With a Ship card here: +$3 Margin before it sells (carries on to later slots).', short: 'Ship +$3, carries on', effect: new Showroom() },
   {
     id: 'rnd-lab',
     name: 'R&D Lab',
@@ -279,9 +283,10 @@ export const FIXTURES: readonly FixtureDef[] = [
     rarity: 'uncommon',
     price: 6,
     text: 'Each time a Design here resolves, it gains +$1 for the rest of the run.',
+    short: 'Design grows +$1',
     effect: new RndLab(),
   },
-  { id: 'automation', name: 'Automation', kind: 'mod', rarity: 'uncommon', price: 6, text: 'A Make card here is not dispatched.', effect: new Automation() },
+  { id: 'automation', name: 'Automation', kind: 'mod', rarity: 'uncommon', price: 5, text: 'A Make card here is not dispatched.', short: 'Make stays on Line', effect: new Automation() },
   {
     id: 'brand-manager',
     name: 'Brand Manager',
@@ -289,6 +294,7 @@ export const FIXTURES: readonly FixtureDef[] = [
     rarity: 'uncommon',
     price: 6,
     text: 'If this slot and the 2 before it hold same-Category cards: Margin ×1.5.',
+    short: '3 same Category: ×1.5',
     effect: new BrandManager(),
   },
   {
@@ -298,9 +304,10 @@ export const FIXTURES: readonly FixtureDef[] = [
     rarity: 'uncommon',
     price: 6,
     text: 'Station. Margin ×2. Every later Ship card has half capacity.',
+    short: '×2, later Ships halved',
     effect: new PriceGun(),
   },
-  { id: 'assembly-line', name: 'Assembly Line', kind: 'station', rarity: 'uncommon', price: 6, text: 'Station. Units ×2.', effect: new AssemblyLine() },
+  { id: 'assembly-line', name: 'Assembly Line', kind: 'station', rarity: 'uncommon', price: 5, text: 'Station. Units ×2.', short: 'Units ×2', effect: new AssemblyLine() },
   {
     id: 'warehouse',
     name: 'Warehouse',
@@ -308,15 +315,17 @@ export const FIXTURES: readonly FixtureDef[] = [
     rarity: 'uncommon',
     price: 5,
     text: 'Station. Releases stored Units; stores leftovers (max 40). Each shop: pay 1C per 10 stored or lose them.',
+    short: 'Stores leftovers (max 40)',
     effect: new Warehouse(),
   },
   {
     id: 'logistics-hub',
     name: 'Logistics Hub',
     kind: 'mod',
-    rarity: 'uncommon',
-    price: 6,
+    rarity: 'common',
+    price: 4,
     text: '+$1 Margin for every 10 Units in the Batch here.',
+    short: '+$1 per 10 Units',
     effect: new LogisticsHub(),
   },
   {
@@ -326,27 +335,30 @@ export const FIXTURES: readonly FixtureDef[] = [
     rarity: 'uncommon',
     price: 6,
     text: 'A Ship card here with a cap of 8 or less sells at Margin ×2.',
+    short: 'Ship cap ≤8: ×2',
     effect: new LuxuryCounter(),
   },
-  { id: 'express-lane', name: 'Express Lane', kind: 'mod', rarity: 'uncommon', price: 6, text: 'A Ship card here is not dispatched.', effect: new ExpressLane() },
+  { id: 'express-lane', name: 'Express Lane', kind: 'mod', rarity: 'uncommon', price: 6, text: 'A Ship card here is not dispatched.', short: 'Ship stays on Line', effect: new ExpressLane() },
   {
     id: 'lean-cell',
     name: 'Lean Cell',
     kind: 'station',
     rarity: 'uncommon',
-    price: 5,
+    price: 4,
     text: 'Station. If the Batch has 15 or fewer Units here: Margin ×1.5.',
+    short: '≤15 Units: ×1.5',
     effect: new LeanCell(),
   },
-  { id: 'megafactory', name: 'Megafactory', kind: 'station', rarity: 'uncommon', price: 6, text: 'Station. Units ×3, -$2 Margin.', effect: new Megafactory() },
-  { id: 'robot-arm', name: 'Robot Arm', kind: 'mod', rarity: 'rare', price: 8, text: 'The card here resolves twice.', effect: new RobotArm() },
+  { id: 'megafactory', name: 'Megafactory', kind: 'station', rarity: 'uncommon', price: 5, text: 'Station. Units ×3, -$1 Margin.', short: 'Units ×3, -$1', effect: new Megafactory() },
+  { id: 'robot-arm', name: 'Robot Arm', kind: 'mod', rarity: 'rare', price: 8, text: 'The card here resolves twice.', short: 'Card resolves twice', effect: new RobotArm() },
   {
     id: 'flagship-store',
     name: 'Flagship Store',
     kind: 'mod',
     rarity: 'rare',
     price: 8,
-    text: 'A Ship card here sells at Margin ×1.2, +0.2 per round cleared since you bought it.',
+    text: 'A Ship card here sells at Margin ×1.2, +0.15 per round cleared since you bought it.',
+    short: 'Ship ×1.2, +0.15/round',
     effect: new FlagshipStore(),
   },
   {
@@ -356,18 +368,20 @@ export const FIXTURES: readonly FixtureDef[] = [
     rarity: 'rare',
     price: 7,
     text: 'A Design here also multiplies Margin by 1 + 0.1 per +$1 of R&D growth it has.',
+    short: 'Design ×(1 + growth/10)',
     effect: new PatentOffice(),
   },
   {
     id: 'superstore',
     name: 'Superstore',
     kind: 'mod',
-    rarity: 'rare',
-    price: 8,
+    rarity: 'uncommon',
+    price: 6,
     text: 'With a Ship card here: Margin ×(1 + Units in the Batch ÷ 50) before it sells.',
+    short: 'Ship ×(1 + Units/50)',
     effect: new Superstore(),
   },
-  { id: 'robotics-cell', name: 'Robotics Cell', kind: 'mod', rarity: 'rare', price: 7, text: 'A Make card here resolves three times.', effect: new RoboticsCell() },
+  { id: 'robotics-cell', name: 'Robotics Cell', kind: 'mod', rarity: 'rare', price: 7, text: 'A Make card here resolves three times.', short: 'Make resolves 3×', effect: new RoboticsCell() },
 ];
 
 export function fixtureById(id: string): FixtureDef {

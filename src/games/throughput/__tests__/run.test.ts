@@ -366,7 +366,7 @@ describe('ThroughputRun: bosses', () => {
   it('the Warehouse stores leftovers and charges 1C per 10 on entering the shop', () => {
     const run = new ThroughputRun(1, easyConfig({ startingCapital: 5000, targets: [10, 10, 10] }));
     makeAndShip(run);
-    for (let i = 0; i < 50 && run.line[2]?.fixture == null; i++) {
+    for (let i = 0; i < 300 && run.line[2]?.fixture == null; i++) {
       const offer = run.offers.findIndex((o) => o?.kind === 'fixture' && o.def.id === 'warehouse');
       if (offer >= 0) run.buy(offer, { slot: 2 });
       else run.reroll();
