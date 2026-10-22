@@ -410,11 +410,14 @@ export function noShipNote(run: ThroughputRun): string | null {
     : `No Ship on the Line, so nothing sells, and under ${run.boss?.name ?? 'this boss'} each Unit left at the end costs $${-value}.`;
 }
 
-/** What spending `cost` does to next round's interest, e.g. "then holding 7C → +1C interest, now +1C". */
+/**
+ * What spending `cost` does to next round's interest, with one interest figure: "then holding 11C →
+ * +2C interest", or "then holding 9C → +1C interest, 1C less" when the spend lowers it.
+ */
 export function interestTrade(run: ThroughputRun, cost: number): string {
   const now = computeInterest(run.wallet.cash, run.interestRule);
   const after = computeInterest(Math.max(0, run.wallet.cash - cost), run.interestRule);
-  return `then holding ${run.wallet.cash - cost}C → +${after}C interest, now +${now}C`;
+  return `then holding ${run.wallet.cash - cost}C → +${after}C interest${after < now ? `, ${now - after}C less` : ''}`;
 }
 
 /** Free `deck` query: every card and what is left to draw this round. */

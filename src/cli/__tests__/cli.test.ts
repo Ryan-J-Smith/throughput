@@ -171,6 +171,21 @@ describe('cli rules', () => {
   });
 });
 
+describe('cli act "state"', () => {
+  it('prints the full state as a free query and leaves the save alone', () => {
+    const io = new FakeIo();
+    io.run('new', '--seed', '5', '--save', 't.json', '--game', 'throughput');
+    const saved = io.read('t.json');
+    io.run('state', '--save', 't.json');
+    const view = io.output;
+    expect(io.run('act', '--save', 't.json', 'state')).toBe(EXIT_OK);
+    expect(io.output).toBe(view);
+    expect(io.read('t.json')).toBe(saved);
+    expect(io.run('act', '--save', 't.json', 'state', '--json')).toBe(EXIT_OK);
+    expect(JSON.parse(io.output)).toMatchObject({ ok: true, action: 'state', recorded: false, log: [], state: { phase: 'shift' } });
+  });
+});
+
 describe('cli deck', () => {
   it('prints a save\'s deck without touching the save, and says so for a game without one', () => {
     const io = new FakeIo();

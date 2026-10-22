@@ -23,7 +23,7 @@ const USAGE = `usage:
   npm run -s cli -- rules --game NAME | --save FILE [--json]
   npm run -s cli -- deck  --save FILE [--json]
 actions are game-specific; every state printout ends with the legal ones (--game picks the game for new)
-free queries such as act "rules" or act "deck" print an answer and leave the save alone
+free queries such as act "state", act "rules" or act "deck" print an answer and leave the save alone
 exit codes: 0 ok, 1 illegal action (save unchanged), 2 usage or save-file error`;
 
 type Parsed = {
@@ -95,6 +95,12 @@ function commandAct(parsed: Parsed, io: CliIo, games: readonly TextGame[]): numb
   const text = parsed.positionals.join(' ').trim();
   if (text === '') throw new UsageError('act needs an action, e.g. act --save run.json "play 1 2 3"');
   const save = loadSave(parsed, io);
+  if (text.toLowerCase() === 'state') {
+    // The "state" command as a free query: the full view, and the save is left alone.
+    const view = findGame(games, save.game).show(save);
+    io.out(parsed.flags.has('json') ? JSON.stringify({ ok: true, action: 'state', recorded: false, log: [], state: view.state }) : view.text);
+    return EXIT_OK;
+  }
   const result = findGame(games, save.game).take(save, text);
   if (!result.ok) {
     if (parsed.flags.has('json')) {

@@ -416,12 +416,14 @@ describe('ThroughputRun: payout and shop', () => {
     expect(run.wallet.cash).toBe(0);
   });
 
-  it('in the shop, the Boards ahead start after the round just cleared', () => {
+  it('the Boards ahead start after the current round: the round just cleared, or the Board being played', () => {
     const run = new ThroughputRun(1, easyConfig({ roundsPerYear: 2, targets: [0, 0, 0, 0] }));
     expect(run.upcomingBoards().map((b) => b.round)).toEqual([2, 4]);
     run.runShift();
     expect(run.upcomingBoards().map((b) => b.round)).toEqual([2, 4]);
     run.continueToNextRound();
+    expect([run.phase, run.round]).toEqual(['shift', 2]);
+    expect(run.upcomingBoards().map((b) => b.round)).toEqual([4]);
     run.runShift();
     expect(run.phase).toBe('shop');
     expect(run.upcomingBoards().map((b) => b.round)).toEqual([4]);

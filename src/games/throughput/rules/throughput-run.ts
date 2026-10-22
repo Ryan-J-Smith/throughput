@@ -415,11 +415,13 @@ export class ThroughputRun {
     return bosses[info.year - 1] ?? null;
   }
 
-  /** The next `count` Board Reviews from the current round on (bosses are telegraphed a Year ahead). */
+  /**
+   * The next `count` Board Reviews after the current round (bosses are telegraphed a Year ahead).
+   * A Board being played has its own header, and in the shop the current round is the one just cleared.
+   */
   upcomingBoards(count = 2): { readonly round: number; readonly year: number; readonly boss: BoardBoss }[] {
     const out: { round: number; year: number; boss: BoardBoss }[] = [];
-    // In the shop the current round is the one just cleared, so look from the next.
-    const from = this.phase_ === 'shop' ? this.round_ + 1 : this.round_;
+    const from = this.round_ + 1;
     const last = Math.min(this.lastPlannedRound, from + count * this.config.roundsPerYear);
     for (let round = from; round <= last && out.length < count; round++) {
       const boss = this.bossOf(round);

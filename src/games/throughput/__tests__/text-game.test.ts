@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { SaveFile, TurnResult } from '../../../play/session';
-import { ThroughputTextGame, formatAction, formatView, legalActions, noShipNote, offerBlocker, offerText, parseAction, perksText, rulesText, shipsToDraw, soldOutNote, traceLines } from '../cli';
+import { ThroughputTextGame, formatAction, formatView, interestTrade, legalActions, noShipNote, offerBlocker, offerText, parseAction, perksText, rulesText, shipsToDraw, soldOutNote, traceLines } from '../cli';
 import { BOSSES, CONTRACTS, DEFAULT_CONFIG, INFLUENCER, TRUCK, WHOLESALE_CLUB, WORKSHOP } from '../content';
 import { CATEGORIES } from '../model';
 import type { Category, Perks } from '../model';
@@ -159,6 +159,12 @@ describe('ThroughputTextGame', () => {
     expect(ok(shiftGame.take(parked.save, 'unload 4')).log).toEqual([`Back in hand: ${design.name}.`]);
   });
 
+  it('a spend shows one interest figure, saying how much less when it lowers the interest', () => {
+    const run = new ThroughputRun(1, easyConfig({ startingCapital: 13 }));
+    expect(interestTrade(run, 2)).toBe('then holding 11C → +2C interest');
+    expect(interestTrade(run, 4)).toBe('then holding 9C → +1C interest, 1C less');
+  });
+
   it('plays from a Shift into the shop and on into round 2', () => {
     const hand = handOf(game, game.newSave(1));
     const make = numberOf(hand, 'make');
@@ -166,7 +172,7 @@ describe('ThroughputTextGame', () => {
     const shop = ok(game.take(play(game, 1, [`load ${make}:1 ${ship}:2`]), 'run'));
     expect(shop.log.at(-1)).toMatch(/^Target hit! Y1 Q1 cleared\. Payout: Q1 cleared 4C, 3 unused Shifts 6C\.$/);
     expect(shop.view.text).toMatch(/Shop \(reroll 2C; holding \d+C → \+\d+C interest\):/);
-    expect(shop.view.text).toMatch(/reroll — new offers for 2C \(then holding \d+C → \+\d+C interest, now \+\d+C\)/);
+    expect(shop.view.text).toMatch(/reroll — new offers for 2C \(then holding \d+C → \+\d+C interest(, \dC less)?\)/);
     expect(shop.view.text).toMatch(/Interest: holding \d+C when the next round clears pays \+\d+C/);
     expect(shop.view.legalActions.at(-3)).toBe('continue — start Y1 Q2 (round 2, target $10)');
     expect(ok(game.take(shop.save, 'reroll')).log).toEqual([expect.stringMatching(/^Rerolled for 2C \(Capital (\d+)C → \d+C\)\. Next reroll 3C\.$/)]);
