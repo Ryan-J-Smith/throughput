@@ -36,12 +36,20 @@ function valueLabel(card: Card, demandLeft?: Readonly<Record<Category, number>>)
   }
 }
 
+/** A card's growth as a stamp, short enough for a card's foot (the CLI's growthText says where it grew). */
+function growthStamp(card: Card): string {
+  if (card.growth <= 0) return '';
+  return card.def.stage === 'make' ? `+${card.growth} grown` : growthText(card);
+}
+
 /** `demandLeft` (during a Shift) lets a Demand-capped Ship show how much it can still sell. */
 export function cardView(card: Card, id = `card-${card.uid}`, demandLeft?: Readonly<Record<Category, number>>): CardView {
   // During a Shift, a Ship says its Category's Demand left, or that it has sold out (short, so the stamp fits one line).
-  const left = demandLeft !== undefined && card.def.stage === 'ship' && shipCap(card) !== 'all' ? demandLeft[card.category] : null;
-  const demand = left === null ? '' : left === 0 ? 'Sold out' : `${left} left`;
-  const extras = [card.upgrades > 0 ? `Tooled ×${card.upgrades}` : '', growthText(card), demand].filter(Boolean);
+  // A Ship capped at Demand already shows what's left on its badge (≤N), so it stamps only Sold out.
+  const cap = card.def.stage === 'ship' ? shipCap(card) : null;
+  const left = demandLeft !== undefined && cap !== null && cap !== 'all' ? demandLeft[card.category] : null;
+  const demand = left === null ? '' : left === 0 ? 'Sold out' : cap === 'demand' ? '' : `${left} left`;
+  const extras = [card.upgrades > 0 ? `Tooled ×${card.upgrades}` : '', growthStamp(card), demand].filter(Boolean);
   return {
     id,
     title: card.def.name,

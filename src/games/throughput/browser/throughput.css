@@ -1580,6 +1580,11 @@ body:has(.screen--tp-shop[data-year])::before {
     padding-right: max(8px, calc(var(--card-w) - 100cqw + 2px));
   }
 
+  /* Slimmer pills, so "+3 grown" reads whole in the floor's narrowest strip. */
+  .tp-hand .card--windowed > .card__tags > .chip {
+    padding-inline: 5px;
+  }
+
   .tp-hand .card--windowed:has(> .card__tags > li:nth-child(2)) {
     --card-lines: 1;
     padding-bottom: 50px;

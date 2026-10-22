@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { GrantPicker, HowToPlay, KEYS_HINT, LineView, MarketBoard, PayoutSlip, Shelf, ThroughputBrowserGame, ThroughputScreen, TpHud, TraceReceipt, cardView, demandBossCut, demandViews, eventHelp, fixtureView, lineNotice, nextBoardNotice, overkillHelp, plateText } from '../browser';
 import { cardText, demandUseText, grownText, offerName } from '../cli';
-import { DEFAULT_CONFIG, REBRAND, SKETCH, TRUCK, WORKSHOP } from '../content';
+import { DEFAULT_CONFIG, POP_UP_SHOP, REBRAND, SKETCH, TRUCK, WORKSHOP } from '../content';
 import type { BayState } from '../browser';
 import { CATEGORIES, cardEffect, cardName, growthText } from '../model';
 import type { Category, Stage } from '../model';
@@ -338,11 +338,18 @@ describe('THROUGHPUT browser screen', () => {
   });
 
   it("during a Shift a Ship card stamps its Category's Demand left, or Sold out", () => {
-    const truck = card(TRUCK, 'Home');
+    const popUp = card(POP_UP_SHOP, 'Home');
     const left = { Apparel: 5, Gadgets: 5, Home: 0, Food: 5 };
-    expect(cardView(truck, 'x', left).tags).toEqual(['Home', 'Ship', 'Sold out']);
-    expect(cardView(truck, 'x', { ...left, Home: 3 }).tags).toEqual(['Home', 'Ship', '3 left']);
-    expect(cardView(truck).tags).toEqual(['Home', 'Ship']);
+    expect(cardView(popUp, 'x', left).tags).toEqual(['Home', 'Ship', 'Sold out']);
+    expect(cardView(popUp, 'x', { ...left, Home: 3 }).tags).toEqual(['Home', 'Ship', '3 left']);
+    expect(cardView(popUp).tags).toEqual(['Home', 'Ship']);
+  });
+
+  it('a Ship capped at Demand shows what is left on its badge, so it stamps only Sold out', () => {
+    const truck = card(TRUCK, 'Home');
+    const left = { Apparel: 5, Gadgets: 5, Home: 3, Food: 5 };
+    expect(cardView(truck, 'x', left)).toMatchObject({ valueLabel: '≤3', tags: ['Home', 'Ship'] });
+    expect(cardView(truck, 'x', { ...left, Home: 0 }).tags).toEqual(['Home', 'Ship', 'Sold out']);
   });
 
   it('growth reads by card type: R&D Margin on a Design, Automation Units on a Make', () => {
@@ -351,7 +358,9 @@ describe('THROUGHPUT browser screen', () => {
     expect(growthText(sketch)).toBe('R&D +$2');
     expect(growthText(workshop)).toBe('+3 grown on Automation');
     expect(growthText(card(WORKSHOP, 'Food'))).toBe('');
-    expect(cardView(workshop).tags).toContain('+3 grown on Automation');
+    // The card's stamp is short enough for its foot; the CLI says where it grew.
+    expect(cardView(workshop).tags).toContain('+3 grown');
+    expect(cardView(sketch).tags).toContain('R&D +$2');
     expect(cardText(workshop)).toBe('Workshop-F · Make: +9 Units (+3 grown on Automation)');
     expect(grownText([sketch, workshop, workshop, workshop])).toBe('Sketch-H +$1, Workshop-F +3 Units');
   });
