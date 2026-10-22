@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BOUTIQUE, DEFAULT_CONFIG, FACTORY_FLOOR, INFLUENCER, REBRAND, SKETCH, TRUCK, WHOLESALE_CLUB, WORKSHOP } from '../content';
 import type { Card } from '../model';
 import { scoreLine } from '../rules';
+import type { LineSlot } from '../rules';
 import { boss, card, context, demandLeft, fixture, grants, slot, trends } from './fixtures';
 
 /** seed-03 §2 worked example: six slots, the R&D Sketch already at +$5. */
@@ -159,6 +160,10 @@ describe('scoreLine: cards and fixtures', () => {
     expect(result.steps[1]?.events).toContain('Warehouse sells 30 stored × $10 = $300');
     expect(result.storedAfter).toBe(6);
     expect(scoreLine(line, context({ stored: 30 })).storedAfter).toBe(36);
+    // It sells even with no card in its slot: Margin $2 + Sketch $2 (no Handoff into an empty slot).
+    const empty = scoreLine([line[0] as LineSlot, slot(fixture('warehouse'), null)], context({ stored: 30, boss: boss('turnover') }));
+    expect(empty.steps[1]?.events).toContain('Warehouse sells 30 stored × $8 = $240');
+    expect(empty.storedAfter).toBe(0);
   });
 });
 

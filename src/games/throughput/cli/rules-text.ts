@@ -169,9 +169,12 @@ FIXTURES
     Overtime Crew and Automation: Makes; Showroom and Flagship Store: Ships). The trace marks a Mod
     "idle" when its card is the wrong type.
   - A Station fills the slot itself: no card goes there, and it breaks Handoffs.
-  - Warehouse (Mod): a Make card on it also copies its Units into stock, which builds up across
-    rounds. In a Board Review, when the Batch reaches it, the whole stock sells at the Batch's Margin
-    there ×2, ignoring Demand.
+  - Warehouse (Mod): a Make card on it also copies its own Units into stock (they stay in the Batch
+    too), and the stock builds up across rounds. In every Shift of a Board Review, when the Batch
+    reaches the Warehouse (even with no card there), the whole stock sells at the Margin reaching that
+    slot ×2, ignoring Demand, before that slot's card resolves. So a Make there in a Board Review is
+    stocked after the sale and sells at the next Board Shift. Only the card's own Units are copied:
+    Units from other Fixtures (Assembly Line, Robotics Cell and the like) are not.
 
 BOARD REVIEWS (bosses)
   The last round of each Year has a boss rule. A run meets ${Math.min(years, BOSSES.length)} of these ${BOSSES.length}, drawn at random; the next

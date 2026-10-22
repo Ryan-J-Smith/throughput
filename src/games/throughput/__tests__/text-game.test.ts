@@ -407,6 +407,7 @@ describe('rules and shop text', () => {
     expect(text).toContain('A Shift in which a Hot Ship card sells at least\n    1 Unit spends 1 pip');
     expect(text).not.toContain('first 2 Shifts');
     expect(text).toContain('HOW A SALE IS PRICED');
+    expect(text).toContain('In every Shift of a Board Review, when the Batch\n    reaches the Warehouse (even with no card there), the whole stock sells');
     expect(text).toContain('A Rebrand that has already resolved this Shift (another copy, or the same card under Robot Arm)\n       gives ×1.5 instead of ×2.');
     expect(text).toContain('Revenue is rounded down once per sale');
     expect(text).toContain('Line Shift: Shift 1 runs on your layout. From Shift 2 on');

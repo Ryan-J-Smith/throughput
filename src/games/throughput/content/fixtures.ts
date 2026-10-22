@@ -351,7 +351,7 @@ export const FIXTURES: readonly FixtureDef[] = [
     kind: 'mod',
     rarity: 'uncommon',
     price: 5,
-    text: 'A Make here also stocks its Units, sold here on Boards at Margin ×2.',
+    text: 'A Make here also stocks its Units. Every Board Review Shift, the stock sells here at Margin ×2.',
     short: 'Stock sells at Boards',
     effect: new Warehouse(),
   },
