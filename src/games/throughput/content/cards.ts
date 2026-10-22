@@ -31,6 +31,7 @@ export const BOUTIQUE: CardDef = {
   marginMul: 2,
   text: 'Ship 8 at Margin ×2 (this sale only)',
 };
+/** No longer sold (playtest 3: Export Deal does its job better); kept as the half-Margin sell-all in tests. */
 export const WHOLESALE_CLUB: CardDef = {
   id: 'wholesale-club',
   name: 'Wholesale Club',
@@ -57,7 +58,7 @@ export const CONTRACT_MANUFACTURER: CardDef = {
   id: 'contract-manufacturer',
   name: 'Outsourcer',
   stage: 'make',
-  price: 6,
+  price: 5,
   units: 20,
   marginAdd: -1,
   text: '+20 Units, -$1 Margin',
@@ -68,8 +69,8 @@ export const POP_UP_SHOP: CardDef = {
   stage: 'ship',
   price: 4,
   cap: 5,
-  marginMul: 3,
-  text: 'Ship 5 at Margin ×3 (this sale only)',
+  marginMul: 4,
+  text: 'Ship 5 at Margin ×4 (this sale only)',
 };
 export const MARKETPLACE: CardDef = {
   id: 'marketplace',
@@ -103,7 +104,7 @@ export const EXPORT_DEAL: CardDef = {
 // Playtest 2: one Truck per Category (was two), so fewer hands are Ships the Line can't use.
 export const STARTER_CARDS: readonly CardDef[] = [SKETCH, WORKSHOP, WORKSHOP, TRUCK];
 
-/** Cards the shop sells, each in any Category. Expediter is cut for the MVP (see DESIGN_NOTES). */
+/** Cards the shop sells, each in any Category. Expediter is cut for the MVP, Wholesale Club after playtest 3 (see DESIGN_NOTES). */
 export const SHOP_CARDS: readonly CardDef[] = [
   INFLUENCER,
   PROTOTYPE,
@@ -112,7 +113,6 @@ export const SHOP_CARDS: readonly CardDef[] = [
   PRINTER_3D,
   CONTRACT_MANUFACTURER,
   BOUTIQUE,
-  WHOLESALE_CLUB,
   POP_UP_SHOP,
   MARKETPLACE,
   SUBSCRIPTION_BOX,

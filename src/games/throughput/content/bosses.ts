@@ -79,7 +79,7 @@ class Recession extends BoardBoss {
   readonly id = 'recession';
   readonly name = 'Recession';
   readonly short = 'Demand halved';
-  readonly text = "Every Category's Demand is halved this round. Wholesale Club and Export Deal still sell everything.";
+  readonly text = "Every Category's Demand is halved this round. Export Deal still sells everything.";
   readonly pressures = 'Mass Market: volume runs out of buyers';
   override readonly earliestYear = 3;
 

@@ -935,3 +935,50 @@ Cells are mean sales ÷ target, with Shift-1 clear % in parentheses.
 - The expert still clears most of Years 1–2 on Shift 1. Raising targets doesn't change that: even +30% leaves 86%. Its
   Shift-1 output is about 1.5× the target, so forcing Shift 2 would take +50%, which would wipe out weak play.
   Tension in Years 1–2 has to come from the Boards and the draw, not the targets.
+
+### Dead items, supply and the Skimmer lane (round 3 §7 #9)
+
+Round 3's dead list: Pop-Up 0/19, Wholesale 1/18, Cross-Dock 2/21, Factory Floor 2/21, Signature Line 2/18, Packaging
+Line 1/10, Lean Cell 0/7 and Patent Office 0/3. Each candidate was simmed alone on the expert, which reads "would a
+skilled player take it?" better than the roster. Then the set was simmed together.
+
+| Item | Before (expert pick %, wins with / without) | Change | After |
+|---|---|---|---|
+| Pop-Up Shop | 7% (31% / 50%) | Ship 5 at ×3 → ×4: the Skimmer's spike Ship | 18%, at par |
+| Wholesale Club | 2% | **Retired from the shop.** Export Deal does the same job at ×0.75. | – |
+| Cross-Dock | 21% | +$2 per Make before → Margin ×1.2 per Make before | 27% |
+| Signature Line | 37% (−9% aware) | +$2 → Margin ×1.25 after a same-Category card | 40% (at par) |
+| Packaging Line | 24% | +6 → +8 Units | 24% (+10% aware) |
+| Patent Office | 3% | ×(1 + growth ÷ 10) → ×1.5, +0.1 per $1 grown: no longer needs R&D fuel | 45%, at par |
+| Luxury Counter | 1–2% | caps ≤ 8 → ≤ 12 (Subscriptions qualifies); ×2 → ×2, +0.25 a round owned | Skimmer payoff, below |
+| Outsourcer | 24% | 6 → 5C | 31% |
+| R&D Grant | 328 offers in 200 runs | always offered by the 3rd shop visit, if the run can take one | 454 offers |
+
+- **Not changed:**
+  - **Lean Cell is not dead for skilled play.** The expert buys it in 82% of runs at ×1.5, since early Lines hold 15
+    Units or fewer. At ×2 it alone lifted expert wins from 46.5% to 56.5%.
+  - **Factory Floor:** +12 Units without the −$1 barely moved the expert (35% → 37–42%, still below par). The
+    Station changes already make Units scarcer, so it waits for round 4.
+  - Packaging Line as "a capped Ship here sells up to twice its cap" was worse (5% pick), so it was rejected.
+- **Skimmer payoff.** A new `skimmer` roster bot commits to the lane: Luxury Counter, Boutique, Lean Cell, Packaging,
+  Pop-Up and Designs. Over 1000 seeds:
+
+  | Variant | `skimmer` wins | `skimmer` R7–R12 | Best `skimmer` round |
+  |---|---|---|---|
+  | Before | 0.9% (last of 7 bots) | 1.09 | 3.1× |
+  | Pop-Up ×4, Luxury ×2 + 0.25/round, caps ≤ 8 | 4.2% | 1.16 | 4.6× |
+  | **… caps ≤ 12** | **6.0% (mid-field)** | **1.17** | **4.6×** |
+  | … + 0.5/round | 7.1% | 1.20 | 5.8× |
+
+  - The +0.25 version takes the lane from last to mid-field, and its peaks stay under the field's.
+  - The expert still rarely buys Luxury Counter (3–5%), since one-buy-at-a-time valuation can't see a payoff that
+    grows. Committed play (LLM testers) can.
+- **Dense copy** (asst-a's note):
+  - Patent Office: "A Design here gives Margin ×1.5, +0.1 per $1 it has grown."
+  - R&D Grant: "Category: Premium (+25% price) or Scale (+10 Demand, +3 Units a Ship)."
+- **The shipped set** (everything above, Factory Floor unchanged), 400 expert seeds:
+  - Expert wins move from 46.5% to 48.0%.
+  - Every reworked item sits at or above par when bought. Luxury Counter is +22% aware on its few buys, Patent Office
+    +5% at 49% picks, and Packaging Line +9%.
+  - The roster's `skimmer` wins 6.0%. The other bots are unchanged within noise (station-volume 11.7%).
+  - The late curve is left alone, as asked.

@@ -152,7 +152,7 @@ class DesignStudio extends FixtureEffect {
 
 class PackagingLine extends FixtureEffect {
   override onSlot(batch: Batch, here: SlotContext): void {
-    if (here.card?.def.stage === 'ship') batch.addUnits(6, 'Packaging Line');
+    if (here.card?.def.stage === 'ship') batch.addUnits(8, 'Packaging Line');
   }
 
   override appliesTo(card: Card): boolean {
@@ -178,14 +178,14 @@ class ConveyorBelt extends FixtureEffect {
 
 class SignatureLine extends FixtureEffect {
   override onSlot(batch: Batch, here: SlotContext): void {
-    if (here.card !== null && here.previous[0]?.category === here.card.category) batch.addMargin(2, 'Signature Line');
+    if (here.card !== null && here.previous[0]?.category === here.card.category) batch.mulMargin(1.25, 'Signature Line');
   }
 }
 
 class CrossDock extends FixtureEffect {
   override onSlot(batch: Batch, here: SlotContext): void {
     const makes = makesBefore(here);
-    if (here.card?.def.stage === 'ship' && makes > 0) batch.addMargin(2 * makes, 'Cross-Dock');
+    if (here.card?.def.stage === 'ship' && makes > 0) batch.mulMargin(1.2 ** makes, 'Cross-Dock');
   }
 
   override appliesTo(card: Card): boolean {
@@ -203,14 +203,17 @@ class LogisticsHub extends FixtureEffect {
   }
 }
 
+/** Luxury Counter's growth per round owned: the Skimmer's payoff (playtest 3). */
+export const LUXURY_GROWTH = 0.25;
+
 class LuxuryCounter extends FixtureEffect {
-  override saleMultiplier(card: Card): number {
-    return this.appliesTo(card) ? 2 : 1;
+  override saleMultiplier(card: Card, fixture: Fixture): number {
+    return this.appliesTo(card) ? 2 + LUXURY_GROWTH * fixture.roundsOwned : 1;
   }
 
   override appliesTo(card: Card): boolean {
     const cap = shipCap(card);
-    return card.def.stage === 'ship' && typeof cap === 'number' && cap <= 8;
+    return card.def.stage === 'ship' && typeof cap === 'number' && cap <= 12;
   }
 }
 
@@ -244,7 +247,7 @@ class Megafactory extends FixtureEffect {
 
 class PatentOffice extends FixtureEffect {
   override afterResolve(card: Card, batch: Batch): void {
-    if (card.def.stage === 'design' && card.growth > 0) batch.mulMargin(1 + 0.1 * card.growth, 'Patent Office');
+    if (card.def.stage === 'design') batch.mulMargin(1.5 + 0.1 * card.growth, 'Patent Office');
   }
 
   override appliesTo(card: Card): boolean {
@@ -290,7 +293,7 @@ export const FIXTURES: readonly FixtureDef[] = [
     short: 'Design +$2 (+$4 stacked)',
     effect: new DesignStudio(),
   },
-  { id: 'packaging-line', name: 'Packaging Line', kind: 'mod', rarity: 'common', price: 3, text: 'A Ship card here gets +6 Units before it sells.', short: 'Ship +6 Units', effect: new PackagingLine() },
+  { id: 'packaging-line', name: 'Packaging Line', kind: 'mod', rarity: 'common', price: 3, text: 'A Ship card here gets +8 Units before it sells.', short: 'Ship +8 Units', effect: new PackagingLine() },
   {
     id: 'conveyor-belt',
     name: 'Conveyor Belt',
@@ -307,8 +310,8 @@ export const FIXTURES: readonly FixtureDef[] = [
     kind: 'mod',
     rarity: 'common',
     price: 3,
-    text: 'A card here gets +$2 Margin if the card just before shares its Category.',
-    short: '+$2 after same Category',
+    text: 'Margin ×1.25 if the card here shares the Category of the card just before.',
+    short: '×1.25 after same Category',
     effect: new SignatureLine(),
   },
   {
@@ -317,8 +320,8 @@ export const FIXTURES: readonly FixtureDef[] = [
     kind: 'mod',
     rarity: 'common',
     price: 3,
-    text: 'A Ship card here gets +$2 Margin for each Make card in the 2 slots before it.',
-    short: '+$2 per Make before',
+    text: 'A Ship card here: Margin ×1.2 for each Make card in the 2 slots before it.',
+    short: '×1.2 per Make before',
     effect: new CrossDock(),
   },
   { id: 'showroom', name: 'Showroom', kind: 'mod', rarity: 'common', price: 4, text: 'With a Ship card here: +$3 Margin before it sells (carries on to later slots).', short: 'Ship +$3, carries on', effect: new Showroom() },
@@ -380,8 +383,8 @@ export const FIXTURES: readonly FixtureDef[] = [
     kind: 'mod',
     rarity: 'uncommon',
     price: 6,
-    text: 'A Ship card here with a cap of 8 or less sells at Margin ×2.',
-    short: 'Ship cap ≤8: ×2',
+    text: 'A Ship here capped at 12 or less: Margin ×2, +0.25 per round since bought.',
+    short: 'Cap ≤12: ×2, +0.25/round',
     effect: new LuxuryCounter(),
   },
   { id: 'express-lane', name: 'Express Lane', kind: 'mod', rarity: 'uncommon', price: 6, text: "A Ship here sells at Margin ×3 in Shift 1 of each round; Hot doesn't stack.", short: 'Ship ×3, Shift 1', effect: new ExpressLane() },
@@ -413,8 +416,8 @@ export const FIXTURES: readonly FixtureDef[] = [
     kind: 'mod',
     rarity: 'rare',
     price: 7,
-    text: 'A Design here also gives Margin ×(1 + 0.1 per $1 of its R&D growth).',
-    short: 'Design ×(1 + growth/10)',
+    text: 'A Design here gives Margin ×1.5, +0.1 per $1 it has grown.',
+    short: 'Design ×1.5, more grown',
     effect: new PatentOffice(),
   },
   {

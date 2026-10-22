@@ -19,6 +19,9 @@ type ContractOfferDef = { readonly id: string; readonly rarity: 'common'; readon
 // Playtest 2: rares were near-unseen (Flagship 0 offers in 8 runs), so 70/25/5 became 60/30/10.
 const FIXTURE_ODDS: Readonly<Record<Rarity, number>> = { common: 60, uncommon: 30, rare: 10 };
 
+/** The shop visit by which an R&D Grant has surely been offered (playtest 3: one tester saw none in 17 Contract slots). */
+const GRANT_BY_VISIT = 3;
+
 /**
  * Each visit offers 2 Fixtures, 2 Cards and 1 Contract. Built on three engine Shops (one per
  * kind) so the mix is fixed; the reroll cost is shared and tracked here.
@@ -29,6 +32,8 @@ export class ThroughputShop {
   private readonly contracts: Shop<ContractOfferDef>;
   private readonly config: ThroughputConfig;
   private rerollCost_: number;
+  private visits = 0;
+  private grantOffered = false;
 
   constructor(config: ThroughputConfig, rng: Rng) {
     this.config = config;
@@ -65,10 +70,14 @@ export class ThroughputShop {
     ];
   }
 
-  /** Fresh stock for a shop visit; Contracts the run can't take (`allowed` false) are left out. */
+  /**
+   * Fresh stock for a shop visit; Contracts the run can't take (`allowed` false) are left out. By
+   * visit `GRANT_BY_VISIT`, an R&D Grant not yet offered this run fills the Contract slot.
+   */
   restock(allowed: (contract: ContractDef) => boolean): void {
     this.rerollCost_ = this.config.rerollBaseCost;
-    this.stock(allowed);
+    this.visits++;
+    this.stock(allowed, this.visits >= GRANT_BY_VISIT && !this.grantOffered);
   }
 
   whyCannotReroll(wallet: Wallet): string | null {
@@ -100,10 +109,13 @@ export class ThroughputShop {
     return offer;
   }
 
-  private stock(allowed: (contract: ContractDef) => boolean): void {
+  private stock(allowed: (contract: ContractDef) => boolean, grantDue = false): void {
     this.fixtures.restock();
     this.cards.restock();
-    this.contracts.restock((def) => allowed(def.contract));
+    const grant = (contract: ContractDef) => contract.effect === 'grant' && allowed(contract);
+    const forced = grantDue && CONTRACTS.some(grant);
+    this.contracts.restock((def) => (forced ? grant(def.contract) : allowed(def.contract)));
+    if (this.contracts.offers.some((o) => o?.def.contract.effect === 'grant')) this.grantOffered = true;
   }
 }
 

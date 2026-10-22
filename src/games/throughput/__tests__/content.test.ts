@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { Rng } from '../../../engine/rng';
 import {
   BOSSES,
   CONTRACTS,
@@ -9,19 +10,21 @@ import {
   POP_UP_SHOP,
   SHOP_CARDS,
   SKETCH,
+  SUBSCRIPTION_BOX,
   TRUCK,
   WORKSHOP,
 } from '../content';
-import { ThroughputRun, scoreLine } from '../rules';
+import { ThroughputRun, ThroughputShop, scoreLine } from '../rules';
 import { boss, card, context, easyConfig, fixture, quotaCapRun, slot } from './fixtures';
 
 // Content wave 1 (completion plan): 12 shop cards, 24 Fixtures, 8 Contracts, 8 Board bosses (9 with playtest-2's Quota Cap).
+// Playtest 3 retired Wholesale Club from the shop: 11 shop cards.
 
 const words = (text: string) => text.split(/\s+/).filter(Boolean).length;
 
 describe('content catalogue', () => {
   it('has the wave-1 counts, unique ids, and modifier text of at most 20 words', () => {
-    expect(SHOP_CARDS).toHaveLength(12);
+    expect(SHOP_CARDS).toHaveLength(11);
     expect(FIXTURES).toHaveLength(24);
     expect(CONTRACTS).toHaveLength(8);
     expect(BOSSES).toHaveLength(9);
@@ -53,10 +56,10 @@ describe('wave-1 Fixtures', () => {
     expect(after.steps[1]?.margin).toBe(2 + 2 + 4 + 2);
   });
 
-  it('Packaging Line adds 6 Units before a Ship sells; Cross-Dock adds $2 per Make in the 2 slots before', () => {
-    expect(scoreLine([slot(fixture('packaging-line'), ship())], context()).demandSold).toEqual({ Home: 6 });
+  it('Packaging Line adds 8 Units before a Ship sells; Cross-Dock multiplies Margin by 1.2 per Make in the 2 slots before', () => {
+    expect(scoreLine([slot(fixture('packaging-line'), ship())], context()).demandSold).toEqual({ Home: 8 });
     const dock = scoreLine([slot(null, card(WORKSHOP, 'Food')), slot(null, card(WORKSHOP, 'Apparel')), slot(fixture('cross-dock'), card(TRUCK, 'Home'))], context());
-    expect(dock.steps[2]?.events).toContain('Cross-Dock +$4');
+    expect(dock.steps[2]?.events).toContain('Cross-Dock Margin ×1.44');
   });
 
   it('Conveyor Belt adds 4 Units per Make in the 2 slots before; Robotics Cell resolves a Make three times', () => {
@@ -65,9 +68,9 @@ describe('wave-1 Fixtures', () => {
     expect(scoreLine([slot(fixture('robotics-cell'), make())], context()).steps[0]?.units).toBe(18);
   });
 
-  it('Signature Line adds $2 when the card before shares its Category', () => {
+  it('Signature Line multiplies Margin by 1.25 when the card before shares its Category', () => {
     const line = [slot(null, card(WORKSHOP, 'Home')), slot(fixture('signature-line'), ship())];
-    expect(scoreLine(line, context()).steps[1]?.events).toContain('Signature Line +$2');
+    expect(scoreLine(line, context()).steps[1]?.events).toContain('Signature Line Margin ×1.25');
   });
 
   it('Logistics Hub adds $1 per 10 Units; Megafactory triples Units for -$1; Superstore multiplies by 1 + Units/50', () => {
@@ -81,18 +84,23 @@ describe('wave-1 Fixtures', () => {
     expect(store.steps[1]?.events).toContain('Superstore Margin ×1.4');
   });
 
-  it('Luxury Counter doubles small-cap Ships only; Lean Cell is ×1.5 at 15 Units or fewer', () => {
+  it('Luxury Counter doubles Ships capped at 12 or less, +0.25 a round owned; Lean Cell is ×1.5 at 15 Units or fewer', () => {
     const popUp = scoreLine([slot(null, make()), slot(fixture('luxury-counter'), card(POP_UP_SHOP, 'Food'))], context());
-    expect(popUp.total).toBe(5 * 2 * 3 * 2 + 1);
+    expect(popUp.total).toBe(5 * 2 * 4 * 2 + 1);
+    const grown = scoreLine([slot(null, make()), slot(fixture('luxury-counter', 4), card(POP_UP_SHOP, 'Food'))], context());
+    expect(grown.total).toBe(5 * 2 * 4 * 3 + 1);
+    const subscriptions = scoreLine([slot(null, make()), slot(fixture('luxury-counter'), card(SUBSCRIPTION_BOX, 'Food'))], context());
+    expect(subscriptions.total).toBe(6 * 2 * 1.5 * 2);
     const truck = scoreLine([slot(null, make()), slot(fixture('luxury-counter'), card(TRUCK, 'Food'))], context());
     expect(truck.total).toBe(6 * 2);
     expect(scoreLine([slot(null, make()), slot(fixture('lean-cell'), null)], context()).steps[1]?.margin).toBe(3);
     expect(scoreLine([slot(null, card(CONTRACT_MANUFACTURER, 'Food')), slot(fixture('lean-cell'), null)], context()).steps[1]?.margin).toBe(1);
   });
 
-  it('Patent Office multiplies by 1 + 0.1 per R&D growth on its Design; Express Lane is ×3 in Shift 1 only', () => {
+  it('Patent Office multiplies by 1.5, +0.1 per $1 its Design has grown; Express Lane is ×3 in Shift 1 only', () => {
     const grown = scoreLine([slot(fixture('patent-office'), card(SKETCH, 'Home', { growth: 5 }))], context());
-    expect(grown.steps[0]?.margin).toBe((2 + 7) * 1.5);
+    expect(grown.steps[0]?.margin).toBe((2 + 7) * 2);
+    expect(scoreLine([slot(fixture('patent-office'), card(SKETCH, 'Home'))], context()).steps[0]?.margin).toBe((2 + 2) * 1.5);
     const express = [slot(null, make()), slot(fixture('express-lane'), card(TRUCK, 'Food'))];
     expect(scoreLine(express, context()).total).toBe(6 * 2 * 3);
     expect(scoreLine(express, context({ shift: 2 })).total).toBe(6 * 2);
@@ -109,6 +117,24 @@ describe('wave-1 Fixtures', () => {
     const assemblyFirst = scoreLine([outsourced, slot(fixture('assembly-line'), null), slot(fixture('megafactory'), null)], context());
     expect(assemblyFirst.steps.map((s) => s.units)).toEqual([20, 40, 60]);
     expect(assemblyFirst.steps[2]?.events).toContain('Megafactory Units ×1.5');
+  });
+});
+
+describe('playtest-3 supply', () => {
+  it('offers an R&D Grant by the third shop visit, unless the run cannot take one', () => {
+    const allowAll = () => true;
+    for (let seed = 1; seed <= 50; seed++) {
+      const shop = new ThroughputShop(DEFAULT_CONFIG, new Rng(seed));
+      let offered = false;
+      for (let visit = 1; visit <= 3; visit++) {
+        shop.restock(allowAll);
+        offered ||= shop.offers[4]?.kind === 'contract' && shop.offers[4].def.effect === 'grant';
+      }
+      expect(offered, `seed ${seed}`).toBe(true);
+    }
+    const noGrants = new ThroughputShop(DEFAULT_CONFIG, new Rng(1));
+    for (let visit = 1; visit <= 3; visit++) noGrants.restock((c) => c.effect !== 'grant');
+    expect(noGrants.offers[4]?.kind === 'contract' && noGrants.offers[4].def.effect).not.toBe('grant');
   });
 });
 

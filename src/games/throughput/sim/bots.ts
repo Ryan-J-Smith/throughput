@@ -193,7 +193,7 @@ export class GreedyBot extends StrategyBot {
   }
 }
 
-/** Early tempo: Overtime Crews, Assembly Line, Factory Floors and Wholesale Club; spends everything. */
+/** Early tempo: Overtime Crews, Assembly Line, Factory Floors and Export Deal; spends everything. */
 export class MassMarketBot extends StrategyBot {
   readonly name = 'mass-market';
 
@@ -207,7 +207,6 @@ export class MassMarketBot extends StrategyBot {
       'robotics-cell': 9,
       'factory-floor': 8,
       'contract-manufacturer': 8,
-      'wholesale-club': 7,
       'export-deal': 7,
       automation: 6,
       warehouse: 6,
@@ -221,7 +220,7 @@ export class MassMarketBot extends StrategyBot {
       'training-program': 3,
       showroom: 3,
     };
-    if ((offer.def.id === 'wholesale-club' || offer.def.id === 'export-deal') && countCards(run, 'wholesale-club') + countCards(run, 'export-deal') >= 2) return 0;
+    if (SELL_ALL.includes(offer.def.id) && SELL_ALL.reduce((n, id) => n + countCards(run, id), 0) >= 2) return 0;
     return wants[offer.def.id] ?? 0;
   }
 
@@ -441,7 +440,7 @@ const SELL_ALL: readonly string[] = ['export-deal', 'wholesale-club'];
 /**
  * Station × Station volume into a sell-all Ship (playtest 3's other dominant family): Robotics
  * Cell, Megafactory and Assembly Line multiply Units; Price Gun, Hub and Flagship price them, and
- * Export Deal or Wholesale Club sells them all.
+ * Export Deal sells them all.
  */
 export class StationVolumeBot extends StrategyBot {
   readonly name = 'station-volume';
@@ -452,7 +451,6 @@ export class StationVolumeBot extends StrategyBot {
       'assembly-line': 16,
       'robotics-cell': 15,
       'export-deal': 12,
-      'wholesale-club': 10,
       'price-gun': ownsFixture(run, 'price-gun') ? 0 : 10,
       'logistics-hub': 9,
       'flagship-store': 9,
@@ -484,9 +482,56 @@ export class StationVolumeBot extends StrategyBot {
   }
 }
 
+/**
+ * Skimmer (round 3's one working skim line: Luxury Counter + Boutique): few Units, many Designs, and
+ * capped Ships that sell them at big per-sale multipliers.
+ */
+export class SkimmerBot extends StrategyBot {
+  readonly name = 'skimmer';
+
+  protected override want(offer: Offer, run: ThroughputRun): number {
+    const wants: Record<string, number> = {
+      'luxury-counter': ownsFixture(run, 'luxury-counter') ? 6 : 20,
+      boutique: countCards(run, 'boutique') >= 2 ? 3 : 14,
+      'lean-cell': ownsFixture(run, 'lean-cell') ? 0 : 12,
+      'packaging-line': ownsFixture(run, 'packaging-line') ? 0 : 9,
+      'pop-up-shop': countCards(run, 'pop-up-shop') >= 2 ? 0 : 10,
+      'subscription-box': 5,
+      influencer: 11,
+      'robot-arm': 10,
+      'quality-lab': 9,
+      'design-studio': 9,
+      rebrand: 8,
+      'floor-expansion': 8,
+      'flagship-store': 7,
+      'rnd-grant': 7,
+      clone: 6,
+      showroom: 5,
+      'signature-line': 4,
+      prototype: 4,
+      'training-program': 3,
+    };
+    return wants[offer.def.id] ?? 0;
+  }
+
+  /** Premium on the best seller: skim sells few Units at a high price. */
+  protected override grantTarget(): { category: Category; option: GrantOption } | null {
+    return { category: this.bestSeller(), option: 'premium' };
+  }
+
+  /** A Design, never a Boutique: Luxury Counter wants caps of 8 or less. */
+  protected override upgradeTarget(run: ThroughputRun): number | null {
+    return indexOf(run, (c) => c.def.id === 'influencer') ?? indexOf(run, (c) => c.def.stage === 'design');
+  }
+
+  protected override planOptions(): PlanOptions {
+    return { designPersistence: 0.5 };
+  }
+}
+
 /** One of each strategy, in report order. */
 export function throughputBots(): ThroughputBot[] {
-  return [new GreedyBot(), new MassMarketBot(), new RndCompounderBot(), new TrendSurferBot(), new ExpressBurstBot(), new StationVolumeBot()];
+  return [new GreedyBot(), new MassMarketBot(), new RndCompounderBot(), new TrendSurferBot(), new ExpressBurstBot(), new StationVolumeBot(), new SkimmerBot()];
 }
 
 function ownsFixture(run: ThroughputRun, id: string): boolean {
