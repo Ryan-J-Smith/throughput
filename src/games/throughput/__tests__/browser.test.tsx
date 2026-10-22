@@ -211,6 +211,11 @@ describe('THROUGHPUT browser screen', () => {
     }
   });
 
+  it('the HUD Capital tile says what Capital is for', () => {
+    const html = renderToStaticMarkup(<TpHud run={new ThroughputRun(1)} />);
+    expect(html).toContain('<div class="hud__stat hud__stat--cash" title="Capital (C) is what you spend in the shop between rounds. Only Sales ($) count toward the target.">');
+  });
+
   it('the last round shows no Demand growth "from next round"', () => {
     const last = new ThroughputRun(1, easyConfig({ targets: [100_000] }));
     const notLast = new ThroughputRun(1, easyConfig({ targets: [100_000, 100_000] }));

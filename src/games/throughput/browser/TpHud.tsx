@@ -77,7 +77,7 @@ export function TpHud({ run, reveal = null, pending = null }: TpHudProps) {
         <span className="hud__label">{inShop ? 'Slots' : 'Retools'}</span>
         <span className="hud__value">{inShop ? run.line.length : run.retoolsLeft}</span>
       </div>
-      <div className="hud__stat hud__stat--cash">
+      <div className="hud__stat hud__stat--cash" title="Capital (C) is what you spend in the shop between rounds. Only Sales ($) count toward the target.">
         <span className="hud__label">Capital</span>
         <span className="hud__value">{run.wallet.cash}C</span>
       </div>

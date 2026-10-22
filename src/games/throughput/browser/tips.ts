@@ -76,7 +76,7 @@ export function currentTip(run: ThroughputRun, preview: ShiftResult | null, done
 export function tipText(id: TipId, run: ThroughputRun): string {
   switch (id) {
     case 'load':
-      return 'Tap a card in your hand, then an empty bay to load it. The Batch runs left to right: Makes add Units and Ships sell them, so put a Make before a Ship.';
+      return 'Tap a card in your hand, then an empty bay to load it. The Batch runs left to right: Makes add Units and Ships sell them, so put a Make before a Ship. Sales ($) count toward the target; Capital (C) is what you spend in the shop.';
     case 'run':
       return `The receipt shows what this Shift would make. Load more or run it now: you have ${run.shiftsThisRound} Shifts to reach $${run.target}.`;
     case 'shop':

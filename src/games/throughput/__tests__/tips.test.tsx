@@ -12,6 +12,7 @@ describe('THROUGHPUT first-run tips', () => {
     const run = new ThroughputRun(1, easyConfig());
     const none = new Set<never>();
     expect(currentTip(run, run.preview(), none)).toBe('load');
+    expect(tipText('load', run)).toContain('Sales ($) count toward the target; Capital (C) is what you spend in the shop.');
 
     run.load([{ hand: index(run, 'make'), slot: 0 }]);
     expect(currentTip(run, run.preview(), none)).toBeNull();
