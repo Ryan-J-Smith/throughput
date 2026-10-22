@@ -202,8 +202,17 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
   const buy = (offer: number) => {
     const item = run.offers[offer];
     if (item == null) return;
+    if (item.kind === 'fixture') {
+      // With a Line Fixture picked, the new one replaces it (the old one sells for half as part of the buy).
+      if (mode.kind === 'fixture') return attempt(run.whyCannotBuy(offer, { slot: mode.slot }), { verb: 'buy', offer, target: mode.slot }, () => run.buy(offer, { slot: mode.slot }));
+      const slots = run.line.map((_, slot) => slot);
+      if (!slots.some((slot) => run.whyCannotBuy(offer, { slot }) === null)) {
+        const best = slots.reduce((a, b) => (run.fixtureRefund(b) > run.fixtureRefund(a) ? b : a), 0);
+        return notify('error', run.whyCannotBuy(offer, { slot: best }) ?? `Not enough Capital (${item.price}C)`);
+      }
+      return pick(mode.kind === 'install' && mode.offer === offer ? IDLE : { kind: 'install', offer });
+    }
     if (!run.wallet.canAfford(item.price)) return notify('error', `Not enough Capital (${item.price}C)`);
-    if (item.kind === 'fixture') return pick(mode.kind === 'install' && mode.offer === offer ? IDLE : { kind: 'install', offer });
     if (item.kind === 'contract' && item.def.targetsCard) return pick(mode.kind === 'contract' && mode.offer === offer ? IDLE : { kind: 'contract', offer });
     if (item.kind === 'contract' && item.def.targetsCategory) return pick(mode.kind === 'grant' && mode.offer === offer ? IDLE : { kind: 'grant', offer });
     attempt(run.whyCannotBuy(offer), { verb: 'buy', offer, target: null }, () => run.buy(offer));
@@ -223,14 +232,15 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
     const state = run.line[slot];
     if (state === undefined) return 'idle';
     if (inShift) return mode.kind === 'place' && run.whyCannotLoad([{ hand: Math.max(0, handIndex(mode.uid)), slot }]) === null ? 'target' : 'idle';
-    if (mode.kind === 'install') return state.fixture === null ? 'target' : 'idle';
+    if (mode.kind === 'install') return run.whyCannotBuy(mode.offer, { slot }) === null ? 'target' : 'idle';
     if (mode.kind === 'fixture') return slot === mode.slot ? 'selected' : 'target';
     return 'idle';
   };
   const bayLabel = (slot: number) => {
     const state = run.line[slot];
     const card = state?.card?.card;
-    return `Bay ${slot + 1}${state?.fixture ? `, ${state.fixture.def.name}` : ''}${card ? `, ${cardName(card)}` : ', empty'}`;
+    const replace = mode.kind === 'install' && state?.fixture ? `; buying here sells ${state.fixture.def.name} for ${run.fixtureRefund(slot)}C` : '';
+    return `Bay ${slot + 1}${state?.fixture ? `, ${state.fixture.def.name}` : ''}${card ? `, ${cardName(card)}` : ', empty'}${replace}`;
   };
 
   const preview = inShift ? run.preview() : null;
@@ -343,7 +353,7 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
           {pendingFixture != null && mode.kind === 'fixture' && (
             <div className="tp-fixture-bar">
               <span>
-                {pendingFixture.def.name}: tap another bay to move it ({run.config.moveCost}C), or
+                {pendingFixture.def.name}: tap another bay to move it ({run.config.moveCost}C), buy a shop Fixture to replace it, or
               </span>
               <button type="button" className="btn btn--discard" onClick={() => attempt(run.whyCannotSellFixture(mode.slot), { verb: 'sell', what: 'fixture', index: mode.slot }, () => run.sellFixture(mode.slot))}>
                 Sell {Math.floor(pendingFixture.paid * run.config.sellRate)}C
@@ -353,11 +363,12 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
               </button>
             </div>
           )}
-          {mode.kind === 'install' && <p className="tp-hint tp-hint--shop">Tap a bay without a Fixture to install it.</p>}
+          {mode.kind === 'install' && <p className="tp-hint tp-hint--shop">Tap an empty bay to install it, or a bay with a Fixture to replace that one (sold for half).</p>}
           {tipFor('shop')}
           <Shelf
             run={run}
             pending={mode.kind === 'install' || mode.kind === 'contract' || mode.kind === 'grant' ? mode.offer : null}
+            replacing={mode.kind === 'fixture' ? mode.slot : null}
             onBuy={buy}
             onReroll={() => attempt(run.whyCannotReroll(), { verb: 'reroll' }, () => run.reroll())}
             onContinue={() =>

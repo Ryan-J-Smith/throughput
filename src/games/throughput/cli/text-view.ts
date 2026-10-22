@@ -118,10 +118,13 @@ function handNumbers(run: ThroughputRun): number[] {
 export function offerBlocker(run: ThroughputRun, offer: number): string | null {
   const item = run.offers[offer];
   if (item == null) return null;
-  if (!run.wallet.canAfford(item.price)) return `needs ${item.price}C (you have ${run.wallet.cash}C)`;
   if (item.kind === 'fixture') {
-    return run.line.some((_, s) => run.whyCannotBuy(offer, { slot: s }) === null) ? null : 'no slot without a Fixture (sell or move one first)';
+    // A Fixture bought over another sells that one, so its refund counts toward the price.
+    if (run.line.some((_, s) => run.whyCannotBuy(offer, { slot: s }) === null)) return null;
+    const refund = Math.max(...run.line.map((_, s) => run.fixtureRefund(s)));
+    return `needs ${item.price}C (you have ${run.wallet.cash}C${refund > 0 ? `, +${refund}C at most from the Fixture it replaces` : ''})`;
   }
+  if (!run.wallet.canAfford(item.price)) return `needs ${item.price}C (you have ${run.wallet.cash}C)`;
   return run.whyCannotBuy(offer, sampleTarget(item));
 }
 
@@ -165,8 +168,14 @@ export function legalActions(run: ThroughputRun): string[] {
       if (offer === null || run.whyCannotBuy(i, { slot: 0, deckCard: 0 }) === 'The shop is closed') return;
       const n = i + 1;
       if (offer.kind === 'fixture') {
-        const free = slots.filter((s) => run.whyCannotBuy(i, { slot: s }) === null);
+        const buyable = slots.filter((s) => run.whyCannotBuy(i, { slot: s }) === null);
+        const free = buyable.filter((s) => run.line[s]?.fixture == null);
+        const over = buyable.flatMap((s) => {
+          const old = run.line[s]?.fixture;
+          return old == null ? [] : [`slot ${s + 1} ${old.def.name} +${run.fixtureRefund(s)}C`];
+        });
         if (free.length > 0) out.push(`buy ${n} <slot> — ${offer.def.name} for ${offer.price}C into a slot without a Fixture (${list(free)})`);
+        if (over.length > 0) out.push(`buy ${n} <slot> — ${offer.def.name} for ${offer.price}C over a Fixture, which is sold for half as part of the buy (${over.join('; ')})`);
       } else if (offer.kind === 'contract' && offer.def.targetsCard) {
         if (run.whyCannotBuy(i, { deckCard: 0 }) === null) out.push(`buy ${n} <deck card> — ${offer.def.name} for ${offer.price}C (deck cards 1–${run.deck.length})`);
       } else if (offer.kind === 'contract' && offer.def.targetsCategory) {

@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { SaveFile, TurnResult } from '../../../play/session';
-import { ThroughputTextGame, formatAction, formatView, legalActions, offerText, parseAction, perksText, rulesText, soldOutNote, traceLines } from '../cli';
+import { ThroughputTextGame, formatAction, formatView, legalActions, offerBlocker, offerText, parseAction, perksText, rulesText, soldOutNote, traceLines } from '../cli';
 import { BOSSES, CONTRACTS, DEFAULT_CONFIG, INFLUENCER, TRUCK, WHOLESALE_CLUB, WORKSHOP } from '../content';
 import { CATEGORIES } from '../model';
 import type { Category, Perks } from '../model';
 import { ThroughputRun, scoreLine } from '../rules';
-import { boss, card, context, easyConfig, quotaCapRun, slot } from './fixtures';
+import { boss, card, context, easyConfig, quotaCapRun, shopWithFixture, slot } from './fixtures';
 
 type HandEntry = { readonly n: number; readonly name: string; readonly stage: string };
 
@@ -250,6 +250,36 @@ describe('playtest-2 clarity', () => {
     expect(soldOutNote(new SoldOutRun(ship.category), ship)).toBe(` (${ship.category} sold out: sells 0)`);
     expect(soldOutNote(new SoldOutRun(other), ship)).toBe('');
     expect(soldOutNote(new SoldOutRun(ship.category), { ...ship, def: WHOLESALE_CLUB })).toBe('');
+  });
+});
+
+describe('Fixture replace text', () => {
+  it('lists a buy over a Fixture with its refund, which counts toward the price', () => {
+    const run = shopWithFixture();
+    const old = run.line[0]?.fixture?.def.name ?? '';
+    const offer = run.offers[1];
+    const refund = run.fixtureRefund(0);
+    if (offer?.kind !== 'fixture') throw new Error('no Fixture offer');
+    expect(refund).toBeGreaterThan(0);
+    const over = `buy 2 <slot> — ${offer.def.name} for ${offer.price}C over a Fixture, which is sold for half as part of the buy (slot 1 ${old} +${refund}C)`;
+    expect(legalActions(run)).toContain(over);
+
+    run.wallet.spend(run.wallet.cash - (offer.price - refund));
+    expect(offerBlocker(run, 1)).toBeNull();
+    expect(legalActions(run)).toContain(over);
+    expect(legalActions(run).some((a) => a.startsWith('buy 2 <slot>') && a.includes('without a Fixture'))).toBe(false);
+
+    run.wallet.spend(1);
+    expect(offerBlocker(run, 1)).toBe(`needs ${offer.price}C (you have ${run.wallet.cash}C, +${refund}C at most from the Fixture it replaces)`);
+    expect(rulesText(run.config)).toContain('sells the old Fixture for half its price as part of the buy');
+  });
+
+  it('the log says which Fixture a buy replaced and what it sold for', () => {
+    const game = new ThroughputTextGame(easyConfig({ startingCapital: 100, targets: [0, 0, 0] }));
+    const first = ok(game.take(ok(game.take(game.newSave(1), 'run')).save, 'buy 1 1'));
+    const [, oldName, paid] = /^Bought (.+) for (\d+)C into slot 1\./.exec(first.log[0] ?? '') ?? [];
+    const replaced = ok(game.take(first.save, 'buy 2 1'));
+    expect(replaced.log[0]).toMatch(new RegExp(`^Bought .+ for \\d+C into slot 1, replacing ${oldName} \\(sold for ${Math.floor(Number(paid) / 2)}C\\)\\. Capital \\d+C\\.$`));
   });
 });
 

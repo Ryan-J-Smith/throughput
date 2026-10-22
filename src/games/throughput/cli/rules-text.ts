@@ -145,8 +145,10 @@ ${contracts}
   state lists them.
 
 FIXTURES
-  Each slot holds one Fixture. A new Fixture goes free into the slot you choose; moving one later
-  costs ${c.moveCost}C, in the shop only, and swaps it with any Fixture there.
+  Each slot holds one Fixture. A new Fixture goes free into the slot you choose; buying it into a
+  slot that has one sells the old Fixture for half its price as part of the buy, and that refund
+  counts toward the price. Moving one later costs ${c.moveCost}C, in the shop only, and swaps it with
+  any Fixture there.
   - A Mod sits under a card and acts on that card. Most act on one card type (Quality Lab: Designs;
     Overtime Crew and Automation: Makes; Showroom and Flagship Store: Ships). The trace marks a Mod
     "idle" when its card is the wrong type.

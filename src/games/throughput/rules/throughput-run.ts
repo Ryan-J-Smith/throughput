@@ -71,6 +71,12 @@ export function assignBosses(order: readonly BoardBoss[], years: number): BoardB
   return out;
 }
 
+/** Capital per unused Shift in a non-Board round of `year` (the config's last entry holds for later Years). */
+export function unusedShiftPay(config: ThroughputConfig, year: number): number {
+  const table = config.unusedShiftBonus;
+  return table[Math.min(year, table.length) - 1] ?? 0;
+}
+
 /**
  * A THROUGHPUT run: 12 rounds of up to 4 Shifts each, with a shop between rounds. A game-specific
  * state machine rather than engine Run, because a round is "load cards into Line slots, then run
@@ -79,12 +85,6 @@ export function assignBosses(order: readonly BoardBoss[], years: number): BoardB
  * Every action has a `whyCannot…` query; the action itself throws if called anyway, and a
  * refused action never changes state.
  */
-/** Capital per unused Shift in a non-Board round of `year` (the config's last entry holds for later Years). */
-export function unusedShiftPay(config: ThroughputConfig, year: number): number {
-  const table = config.unusedShiftBonus;
-  return table[Math.min(year, table.length) - 1] ?? 0;
-}
-
 export class ThroughputRun {
   readonly config: ThroughputConfig;
   readonly seed: number;

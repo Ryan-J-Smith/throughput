@@ -33,13 +33,15 @@ export type ShelfProps = {
   run: ThroughputRun;
   /** Offer index waiting for a bay or deck card, if any. */
   pending: number | null;
+  /** The slot of a picked Line Fixture, which a bought Fixture replaces; null if none is picked. */
+  replacing: number | null;
   onBuy: (offer: number) => void;
   onReroll: () => void;
   onContinue: () => void;
 };
 
 /** Five offers on the shop shelf: 2 Fixtures, 2 Cards, 1 Contract. */
-export function Shelf({ run, pending, onBuy, onReroll, onContinue }: ShelfProps) {
+export function Shelf({ run, pending, replacing, onBuy, onReroll, onContinue }: ShelfProps) {
   const next = run.round + 1;
   return (
     <section className="shop tp-shop" aria-label="Shop">
@@ -64,14 +66,28 @@ export function Shelf({ run, pending, onBuy, onReroll, onContinue }: ShelfProps)
       </div>
       <div className="shop__shelf">
         {run.offers.map((offer, i) => (
-          <ShelfItem key={i} run={run} offer={offer} index={i} pending={pending === i} onBuy={onBuy} />
+          <ShelfItem key={i} run={run} offer={offer} index={i} pending={pending === i} replacing={replacing} onBuy={onBuy} />
         ))}
       </div>
     </section>
   );
 }
 
-function ShelfItem({ run, offer, index, pending, onBuy }: { run: ThroughputRun; offer: Offer | null; index: number; pending: boolean; onBuy: (offer: number) => void }) {
+function ShelfItem({
+  run,
+  offer,
+  index,
+  pending,
+  replacing,
+  onBuy,
+}: {
+  run: ThroughputRun;
+  offer: Offer | null;
+  index: number;
+  pending: boolean;
+  replacing: number | null;
+  onBuy: (offer: number) => void;
+}) {
   if (offer === null) {
     return (
       <div className="shop__item tp-shop__sold" style={{ '--i': index } as CSSProperties}>
@@ -79,7 +95,14 @@ function ShelfItem({ run, offer, index, pending, onBuy }: { run: ThroughputRun; 
       </div>
     );
   }
-  const affordable = run.wallet.canAfford(offer.price);
+  // A Fixture bought over another sells that one as part of the buy, so its refund counts toward the price.
+  const replaced = offer.kind === 'fixture' && replacing !== null ? (run.line[replacing]?.fixture ?? null) : null;
+  const affordable =
+    offer.kind !== 'fixture'
+      ? run.wallet.canAfford(offer.price)
+      : replacing !== null
+        ? run.whyCannotBuy(index, { slot: replacing }) === null
+        : run.line.some((_, slot) => run.whyCannotBuy(index, { slot }) === null);
   const rarity = offer.kind === 'fixture' ? offer.def.rarity : undefined;
   return (
     <div
@@ -93,6 +116,11 @@ function ShelfItem({ run, offer, index, pending, onBuy }: { run: ThroughputRun; 
         <span className="price-tag__now">{offer.price}C</span>
       </span>
       <div className="shop__ledge" aria-hidden="true" />
+      {replaced !== null && replacing !== null && (
+        <p className="shop__note">
+          Replaces {replaced.def.name} (+{run.fixtureRefund(replacing)}C)
+        </p>
+      )}
       <button type="button" className={`btn btn--buy ${affordable ? '' : 'btn--unaffordable'}`} onClick={() => onBuy(index)}>
         {pending ? pendingLabel(offer) : `Buy ${offer.price}C`}
       </button>

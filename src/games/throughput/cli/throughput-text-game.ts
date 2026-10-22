@@ -144,11 +144,13 @@ function apply(run: ThroughputRun, action: ThroughputAction): string[] {
       return runLog(run);
     case 'buy': {
       const target = buyTarget(run, action) as BuyTarget;
+      const old = run.offers[action.offer]?.kind === 'fixture' && target.slot !== undefined ? run.line[target.slot]?.fixture : null;
+      const refund = target.slot === undefined ? 0 : run.fixtureRefund(target.slot);
       const item = run.buy(action.offer, target);
       const grant = action.grant;
       const where =
         item.kind === 'fixture'
-          ? ` into slot ${(target.slot ?? 0) + 1}`
+          ? ` into slot ${(target.slot ?? 0) + 1}${old == null ? '' : `, replacing ${old.def.name} (sold for ${refund}C)`}`
           : item.kind === 'card'
             ? ' into your deck'
             : grant !== undefined

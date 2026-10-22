@@ -8,7 +8,7 @@ import { CATEGORIES, cardEffect, growthText } from '../model';
 import type { Category, Stage } from '../model';
 import { ThroughputRun, scoreLine } from '../rules';
 import { MemoryStore } from '../../../ui/storage';
-import { boss, card, context, easyConfig, fixture, quotaCapRun, slot } from './fixtures';
+import { boss, card, context, easyConfig, fixture, quotaCapRun, shopWithFixture, slot } from './fixtures';
 
 function handIndex(run: ThroughputRun, stage: Stage): number {
   const i = run.hand.findIndex((c) => c.def.stage === stage);
@@ -135,12 +135,31 @@ describe('THROUGHPUT browser screen', () => {
       { hand: handIndex(run, 'ship'), slot: 1 },
     ]);
     run.runShift();
-    const shelf = () => renderToStaticMarkup(<Shelf run={run} pending={null} onBuy={() => {}} onReroll={() => {}} onContinue={() => {}} />);
+    const shelf = () => renderToStaticMarkup(<Shelf run={run} pending={null} replacing={null} onBuy={() => {}} onReroll={() => {}} onContinue={() => {}} />);
     const items = () => [...shelf().matchAll(/<div class="shop__item ?" data-kind="(\w+)" data-afford="(yes|no)"/g)].map((m) => [m[1], m[2]]);
     expect(items()).toEqual(run.offers.flatMap((o) => (o === null ? [] : [[o.kind, run.wallet.canAfford(o.price) ? 'yes' : 'no']])));
     expect(shelf()).toMatch(/<span class="tp-shop__interest"[^>]*>Holding \d+C → \+\d+C interest<\/span>/);
     run.wallet.spend(run.wallet.cash);
     expect(items().map(([, afford]) => afford)).toEqual(run.offers.flatMap((o) => (o === null ? [] : [o.price > 0 ? 'no' : 'yes'])));
+  });
+
+  it('with a Line Fixture picked, each Fixture offer says what it replaces, and its refund counts toward affording it', () => {
+    const run = shopWithFixture();
+    const old = run.line[0]?.fixture?.def.name ?? '';
+    const refund = run.fixtureRefund(0);
+    const price = run.offers[1]?.price ?? 0;
+    run.wallet.spend(run.wallet.cash - (price - refund));
+    const shelf = (replacing: number | null) => renderToStaticMarkup(<Shelf run={run} pending={null} replacing={replacing} onBuy={() => {}} onReroll={() => {}} onContinue={() => {}} />);
+    const offer = (html: string, i: number) => html.split('<div class="shop__item')[i + 1] ?? '';
+    const picked = shelf(0);
+    expect(offer(picked, 1)).toContain(`<div class="shop__ledge" aria-hidden="true"></div><p class="shop__note">Replaces ${old} (+${refund}C)</p><button`);
+    expect(offer(picked, 1)).toContain('data-afford="yes"');
+    expect(offer(picked, 2)).not.toContain('shop__note');
+    expect(shelf(null)).not.toContain('shop__note');
+    // Unpicked, the offer is still affordable: it can go over the Fixture in slot 1.
+    expect(offer(shelf(null), 1)).toContain('data-afford="yes"');
+    run.wallet.spend(1);
+    expect(offer(shelf(0), 1)).toContain('data-afford="no"');
   });
 
   it('the screen carries the Year (and Board rounds) for per-Year backdrops', () => {

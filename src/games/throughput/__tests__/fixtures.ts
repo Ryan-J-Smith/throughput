@@ -72,3 +72,12 @@ export function quotaCapRun(): ThroughputRun {
   }
   throw new Error('no seed with Quota Cap first and a Make and matching Ship in hand');
 }
+
+/** A run in its first shop with Capital to spare and the first Fixture offer bought into slot 1, so the second can replace it. */
+export function shopWithFixture(): ThroughputRun {
+  const run = new ThroughputRun(1, easyConfig({ startingCapital: 100, targets: [0, 0, 0] }));
+  run.runShift();
+  run.buy(0, { slot: 0 });
+  if (run.offers[1]?.kind !== 'fixture') throw new Error('the second offer is not a Fixture');
+  return run;
+}
