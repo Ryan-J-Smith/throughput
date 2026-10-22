@@ -1,18 +1,34 @@
+import { useTickingNumber } from '../../../ui/components';
+import { prefersReducedMotion, speedScale } from '../../../ui/motion';
 import { perksText } from '../cli';
 import { bossArt } from './art';
 import type { ThroughputRun } from '../rules';
 import './art-slots.css';
+import './hud-reveal.css';
 
-export type TpHudProps = { run: ThroughputRun };
+/** Round Sales before and after a Shift whose total is landing, shown before the Run is applied. */
+export type SalesReveal = { readonly from: number; readonly to: number };
+
+export type TpHudProps = {
+  run: ThroughputRun;
+  /** Count Sales up from `from` to `to` (the bar fills with it and flashes at the target). */
+  reveal?: SalesReveal | null;
+};
+
+/** How long Sales takes to count up at normal speed. */
+const REVEAL_MS = 700;
 
 /** The quarterly-report header: quarter, Sales against target, Shift, Retools, Capital, perks, and the Board rule. */
-export function TpHud({ run }: TpHudProps) {
+export function TpHud({ run, reveal = null }: TpHudProps) {
   const inShop = run.phase === 'shop';
   const round = inShop ? run.round + 1 : run.round;
   const quarter = run.quarterOf(round);
   const target = run.config.targets[round - 1] ?? 0;
-  const sales = inShop ? 0 : run.sales;
-  const progress = target > 0 ? Math.min(1, sales / target) : 0;
+  const revealing = reveal !== null && !inShop;
+  const sales = inShop ? 0 : revealing ? reveal.to : run.sales;
+  // Only a reveal counts; anything else (a new round, an applied Run) shows at once.
+  const shown = useTickingNumber(sales, revealing && !prefersReducedMotion() ? REVEAL_MS * speedScale() : 0);
+  const progress = target > 0 ? Math.min(1, shown / target) : 0;
   const boss = run.phase === 'shift' ? run.boss : null;
 
   return (
@@ -21,10 +37,14 @@ export function TpHud({ run }: TpHudProps) {
         <span className={`hud__quarter ${quarter.isBoard ? 'tp-hud__board' : ''}`}>{quarter.isBoard ? 'Board' : `Q${quarter.quarter}`}</span>
         <span className="hud__year">Year {quarter.year}</span>
       </div>
-      <div className="hud__stat hud__stat--score">
+      <div
+        className="hud__stat hud__stat--score"
+        data-reveal={revealing ? (shown < sales ? 'counting' : 'done') : undefined}
+        data-hit={(revealing && target > 0 && shown >= target) || undefined}
+      >
         <span className="hud__label">{inShop ? 'Next quarter' : 'Sales'}</span>
         <span className="hud__value">
-          {inShop ? `$${target}` : `$${sales}`}
+          {inShop ? `$${target}` : `$${shown}`}
           <span className="hud__target">{inShop ? ' target' : ` of $${target} target`}</span>
         </span>
         <div
@@ -33,7 +53,7 @@ export function TpHud({ run }: TpHudProps) {
           aria-label="Sales toward target"
           aria-valuemin={0}
           aria-valuemax={target}
-          aria-valuenow={sales}
+          aria-valuenow={Math.min(sales, target)}
         >
           <div className="hud__bar-fill" style={{ width: `${progress * 100}%` }} />
         </div>

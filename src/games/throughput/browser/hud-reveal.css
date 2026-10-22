@@ -1,0 +1,40 @@
+/*
+ * The HUD's Sales as a Shift's total lands (TpHud `reveal`): the number glows while it counts up
+ * and the bar fills with it; reaching the target flashes the bar and pops the number.
+ * Hooks: .hud__stat--score[data-reveal="counting"|"done"] and [data-hit].
+ */
+
+.tp-hud .hud__stat--score[data-reveal='counting'] .hud__value {
+  text-shadow:
+    0 0 18px rgb(46 197 255 / 0.65),
+    0 0 2px rgb(255 255 255 / 0.6);
+}
+
+.tp-hud .hud__stat--score[data-reveal] .hud__bar-fill {
+  /* The count drives the width every frame; any transition would only trail behind it. */
+  transition: none;
+}
+
+.tp-hud .hud__stat--score[data-hit] .hud__value {
+  color: var(--cash);
+  text-shadow: 0 0 22px rgb(61 220 151 / 0.7);
+  transform-origin: left center;
+  animation: tp-hud-hit var(--dur-slow) var(--ease-spring) both;
+}
+
+.tp-hud .hud__stat--score[data-hit] .hud__bar-fill {
+  background: linear-gradient(90deg, #22d3c5, #3ddc97 60%, #b6ffd9);
+  animation: tp-hud-bar-flash calc(var(--dur-slow) * 1.5) var(--ease-out) both;
+}
+
+@keyframes tp-hud-hit {
+  35% {
+    transform: scale(1.14);
+  }
+}
+
+@keyframes tp-hud-bar-flash {
+  20% {
+    filter: brightness(2.1) saturate(1.3);
+  }
+}

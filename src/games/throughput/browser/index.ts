@@ -15,6 +15,8 @@ export { RunSummaryView } from './RunSummary';
 export { playBeat, playFinale, playShiftAtOnce, saleIntensity, shiftOutcome } from './shift-sound';
 export type { ShiftOutcome } from './shift-sound';
 export { Tip } from './Tip';
+export { TpHud } from './TpHud';
+export type { SalesReveal, TpHudProps } from './TpHud';
 export type { TipProps } from './Tip';
 export { TIP_IDS, TipMemory, currentTip, tipText } from './tips';
 export type { TipId } from './tips';
