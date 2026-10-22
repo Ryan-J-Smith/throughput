@@ -1,58 +1,79 @@
 /*
- * Shelf Life design tokens. Everything visual reads from here so the game can be re-skinned by
- * editing this file alone. Sections: palette, department accents, type, space/radii, shadows,
- * motion. Legacy aliases at the bottom keep older component styles working.
+ * Shelf Life design tokens: a dark, premium skin (deep navy glass, saturated accent light).
+ * Everything visual reads from here so the game can be re-skinned by editing this file alone.
+ * Sections: surfaces, text, accents, rarity, glass, type, icons, space/radii, shadows, motion.
+ * Older token names (floor, stock, paper, print…) are kept as the names components use; their
+ * values now describe the premium surfaces. Legacy aliases at the bottom keep older styles working.
  */
 
 :root {
-  /* ---- Palette: warehouse floor, card stock, print ---- */
-  --floor: #2a2e2c;
-  --floor-deep: #1e2120;
-  --floor-paint: #e8b923; /* aisle-line yellow */
-  --panel: #353a37; /* steel shelving */
-  --panel-edge: #4a504c;
-  --chalk: #efeadf; /* light text on the floor */
-  --chalk-dim: #a9aa9f;
+  /* ---- Surfaces ---- */
+  --floor: #0a101d; /* page */
+  --floor-deep: #060a13;
+  --floor-paint: #ffb547; /* hint/hazard accent (was aisle-line yellow) */
+  --panel: #111a2b;
+  --panel-edge: #26334d;
 
-  --stock: #f1e6cb; /* manila card stock */
-  --stock-edge: #d8c9a3;
-  --stock-shade: #e6d8b6;
-  --print: #1f1a14; /* warm print black */
-  --print-dim: #5e5546;
+  --stock: #162036; /* card face */
+  --stock-edge: #2b3a58;
+  --stock-shade: #1b2742;
+  --paper: #0f1828; /* panel face (HUD, market, ledger) */
+  --paper-rule: rgb(255 255 255 / 0.08);
 
-  --paper: #fbf7ee; /* report and receipt paper */
-  --paper-rule: #c9d6e6; /* ledger rule blue */
-  --register-ink: #3d3470; /* faded register purple */
-  --stamp-red: #c8102e;
+  /* ---- Text ---- */
+  --chalk: #eef2fb; /* text on the page */
+  --chalk-dim: #9aa8c4;
+  --print: #eef2fb; /* text on cards and panels */
+  --print-dim: #9aa8c4;
+  --register-ink: #c9d4f2; /* ledger text */
+  --stamp-red: #ff5470; /* warnings, bosses */
 
-  --cash: #2c8c5a;
-  --focus: #f5c518;
+  --cash: #3ddc97;
+  --focus: #ffd166;
 
-  /* ---- Department accents (presenter picks one by key) ---- */
-  --dept-red: #d7263d;
-  --dept-blue: #1d4e9e;
-  --dept-mustard: #e8a913;
-  --dept-green: #2c8c5a;
-  --dept-teal: #13817f;
-  --dept-violet: #6c3fa0;
-  --dept-orange: #e86a1c;
-  --dept-neutral: #5a6168;
+  /* ---- Accents: Categories, card types, generic departments ---- */
+  --cat-apparel: #ff4d8d; /* rose / magenta */
+  --cat-gadgets: #2ec5ff; /* electric cyan */
+  --cat-home: #ffb02e; /* warm amber */
+  --cat-food: #8ee34d; /* fresh lime */
+  --type-design: #a77bff; /* violet */
+  --type-make: #ff7a2f; /* orange sparks */
+  --type-ship: #22d3c5; /* teal */
 
-  /* ---- Rarity finishes ---- */
-  --finish-uncommon: #9fb7a8; /* satin */
-  --finish-rare: linear-gradient(115deg, #b8f3ff, #f8c8ff 30%, #fff6b0 55%, #b9ffcf 80%, #b8f3ff);
-  --finish-legendary: linear-gradient(115deg, #a8741a, #f7d77a 35%, #b8862b 60%, #ffe9a3 85%, #a8741a);
+  --dept-red: #ff4d6d;
+  --dept-blue: #4d7cff;
+  --dept-mustard: #ffb02e;
+  --dept-green: #3ddc97;
+  --dept-teal: #22d3c5;
+  --dept-violet: #a77bff;
+  --dept-orange: #ff7a2f;
+  --dept-neutral: #5d6b85;
+
+  /* ---- Rarity: common satin, uncommon brushed silver, rare gold, legendary iridescent ---- */
+  --rarity-satin: #8091b3;
+  --rarity-silver: #d6deec;
+  --rarity-gold: #ffcf5a;
+  --finish-uncommon: linear-gradient(115deg, #8e9ab0, #f4f7fc 30%, #9aa6bc 50%, #e6ebf5 72%, #8e9ab0);
+  --finish-rare: linear-gradient(115deg, #b8862b, #ffe9a3 30%, #d9a440 52%, #fff3c4 74%, #b8862b);
+  --finish-legendary: linear-gradient(115deg, #7cf7ff, #c08bff 25%, #ff8ad8 45%, #ffe27a 65%, #7cffb8 85%, #7cf7ff);
+
+  /* ---- Glass ---- */
+  --glass: linear-gradient(180deg, rgb(255 255 255 / 0.075), rgb(255 255 255 / 0.03));
+  --glass-solid: rgb(16 24 40 / 0.78);
+  --glass-border: rgb(255 255 255 / 0.1);
+  --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.09);
+  --glass-blur: blur(16px) saturate(1.35);
 
   /* ---- Type ---- */
-  --font-display: 'Big Shoulders Display', 'Arial Narrow', 'Roboto Condensed', Impact, sans-serif;
-  --font-body: 'Archivo', 'Helvetica Neue', Arial, system-ui, sans-serif;
+  --font-display: 'Sora', 'Inter', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --text-xs: 0.6875rem;
   --text-sm: 0.8125rem;
   --text-md: 1rem;
-  --text-lg: 1.25rem;
-  --text-xl: 1.75rem;
-  --text-2xl: 2.5rem;
-  --text-3xl: clamp(3.5rem, 13vw, 7rem);
+  --text-lg: 1.2rem;
+  --text-xl: 1.6rem;
+  --text-2xl: 2.25rem;
+  --text-3xl: clamp(3rem, 11vw, 6rem);
 
   /* ---- Icon sizes (ui/icons) ---- */
   --icon-sm: 14px;
@@ -62,16 +83,16 @@
 
   /* ---- Space, radii ---- */
   --gap: 16px;
-  --radius-card: 6px;
-  --radius-panel: 4px;
-  --radius-button: 5px;
+  --radius-card: 12px;
+  --radius-panel: 14px;
+  --radius-button: 10px;
   --radius-pill: 999px;
 
   /* ---- Shadows ---- */
-  --shadow-card: 0 1px 0 rgb(255 255 255 / 0.5) inset, 0 3px 0 var(--stock-edge), 0 10px 18px rgb(0 0 0 / 0.35);
-  --shadow-lift: 0 1px 0 rgb(255 255 255 / 0.5) inset, 0 3px 0 var(--stock-edge), 0 22px 30px rgb(0 0 0 / 0.45);
-  --shadow-print: 3px 3px 0 var(--print);
-  --shadow-panel: 0 2px 0 rgb(0 0 0 / 0.35), 0 12px 24px rgb(0 0 0 / 0.25);
+  --shadow-card: 0 1px 0 rgb(255 255 255 / 0.07) inset, 0 2px 4px rgb(0 0 0 / 0.35), 0 10px 24px rgb(0 0 0 / 0.4);
+  --shadow-lift: 0 1px 0 rgb(255 255 255 / 0.1) inset, 0 6px 12px rgb(0 0 0 / 0.35), 0 22px 44px rgb(0 0 0 / 0.5);
+  --shadow-print: 0 4px 14px rgb(0 0 0 / 0.4);
+  --shadow-panel: var(--glass-highlight), 0 12px 32px rgb(0 0 0 / 0.38);
 
   /* ---- Motion ---- */
   --ease-out: cubic-bezier(0.2, 0.8, 0.3, 1);
@@ -91,32 +112,37 @@
   --ink: var(--chalk);
   --ink-dim: var(--chalk-dim);
   --line: var(--panel-edge);
-  --accent-score: #4f9fe0;
+  --accent-score: #4d9fff;
   --accent-plays: var(--dept-blue);
   --accent-discard: var(--dept-red);
   --accent-cash: var(--dept-mustard);
   --accent-value: var(--dept-green);
   --accent-select: var(--focus);
-  --accent-mult: #e8405a;
-  --accent-xmult: #9b6bd6;
-  --rarity-common: var(--stock-edge);
-  --rarity-uncommon: var(--dept-green);
-  --rarity-rare: var(--dept-blue);
-  --rarity-legendary: var(--dept-violet);
+  --accent-mult: #ff4d6d;
+  --accent-xmult: #a77bff;
+  --rarity-common: var(--rarity-satin);
+  --rarity-uncommon: var(--rarity-silver);
+  --rarity-rare: var(--rarity-gold);
+  --rarity-legendary: var(--type-design);
   --radius: var(--radius-card);
-  --shadow: 0 4px 0 rgb(0 0 0 / 0.45);
+  --shadow: 0 6px 18px rgb(0 0 0 / 0.45);
   --font: var(--font-body);
 }
 
-/* Department accent map: components set data-accent="<key>" and read --accent. */
+/* Department accent map: components set data-accent="<key>" and read --accent (and --accent-ink
+   for text on a solid accent fill). Bright accents take dark ink. */
 [data-accent] {
   --accent: var(--dept-neutral);
   --accent-ink: #fff;
 }
 [data-accent='red'] { --accent: var(--dept-red); }
 [data-accent='blue'] { --accent: var(--dept-blue); }
-[data-accent='mustard'] { --accent: var(--dept-mustard); --accent-ink: var(--print); }
-[data-accent='green'] { --accent: var(--dept-green); }
-[data-accent='teal'] { --accent: var(--dept-teal); }
+[data-accent='mustard'] { --accent: var(--dept-mustard); --accent-ink: #1a1204; }
+[data-accent='green'] { --accent: var(--dept-green); --accent-ink: #04150d; }
+[data-accent='teal'] { --accent: var(--dept-teal); --accent-ink: #041715; }
 [data-accent='violet'] { --accent: var(--dept-violet); }
-[data-accent='orange'] { --accent: var(--dept-orange); }
+[data-accent='orange'] { --accent: var(--dept-orange); --accent-ink: #1a0b02; }
+[data-accent='rose'] { --accent: var(--cat-apparel); }
+[data-accent='cyan'] { --accent: var(--cat-gadgets); --accent-ink: #03141c; }
+[data-accent='amber'] { --accent: var(--cat-home); --accent-ink: #1a1204; }
+[data-accent='lime'] { --accent: var(--cat-food); --accent-ink: #0b1703; }

@@ -211,8 +211,8 @@ export const ART_ASSETS = [
 
   // ---- Batch 1: Fixtures ----
   { id: 'fixture-quality-lab', kind: 'fixture', template: 'illustration', batch: 1, size: FIXTURE, accent: 'soft satin teal', subject: 'A large magnifying glass on an arm over a product on an inspection turntable, with a dial gauge and calipers.' },
-  { id: 'fixture-overtime-crew', kind: 'fixture', template: 'illustration', batch: 1, size: FIXTURE, accent: 'soft satin teal', subject: 'A factory punch clock with a blank face under a hanging lamp at night, a lunchbox and a thermos on a bench below.' },
-  { id: 'fixture-showroom', kind: 'fixture', template: 'illustration', batch: 1, size: FIXTURE, accent: 'soft satin teal', subject: 'A single table lamp on a display pedestal under two spotlights, framed by draped curtains.' },
+  { id: 'fixture-overtime-crew', kind: 'fixture', template: 'illustration', batch: 1, size: FIXTURE, accent: 'soft satin teal', subject: 'Two chunky toy-like factory workers in hard hats still assembling boxes at a brightly lit workbench late at night, a big wall clock past midnight above them, a thermos and coffee mugs beside them.' },
+  { id: 'fixture-showroom', kind: 'fixture', template: 'illustration', batch: 1, size: FIXTURE, accent: 'soft satin teal', subject: 'A glossy product showroom stage: three hero products (a table lamp, a sneaker, a small white robot toy) on lit round pedestals under spotlights, velvet curtains behind.' },
   { id: 'fixture-rnd-lab', kind: 'fixture', template: 'illustration', batch: 1, size: FIXTURE, accent: 'brushed silver and cyan', subject: 'A lab bench with bubbling glass flasks, coiled tubing and a prototype gear under a bell jar.' },
   { id: 'fixture-automation', kind: 'fixture', template: 'illustration', batch: 1, size: FIXTURE, accent: 'brushed silver and cyan', subject: 'An automated stamping press with pistons and gears, punching identical parts that drop into a bin.' },
   { id: 'fixture-brand-manager', kind: 'fixture', template: 'illustration', batch: 1, size: FIXTURE, accent: 'brushed silver and cyan', subject: 'A giant rubber stamp pressing a bold star emblem onto a row of identical product boxes.' },

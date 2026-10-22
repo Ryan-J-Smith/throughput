@@ -1,4 +1,5 @@
-/* Component styles. Every colour, font, radius, shadow and duration comes from theme/tokens.css. */
+/* Component styles: the premium dark skin. Every colour, font, radius, shadow and duration comes
+   from theme/tokens.css. Surfaces are dark glass over a blurred render of the factory. */
 
 * {
   box-sizing: border-box;
@@ -10,39 +11,30 @@ body {
   min-height: 100%;
 }
 
-/* Sealed concrete warehouse floor: speckle, saw-cut slab joints, overhead light falloff. */
 body {
   min-height: 100vh;
   overflow-x: clip; /* cards dealt in from off-screen must not add a horizontal scrollbar */
   color: var(--chalk);
   font-family: var(--font-body);
   font-size: var(--text-md);
-  line-height: 1.4;
+  line-height: 1.45;
   -webkit-font-smoothing: antialiased;
-  background-color: var(--floor);
-  background-image:
-    radial-gradient(circle at 17% 23%, rgb(255 255 255 / 0.035) 0 0.7px, transparent 1.2px),
-    radial-gradient(circle at 71% 64%, rgb(0 0 0 / 0.22) 0 0.8px, transparent 1.3px),
-    radial-gradient(circle at 43% 87%, rgb(255 255 255 / 0.03) 0 1px, transparent 1.6px),
-    radial-gradient(circle at 88% 12%, rgb(0 0 0 / 0.18) 0 1.1px, transparent 1.7px),
-    radial-gradient(ellipse 38% 30% at 30% 40%, rgb(255 255 255 / 0.025), transparent 70%),
-    radial-gradient(ellipse 30% 42% at 75% 65%, rgb(0 0 0 / 0.12), transparent 70%),
-    linear-gradient(90deg, transparent 0 calc(100% - 2px), rgb(0 0 0 / 0.2) calc(100% - 2px)),
-    linear-gradient(0deg, transparent 0 calc(100% - 2px), rgb(0 0 0 / 0.2) calc(100% - 2px)),
-    radial-gradient(ellipse 120% 70% at 50% -10%, rgb(255 248 230 / 0.09), transparent 65%),
-    radial-gradient(ellipse 140% 90% at 50% 125%, rgb(0 0 0 / 0.55), transparent 70%);
-  background-size:
-    23px 23px,
-    31px 31px,
-    47px 47px,
-    61px 61px,
-    740px 610px,
-    890px 770px,
-    520px 520px,
-    520px 520px,
-    100% 100%,
-    100% 100%;
-  background-attachment: fixed;
+  background:
+    radial-gradient(ellipse 70% 50% at 12% 0%, rgb(46 197 255 / 0.1), transparent 70%),
+    radial-gradient(ellipse 60% 50% at 95% 100%, rgb(255 77 141 / 0.08), transparent 70%),
+    var(--floor);
+}
+
+/* The factory hall, rendered, blurred and pushed far back behind every screen. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: -40px;
+  z-index: -1;
+  background: url('../assets/art/plain/bg-factory-hall.webp') 50% 40% / cover no-repeat;
+  filter: blur(18px) saturate(1.1) brightness(0.3);
+  opacity: 0.9;
+  pointer-events: none;
 }
 
 button {
@@ -51,23 +43,10 @@ button {
 
 .app {
   position: relative;
-  max-width: 1100px;
+  max-width: 1180px;
   min-height: 100vh;
   margin: 0 auto;
-  padding: 20px 28px 32px;
-}
-
-/* Worn yellow aisle lines either side of the play column. */
-.app::before {
-  content: '';
-  position: absolute;
-  inset: 0 6px;
-  border-inline: 5px solid rgb(232 185 35 / 0.32);
-  pointer-events: none;
-  -webkit-mask-image: radial-gradient(circle at 40% 40%, #000 0 1.2px, rgb(0 0 0 / 0.55) 1.6px);
-  mask-image: radial-gradient(circle at 40% 40%, #000 0 1.2px, rgb(0 0 0 / 0.55) 1.6px);
-  -webkit-mask-size: 5px 5px;
-  mask-size: 5px 5px;
+  padding: 18px 28px 40px;
 }
 
 .screen {
@@ -79,42 +58,73 @@ button {
 
 .section-label {
   font-family: var(--font-display);
-  font-size: var(--text-md);
-  font-weight: 800;
-  letter-spacing: 0.03em;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--chalk-dim);
+}
+
+/* A dark glass surface; most panels share it. */
+.hud,
+.next-round,
+.modifier-row,
+.shop,
+.summary,
+.receipt,
+.title-box,
+.home__panel,
+.home__game {
+  background: var(--glass), var(--glass-solid);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
 }
 
 /* ---------- Buttons ---------- */
 
-/* Printed stickers: ink outline and an offset ink shadow that presses flat on click. */
+/* Glossy buttons: a colour fill (--btn to --btn-2) under a top highlight, glowing on hover. */
 .btn {
-  border: 2px solid var(--print);
+  --btn: #2b3a5a;
+  --btn-2: var(--btn);
+  --btn-ink: #fff;
+  border: 1px solid rgb(255 255 255 / 0.16);
   border-radius: var(--radius-button);
-  padding: 7px 18px 6px;
+  padding: 10px 20px;
   font-family: var(--font-display);
-  font-size: var(--text-lg);
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  line-height: 1.1;
-  color: #fff;
-  background: var(--panel-edge);
-  box-shadow: var(--shadow-print);
+  font-size: var(--text-md);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+  color: var(--btn-ink);
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.18), rgb(255 255 255 / 0) 55%),
+    linear-gradient(135deg, var(--btn), var(--btn-2));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.25),
+    inset 0 -2px 0 rgb(0 0 0 / 0.18),
+    0 6px 16px rgb(0 0 0 / 0.35);
   cursor: pointer;
   transition:
     transform var(--dur-fast) var(--ease-out),
-    box-shadow var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out),
     filter var(--dur-fast) linear;
 }
 
 .btn:hover:not(:disabled) {
-  transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0 var(--print);
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.3),
+    inset 0 -2px 0 rgb(0 0 0 / 0.18),
+    0 8px 20px rgb(0 0 0 / 0.4),
+    0 0 26px -6px var(--btn-2);
 }
 
 .btn:active:not(:disabled) {
-  transform: translate(3px, 3px);
-  box-shadow: 0 0 0 var(--print);
+  transform: translateY(1px);
+  filter: brightness(0.95);
 }
 
 .btn:disabled {
@@ -124,37 +134,48 @@ button {
 
 .btn:focus-visible,
 .card--interactive:focus-visible {
-  outline: 3px solid var(--focus);
+  outline: 2px solid var(--focus);
   outline-offset: 3px;
 }
 
 .btn--play {
-  background: var(--dept-blue);
+  --btn: #3f6bff;
+  --btn-2: #22b8ff;
 }
 
 .btn--discard {
-  background: var(--dept-red);
+  --btn: #ff4d6d;
+  --btn-2: #ff4d8d;
 }
 
 .btn--reroll {
-  background: var(--dept-violet);
+  --btn: #7a4dff;
+  --btn-2: #a77bff;
 }
 
 .btn--buy {
+  --btn: #19b679;
+  --btn-2: #3ddc97;
+  --btn-ink: #03140c;
   width: 100%;
-  padding: 5px 8px 4px;
-  font-size: var(--text-md);
-  background: var(--dept-green);
+  padding: 7px 8px;
+  font-size: var(--text-sm);
 }
 
 .btn--cash {
-  color: var(--print);
-  background: var(--dept-mustard);
+  --btn: #ff9a1f;
+  --btn-2: #ffc24d;
+  --btn-ink: #1a1204;
 }
 
 .btn--large {
-  padding: 10px 40px 9px;
-  font-size: var(--text-xl);
+  padding: 13px 34px;
+  font-size: var(--text-lg);
+}
+
+/* Still clickable so the state owner can explain why; just looks unavailable. */
+.btn--unaffordable {
+  filter: grayscale(0.75) brightness(0.7);
 }
 
 /* ---------- Title / End ---------- */
@@ -168,80 +189,61 @@ button {
   text-align: center;
 }
 
-/* The title is a product box: colour band, stacked name, small print and a barcode. */
+/* The demo game's title card. */
 .title-box {
   position: relative;
-  width: min(100%, 440px);
-  padding: 0 0 18px;
+  width: min(100%, 460px);
+  padding: 26px 24px 22px;
   color: var(--print);
   text-align: left;
-  background:
-    repeating-linear-gradient(0deg, rgb(120 90 40 / 0.03) 0 1px, transparent 1px 3px),
-    var(--stock);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-lift);
-  transform: rotate(-1.5deg);
 }
 
 .title-box__band {
-  height: 22px;
-  margin-bottom: 14px;
-  border-radius: var(--radius-card) var(--radius-card) 0 0;
-  background:
-    linear-gradient(90deg, var(--dept-red) 0 70%, var(--dept-mustard) 70% 85%, var(--dept-blue) 85%);
+  height: 4px;
+  margin: -26px -24px 22px;
+  border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+  background: linear-gradient(90deg, var(--cat-apparel), var(--cat-home), var(--cat-food), var(--cat-gadgets));
 }
 
 .title-logo {
   display: flex;
   flex-direction: column;
   margin: 0;
-  padding: 0 22px;
   font-family: var(--font-display);
   font-size: var(--text-3xl);
-  font-weight: 900;
-  line-height: 0.82;
-  letter-spacing: -0.01em;
-  color: var(--print);
-}
-
-.title-logo span:last-child {
-  color: var(--dept-red);
+  font-weight: 800;
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+  background: linear-gradient(180deg, #fff, #b9c7e8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .title-tagline {
-  max-width: 30ch;
-  margin: 14px 22px 18px;
+  max-width: 32ch;
+  margin: 14px 0 18px;
   font-size: var(--text-md);
-  font-weight: 600;
-  line-height: 1.35;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--chalk-dim);
 }
 
 .title-box__footer {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 14px;
-  margin: 0 22px;
   padding-top: 12px;
-  border-top: 1.5px solid var(--print);
+  border-top: 1px solid var(--glass-border);
 }
 
 .title-box__barcode {
-  flex: 0 0 74px;
-  height: 34px;
-  background: repeating-linear-gradient(
-    90deg,
-    var(--print) 0 2px,
-    transparent 2px 3px,
-    var(--print) 3px 4px,
-    transparent 4px 7px,
-    var(--print) 7px 10px,
-    transparent 10px 11px
-  );
+  display: none;
 }
 
 .title-box__small {
   font-size: var(--text-xs);
-  line-height: 1.3;
+  line-height: 1.4;
   color: var(--print-dim);
 }
 
@@ -249,17 +251,23 @@ button {
   margin: 0;
   font-family: var(--font-display);
   font-size: var(--text-3xl);
-  font-weight: 900;
-  line-height: 0.9;
-  text-shadow: 4px 4px 0 var(--print);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  background: linear-gradient(180deg, #fff, #b9c7e8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 6px 24px rgb(0 0 0 / 0.5));
 }
 
 .screen--victory .end-title {
-  color: var(--dept-mustard);
+  background-image: linear-gradient(180deg, #fff3c4, var(--rarity-gold) 60%, #d9a440);
+  filter: drop-shadow(0 0 30px rgb(255 207 90 / 0.35));
 }
 
 .screen--game-over .end-title {
-  color: var(--dept-red);
+  background-image: linear-gradient(180deg, #ffd0d9, var(--dept-red));
 }
 
 .end-stats {
@@ -278,136 +286,122 @@ button {
 .end-stats dd {
   margin: 0;
   font-family: var(--font-display);
-  font-weight: 800;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   text-align: left;
 }
 
-/* ---------- Game picker (boxed products on the title) ---------- */
+/* ---------- Home (title screen; layout lives in screens/home.css) ---------- */
 
-.screen--picker {
-  justify-content: flex-start;
-  padding-top: 24px;
-}
-
-.picker {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: min(100%, 760px);
-}
-
-.picker__list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 18px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.picker__item {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: 100%;
-  height: 100%;
-  padding: 0 0 14px;
-  border: 0;
-  border-radius: var(--radius-card);
-  color: var(--print);
-  text-align: left;
+/* Full-bleed key art behind the title, darkened towards the text. */
+.home__art {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
   background:
-    repeating-linear-gradient(0deg, rgb(120 90 40 / 0.03) 0 1px, transparent 1px 3px),
-    var(--stock);
-  box-shadow: var(--shadow-card);
-  cursor: pointer;
-  transition:
-    transform var(--dur-med) var(--ease-spring),
-    box-shadow var(--dur-med) var(--ease-out);
+    linear-gradient(90deg, rgb(6 10 19 / 0.94) 0%, rgb(6 10 19 / 0.72) 42%, rgb(6 10 19 / 0.2) 100%),
+    linear-gradient(0deg, rgb(6 10 19 / 0.9), transparent 45%),
+    url('../assets/art/plain/title-key-art.webp') 70% 50% / cover no-repeat;
+  pointer-events: none;
 }
 
-.picker li:nth-child(odd) .picker__item {
-  transform: rotate(-0.8deg);
-}
-
-.picker li:nth-child(even) .picker__item {
-  transform: rotate(0.8deg);
-}
-
-.picker li .picker__item:hover {
-  transform: translateY(-6px) rotate(0deg);
-  box-shadow: var(--shadow-lift);
-}
-
-.picker__item:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 3px;
-}
-
-.picker__band {
-  height: 14px;
-  margin-bottom: 6px;
-  border-radius: var(--radius-card) var(--radius-card) 0 0;
-  background: var(--accent);
-}
-
-.picker__title {
-  padding: 0 14px;
+.home__brand {
   font-family: var(--font-display);
-  font-size: var(--text-xl);
-  font-weight: 900;
-  line-height: 1;
-}
-
-.picker__tagline {
-  flex: 1;
-  padding: 0 14px;
   font-size: var(--text-sm);
-  line-height: 1.35;
-  color: var(--print-dim);
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--cat-gadgets);
 }
 
-.picker__play {
-  align-self: flex-start;
-  margin: 6px 14px 0;
-  padding: 3px 12px 2px;
-  border: 2px solid var(--print);
-  border-radius: var(--radius-button);
+.home__title {
   font-family: var(--font-display);
-  font-size: var(--text-md);
   font-weight: 800;
-  color: #fff;
-  background: var(--accent);
-  box-shadow: 2px 2px 0 var(--print);
+  letter-spacing: -0.035em;
+  background: linear-gradient(180deg, #fff 20%, #a9bbe6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 8px 30px rgb(0 0 0 / 0.55));
 }
 
-/* "All games" strip above a running game. */
+.home__tagline {
+  color: #c9d4ea;
+  text-shadow: 0 2px 12px rgb(0 0 0 / 0.6);
+}
+
+.home__secondary .btn,
+.home__new.btn {
+  --btn: rgb(255 255 255 / 0.1);
+  --btn-2: rgb(255 255 255 / 0.04);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
+
+.home__panel {
+  color: var(--chalk);
+}
+
+.home__seed-input {
+  color: var(--chalk);
+  background: rgb(0 0 0 / 0.25);
+  border-color: var(--glass-border);
+}
+
+.home__game {
+  position: relative;
+  overflow: hidden;
+  color: var(--chalk);
+  transition:
+    transform var(--dur-med) var(--ease-out),
+    border-color var(--dur-med) linear;
+}
+
+.home__game::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--accent, var(--dept-neutral));
+  box-shadow: 0 0 14px var(--accent, transparent);
+}
+
+.home__game:hover {
+  transform: translateY(-2px);
+  border-color: rgb(255 255 255 / 0.2);
+}
+
+.home__game-title {
+  font-family: var(--font-display);
+}
+
+/* "Menu" strip above a running game. */
 .launcher-bar {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: -8px 0 12px;
+  margin: -6px 0 14px;
 }
 
 .launcher-bar__back {
-  padding: 3px 10px;
-  border: 1.5px solid var(--chalk-dim);
-  border-radius: var(--radius-button);
+  padding: 5px 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-pill);
   font-size: var(--text-sm);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--chalk);
-  background: transparent;
+  background: var(--glass), var(--glass-solid);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
   cursor: pointer;
 }
 
 .launcher-bar__back:hover {
-  border-color: var(--chalk);
+  border-color: rgb(255 255 255 / 0.25);
 }
 
 .launcher-bar__back:focus-visible {
-  outline: 3px solid var(--focus);
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -417,94 +411,103 @@ button {
 
 .launcher-bar__title {
   font-family: var(--font-display);
-  font-size: var(--text-lg);
-  font-weight: 800;
+  font-size: var(--text-md);
+  font-weight: 700;
+  letter-spacing: 0.02em;
   color: var(--chalk-dim);
 }
 
-/* ---------- HUD (quarterly report header) ---------- */
+/* ---------- HUD (quarterly report) ---------- */
 
 .hud {
   display: grid;
   grid-template-columns: auto 1fr repeat(3, auto);
   align-items: stretch;
+  overflow: hidden;
   color: var(--print);
-  background:
-    repeating-linear-gradient(180deg, transparent 0 19px, var(--paper-rule) 19px 20px) 0 10px / 100% 100%,
-    var(--paper);
-  border-top: 5px double var(--dept-blue);
-  border-radius: 0 0 var(--radius-panel) var(--radius-panel);
-  box-shadow: var(--shadow-panel);
 }
 
 .hud__stat {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 1px;
-  padding: 8px 16px 10px;
+  gap: 2px;
+  padding: 10px 18px 12px;
   border-left: 1px solid var(--paper-rule);
 }
 
 .hud__stat--round {
   align-items: center;
-  min-width: 78px;
+  min-width: 84px;
   border-left: 0;
-  color: var(--paper);
-  background: var(--print);
+  background:
+    radial-gradient(circle at 30% 20%, rgb(255 255 255 / 0.18), transparent 60%),
+    linear-gradient(160deg, #3f6bff, #22b8ff);
+  box-shadow: inset -1px 0 0 rgb(255 255 255 / 0.12);
+  color: #fff;
 }
 
 .hud__quarter {
   font-family: var(--font-display);
   font-size: var(--text-2xl);
-  font-weight: 900;
-  line-height: 0.9;
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
 }
 
 .hud__year {
   font-size: var(--text-xs);
   font-weight: 600;
-  opacity: 0.75;
+  opacity: 0.85;
 }
 
 .hud__label {
   font-size: var(--text-xs);
   font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--print-dim);
 }
 
 .hud__value {
   font-family: var(--font-display);
   font-size: var(--text-xl);
-  font-weight: 800;
-  line-height: 1;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
 
 .hud__target {
   font-family: var(--font-body);
   font-size: var(--text-sm);
-  font-weight: 600;
+  font-weight: 500;
+  letter-spacing: 0;
   color: var(--print-dim);
 }
 
-/* Revenue as a bar chart against the target line. */
+/* Revenue as a glowing bar against the target. */
 .hud__bar {
   position: relative;
   height: 8px;
-  margin-top: 5px;
-  background: repeating-linear-gradient(90deg, rgb(31 26 20 / 0.12) 0 1px, transparent 1px 10%);
-  border-bottom: 1.5px solid var(--print);
+  margin-top: 7px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: rgb(255 255 255 / 0.07);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.4);
 }
 
 .hud__bar-fill {
   height: 100%;
-  background: var(--dept-blue);
+  border-radius: inherit;
+  background: linear-gradient(90deg, #3f6bff, #22d3c5 70%, #3ddc97);
+  box-shadow: 0 0 12px rgb(46 197 255 / 0.55);
   transition: width var(--dur-slow) var(--ease-out);
 }
 
 .hud__stat--cash .hud__value {
   color: var(--cash);
+  text-shadow: 0 0 18px rgb(61 220 151 / 0.35);
 }
 
 .hud__boss {
@@ -513,41 +516,41 @@ button {
   align-items: baseline;
   flex-wrap: wrap;
   gap: 4px 10px;
-  padding: 6px 16px 7px;
+  padding: 8px 18px 9px;
   color: var(--print);
-  background: #fde9e4;
-  border-top: 1.5px dashed var(--stamp-red);
+  background: linear-gradient(90deg, rgb(255 84 112 / 0.22), rgb(255 84 112 / 0.05) 60%, transparent);
+  border-top: 1px solid rgb(255 84 112 / 0.35);
 }
 
 .hud__boss-label {
   font-size: var(--text-xs);
   font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--stamp-red);
 }
 
 .hud__boss-name {
   font-family: var(--font-display);
   font-size: var(--text-lg);
-  font-weight: 900;
-  color: var(--stamp-red);
+  font-weight: 700;
+  color: #ff8fa3;
 }
 
 .hud__boss-desc {
-  font-weight: 600;
+  font-weight: 500;
+  color: #e3e8f4;
 }
 
-/* ---------- Next round (forecast memo) ---------- */
+/* ---------- Next round (forecast) ---------- */
 
 .next-round {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 10px 16px 12px;
+  padding: 12px 18px 14px;
   color: var(--print);
-  background: var(--paper);
-  border-left: 6px solid var(--dept-blue);
-  border-radius: var(--radius-panel);
-  box-shadow: var(--shadow-panel);
+  border-left: 3px solid var(--dept-blue);
 }
 
 .next-round--boss {
@@ -568,19 +571,19 @@ button {
 .next-round__number {
   font-family: var(--font-display);
   font-size: var(--text-lg);
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .next-round__target {
   margin-left: auto;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--print-dim);
 }
 
 .next-round__target strong {
   font-family: var(--font-display);
   font-size: var(--text-xl);
-  font-weight: 900;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--print);
 }
@@ -590,27 +593,29 @@ button {
   align-items: baseline;
   flex-wrap: wrap;
   gap: 4px 10px;
-  padding: 6px 10px;
-  background: #fde9e4;
-  border: 1.5px dashed var(--stamp-red);
-  border-radius: 3px;
+  padding: 8px 12px;
+  background: rgb(255 84 112 / 0.1);
+  border: 1px solid rgb(255 84 112 / 0.35);
+  border-radius: var(--radius-button);
 }
 
 .next-round__boss-label {
   font-size: var(--text-xs);
   font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--stamp-red);
 }
 
 .next-round__boss-name {
   font-family: var(--font-display);
   font-size: var(--text-lg);
-  font-weight: 900;
-  color: var(--stamp-red);
+  font-weight: 700;
+  color: #ff8fa3;
 }
 
 .next-round__boss-desc {
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .next-round__changes {
@@ -622,15 +627,14 @@ button {
   list-style: none;
 }
 
-/* Rule changes stamped on the memo. */
 .next-round__changes li {
-  padding: 1px 8px 0;
+  padding: 2px 10px;
   font-family: var(--font-display);
-  font-size: var(--text-md);
-  font-weight: 800;
-  border: 2px solid currentColor;
-  border-radius: 3px;
-  transform: rotate(-2deg);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, currentColor 12%, transparent);
 }
 
 .next-round__changes .is-worse {
@@ -641,15 +645,22 @@ button {
   color: var(--cash);
 }
 
-/* ---------- Cards (product packaging on manila stock) ---------- */
+/* ---------- Cards ---------- */
 
+/*
+ * Lift and tilt toward the player, alternating the tilt across the hand. Transforms go on the
+ * wrapper so the tooltip toggle travels with the card; shadows stay on the card.
+ */
 .card-wrap {
   display: flex;
   flex-direction: column;
   gap: 6px;
   min-width: 0;
+  transform-origin: 50% 100%;
+  transition: transform var(--dur-med) var(--ease-spring);
 }
 
+/* A dark lacquered card: accent band, art window, title, value, effect, tags. */
 .card {
   position: relative;
   display: flex;
@@ -658,22 +669,20 @@ button {
   width: 100%;
   min-height: 176px;
   margin: 0;
-  padding: 0 0 30px;
+  padding: 0 0 12px;
   overflow: hidden;
   font: inherit;
   text-align: left;
   color: var(--print);
   background:
-    radial-gradient(circle at 15% 0%, rgb(255 255 255 / 0.4), transparent 55%),
-    repeating-linear-gradient(0deg, rgb(120 90 40 / 0.03) 0 1px, transparent 1px 3px),
-    var(--stock);
-  border: 0;
+    radial-gradient(120% 60% at 50% 0%, color-mix(in srgb, var(--accent, #4d7cff) 22%, transparent), transparent 70%),
+    linear-gradient(180deg, #1b2640, var(--stock) 60%, #111a2c);
+  border: 1px solid color-mix(in srgb, var(--accent, #fff) 30%, rgb(255 255 255 / 0.08));
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
-  transform-origin: 50% 100%;
   transition:
-    transform var(--dur-med) var(--ease-spring),
     box-shadow var(--dur-med) var(--ease-out),
+    border-color var(--dur-med) linear,
     opacity var(--dur-med) linear,
     filter var(--dur-med) linear;
 }
@@ -684,120 +693,95 @@ button {
   justify-content: space-between;
   gap: 6px;
   min-height: 26px;
-  padding: 3px 8px;
-  color: var(--accent-ink);
-  background: var(--accent);
-  box-shadow: inset 0 -2px 0 rgb(0 0 0 / 0.15);
+  padding: 4px 10px 3px;
+  color: var(--accent, var(--print));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent, #fff) 22%, transparent), transparent 85%);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent, #fff) 35%, transparent);
 }
 
 .card__dept {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
   font-family: var(--font-display);
-  font-size: var(--text-sm);
-  font-weight: 800;
-  letter-spacing: 0.05em;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
-/* Price sticker on the band. */
+.card__dept-icon {
+  width: 1.25em;
+  height: 1.25em;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent, #fff) 60%, transparent));
+}
+
+/* Price on the band. */
 .badge--cost {
-  padding: 0 7px;
+  padding: 1px 8px;
   font-family: var(--font-display);
-  font-size: var(--text-md);
-  font-weight: 900;
+  font-size: var(--text-sm);
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: var(--print);
-  background: var(--paper);
+  color: #1a1204;
+  background: linear-gradient(180deg, #ffe08a, var(--rarity-gold));
   border-radius: var(--radius-pill);
 }
 
 .card__title {
-  padding: 7px 10px 0;
+  padding: 8px 10px 0;
   font-family: var(--font-display);
-  font-size: 1.3rem;
-  font-weight: 800;
-  line-height: 0.95;
+  font-size: 1.08rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
 }
 
-/* The value, printed like a big model number. */
+/* The value: a big glowing number in the accent colour. */
 .badge--value {
   padding: 2px 10px 0;
   font-family: var(--font-display);
-  font-size: 2.75rem;
-  font-weight: 900;
-  line-height: 0.85;
-  letter-spacing: -0.02em;
+  font-size: 2.3rem;
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
-  color: var(--accent);
+  color: var(--accent, var(--print));
+  text-shadow: 0 0 18px color-mix(in srgb, var(--accent, #fff) 45%, transparent);
 }
 
 .card__desc {
-  margin: 4px 0 0;
+  margin: 5px 0 0;
   padding: 0 10px;
   font-size: var(--text-xs);
-  line-height: 1.3;
+  line-height: 1.35;
   color: var(--print-dim);
 }
 
 .card__tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 4px;
   margin: auto 0 0;
-  padding: 6px 10px 0;
+  padding: 8px 10px 0;
   list-style: none;
 }
 
-/* Rubber-stamped labels: inked outline, slight angle, multiply onto the stock. */
 .chip {
-  padding: 1px 5px 0;
-  font-family: var(--font-display);
-  font-size: var(--text-xs);
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  padding: 1px 7px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--stamp-red);
-  border: 1.5px solid currentColor;
-  border-radius: 3px;
-  transform: rotate(-4deg);
-  mix-blend-mode: multiply;
-  opacity: 0.85;
-}
-
-/* Printed barcode in the bottom corner (the tooltip toggle sits opposite). */
-.card::after {
-  content: '';
-  position: absolute;
-  left: 10px;
-  bottom: 9px;
-  width: 44px;
-  height: 14px;
-  opacity: 0.55;
-  background: repeating-linear-gradient(
-    90deg,
-    var(--print) 0 1px,
-    transparent 1px 3px,
-    var(--print) 3px 5px,
-    transparent 5px 6px,
-    var(--print) 6px 7px,
-    transparent 7px 9px
-  );
-  pointer-events: none;
-}
-
-.card--compact::after {
-  display: none;
+  color: var(--print-dim);
+  background: rgb(255 255 255 / 0.06);
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: var(--radius-pill);
 }
 
 .card--interactive {
   cursor: pointer;
-}
-
-/*
- * Lift and tilt toward the player, alternating the tilt across the hand. Transforms go on the
- * wrapper so the tooltip toggle travels with the card; shadows stay on the card.
- */
-.card-wrap {
-  transform-origin: 50% 100%;
-  transition: transform var(--dur-med) var(--ease-spring);
 }
 
 .card-wrap:has(.card--interactive:hover) {
@@ -817,15 +801,17 @@ button {
 }
 
 .card--interactive:hover {
-  box-shadow: var(--shadow-lift);
+  border-color: color-mix(in srgb, var(--accent, #fff) 60%, transparent);
+  box-shadow: var(--shadow-lift), 0 0 28px -8px var(--accent, transparent);
 }
 
 .card--selected {
-  box-shadow: 0 0 0 3px var(--focus), var(--shadow-lift);
+  border-color: var(--focus);
+  box-shadow: 0 0 0 2px var(--focus), var(--shadow-lift), 0 0 34px -6px rgb(255 209 102 / 0.55);
 }
 
 .card--disabled {
-  opacity: 0.55;
+  opacity: 0.5;
   filter: saturate(0.4);
   cursor: not-allowed;
 }
@@ -836,12 +822,13 @@ button {
 }
 
 .card--compact .card__band {
-  min-height: 8px;
+  min-height: 6px;
   padding: 0;
+  background: var(--accent, var(--dept-neutral));
 }
 
 .card--compact .card__title {
-  padding-top: 6px;
+  padding-top: 7px;
   font-size: var(--text-md);
 }
 
@@ -849,27 +836,15 @@ button {
   margin-top: 2px;
 }
 
-/* ---- Windowed box: art (or an icon) behind a die-cut window, value as a sticker on it ---- */
-
-.card__dept {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-width: 0;
-}
-
-.card__dept-icon {
-  width: 1.1em;
-  height: 1.1em;
-}
+/* ---- Windowed card: art (or an icon) in a window, the value as a glossy tab on it ---- */
 
 .card__art {
   position: relative;
   flex: none;
   aspect-ratio: 16 / 10;
-  margin: 6px 6px 0;
-  border-radius: 4px;
-  background: var(--paper);
+  margin: 7px 7px 0;
+  border-radius: 8px;
+  background: #0c1322;
 }
 
 .card__art img {
@@ -881,13 +856,15 @@ button {
   border-radius: inherit;
 }
 
-/* The window's printed edge. */
+/* The window's glass edge and a soft accent glow from below. */
 .card__art::after {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  box-shadow: inset 0 0 0 2px var(--print), inset 0 3px 6px rgb(0 0 0 / 0.25);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.12),
+    inset 0 -18px 24px -14px color-mix(in srgb, var(--accent, #000) 55%, transparent);
   pointer-events: none;
 }
 
@@ -896,47 +873,114 @@ button {
   place-items: center;
   color: var(--accent);
   background:
-    radial-gradient(circle, rgb(0 0 0 / 0.08) 0 1px, transparent 1.5px) 0 0 / 6px 6px,
-    color-mix(in srgb, var(--accent) 16%, var(--paper));
+    radial-gradient(circle at 50% 60%, color-mix(in srgb, var(--accent) 35%, transparent), transparent 65%),
+    #0c1322;
 }
 
 .card__art--icon > .icon {
   width: 42%;
   height: 60%;
+  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--accent) 70%, transparent));
 }
 
-/* The value, as a price sticker slapped on the window's corner. */
 .card--windowed .badge--value {
   position: absolute;
-  right: -3px;
-  bottom: -12px;
+  right: 6px;
+  bottom: -11px;
   z-index: 2;
-  padding: 4px 8px 1px;
-  font-size: 1.85rem;
+  padding: 4px 9px 3px;
+  font-size: 1.55rem;
+  line-height: 1;
   color: var(--accent-ink);
-  background: var(--accent);
-  border: 2px solid var(--print);
-  border-radius: 5px;
-  box-shadow: 2px 2px 0 var(--print);
-  transform: rotate(-4deg);
+  text-shadow: none;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.35), rgb(255 255 255 / 0) 60%),
+    var(--accent);
+  border: 1px solid rgb(255 255 255 / 0.35);
+  border-radius: 9px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.45), 0 0 18px -4px var(--accent);
 }
 
 .card--windowed .card__title {
-  padding-top: 8px;
-  padding-right: 54px;
+  padding-top: 9px;
+  padding-right: 58px;
 }
 
-/* ---------- Staff row (modifiers as an org chart of ID badges) ---------- */
+/* ---------- Rarity finishes ---------- */
+
+/* An edge in the rarity's metal; uncommon catches the light on hover, rare+ sweep a foil sheen. */
+.card--rarity-uncommon {
+  border-color: rgb(214 222 236 / 0.55);
+  box-shadow: 0 0 0 1px rgb(214 222 236 / 0.25), var(--shadow-card), 0 0 18px -6px rgb(214 222 236 / 0.5);
+}
+
+.card--rarity-rare {
+  border-color: rgb(255 207 90 / 0.8);
+  box-shadow: 0 0 0 1px rgb(255 207 90 / 0.35), var(--shadow-card), 0 0 26px -6px rgb(255 207 90 / 0.6);
+}
+
+.card--rarity-legendary {
+  border-color: transparent;
+  box-shadow: 0 0 0 2px #c08bff, var(--shadow-card), 0 0 32px -4px rgb(192 139 255 / 0.65);
+}
+
+.card--rarity-uncommon::before,
+.card--rarity-rare::before,
+.card--rarity-legendary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  background-size: 300% 300%;
+  pointer-events: none;
+}
+
+.card--rarity-uncommon::before {
+  background-image: linear-gradient(115deg, transparent 35%, rgb(255 255 255 / 0.16) 48%, transparent 60%);
+  background-position: 100% 100%;
+  transition: background-position var(--dur-slow) var(--ease-out);
+}
+
+.card--rarity-rare::before {
+  background-image: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgb(255 231 150 / 0.32) 45%,
+    rgb(255 255 255 / 0.4) 50%,
+    rgb(255 231 150 / 0.32) 55%,
+    transparent 70%
+  );
+  mix-blend-mode: screen;
+  animation: foil-sweep 4.5s ease-in-out infinite;
+}
+
+.card--rarity-legendary::before {
+  background-image: var(--finish-legendary);
+  mix-blend-mode: overlay;
+  opacity: 0.45;
+  animation: foil-sweep 6s linear infinite;
+}
+
+.card-wrap:hover .card--rarity-uncommon::before {
+  background-position: 0 0;
+}
+
+@keyframes foil-sweep {
+  0% {
+    background-position: 110% 110%;
+  }
+  55%,
+  100% {
+    background-position: -10% -10%;
+  }
+}
+
+/* ---------- Staff row (the demo's modifiers) ---------- */
 
 .modifier-row {
-  padding: 10px 14px 14px;
+  padding: 12px 16px 16px;
   color: var(--print);
-  background:
-    linear-gradient(rgb(29 78 158 / 0.06) 1px, transparent 1px) 0 0 / 14px 14px,
-    linear-gradient(90deg, rgb(29 78 158 / 0.06) 1px, transparent 1px) 0 0 / 14px 14px,
-    var(--paper);
-  border-radius: var(--radius-panel);
-  box-shadow: var(--shadow-panel);
 }
 
 .modifier-row__header {
@@ -947,14 +991,13 @@ button {
 }
 
 .modifier-row .section-label {
-  font-size: var(--text-lg);
   color: var(--print);
 }
 
 .modifier-row__count {
   font-family: var(--font-display);
   font-size: var(--text-md);
-  font-weight: 800;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--print-dim);
 }
@@ -973,7 +1016,7 @@ button {
   padding-top: 18px;
 }
 
-/* Org-chart connectors: each slot draws its own stub and its share of the bar above. */
+/* Connectors: each slot draws its own stub and its share of the bar above. */
 .modifier-row__slots > * {
   position: relative;
 }
@@ -984,7 +1027,7 @@ button {
   top: -18px;
   left: 50%;
   height: 18px;
-  border-left: 2px solid var(--print);
+  border-left: 1px solid rgb(255 255 255 / 0.18);
 }
 
 .modifier-row__slots > *::after {
@@ -993,7 +1036,7 @@ button {
   top: -18px;
   left: -6px;
   right: -6px;
-  border-top: 2px solid var(--print);
+  border-top: 1px solid rgb(255 255 255 / 0.18);
 }
 
 .modifier-row__slots > :first-child::after {
@@ -1013,44 +1056,27 @@ button {
   place-items: center;
   min-height: 76px;
   font-family: var(--font-display);
-  font-size: var(--text-md);
-  font-weight: 800;
-  color: rgb(31 26 20 / 0.35);
-  border: 2px dashed rgb(31 26 20 / 0.3);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: rgb(255 255 255 / 0.3);
+  border: 1px dashed rgb(255 255 255 / 0.18);
   border-radius: var(--radius-card);
 }
 
-/* Empty slots have a 2px border, so their connectors start 2px higher to meet the bar. */
 .modifier-row__slots > .modifier-row__empty::before {
-  top: -20px;
+  top: -19px;
   border-left-style: dashed;
-  opacity: 0.4;
+  opacity: 0.6;
 }
 
 .modifier-row__slots > .modifier-row__empty::after {
-  top: -20px;
-  left: -8px;
-  right: -8px;
-}
-
-/* Staff ID badge: white plastic, coloured band with a lanyard slot. */
-.modifier-row .card--compact {
-  background: #fffdf8;
-  box-shadow: 0 0 0 1px rgb(31 26 20 / 0.15), 0 4px 8px rgb(0 0 0 / 0.15);
+  top: -19px;
+  left: -7px;
+  right: -7px;
 }
 
 .modifier-row .card--compact .card__band {
   justify-content: center;
-  min-height: 14px;
-}
-
-.modifier-row .card--compact .card__band::after {
-  content: '';
-  width: 22px;
-  height: 5px;
-  border-radius: 3px;
-  background: var(--print);
-  opacity: 0.7;
 }
 
 /* Slot wrappers carry drag state; the card inside stays a normal Card. */
@@ -1084,7 +1110,7 @@ button {
 }
 
 .modifier-slot--drop-target {
-  outline: 3px dashed var(--focus);
+  outline: 2px dashed var(--focus);
   outline-offset: 3px;
   transform: scale(1.03);
 }
@@ -1095,14 +1121,14 @@ button {
 }
 
 .modifier-actions button {
-  padding: 3px 6px 2px;
+  padding: 4px 6px;
   font-family: var(--font-display);
-  font-size: var(--text-sm);
-  font-weight: 800;
+  font-size: var(--text-xs);
+  font-weight: 700;
   color: var(--print);
-  background: transparent;
-  border: 1.5px solid var(--print);
-  border-radius: var(--radius-button);
+  background: rgb(255 255 255 / 0.06);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
   cursor: pointer;
 }
 
@@ -1120,10 +1146,10 @@ button {
   flex: 0 0 26px;
 }
 
-.modifier-actions__sell {
+.modifier-actions .modifier-actions__sell {
   flex: 1;
-  background: var(--dept-mustard) !important;
-  letter-spacing: 0.02em;
+  color: #1a1204;
+  background: linear-gradient(180deg, #ffd06b, var(--dept-mustard));
 }
 
 /* ---------- Hand sort ---------- */
@@ -1137,19 +1163,20 @@ button {
 
 .hand__sort-button {
   padding: 4px 12px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--ink-dim);
-  font-size: 0.75rem;
-  font-weight: 800;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-pill);
+  background: rgb(255 255 255 / 0.04);
+  color: var(--chalk-dim);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
   cursor: pointer;
 }
 
 .hand__sort-button[aria-pressed='true'] {
-  border-color: var(--accent-select);
-  background: rgb(255 194 62 / 0.15);
-  color: var(--accent-select);
+  border-color: rgb(255 209 102 / 0.6);
+  background: rgb(255 209 102 / 0.14);
+  color: var(--focus);
 }
 
 /* ---------- Hand ---------- */
@@ -1169,7 +1196,7 @@ button {
 }
 
 .hand__cards > .card-wrap {
-  flex: 0 1 136px;
+  flex: 0 1 140px;
   animation: deal-in var(--dur-slow) var(--ease-out) backwards;
   animation-delay: calc(var(--i, 0) * var(--stagger));
 }
@@ -1192,21 +1219,16 @@ button {
 .hand__count {
   min-width: 7em;
   text-align: center;
-  font-weight: 800;
-  color: var(--ink-dim);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--chalk-dim);
   font-variant-numeric: tabular-nums;
 }
 
-/* ---------- Shop (merchandise on a steel shelf) ---------- */
+/* ---------- Shop ---------- */
 
 .shop {
-  padding: 14px 16px 18px;
-  background:
-    linear-gradient(90deg, var(--panel-edge) 0 8px, transparent 8px calc(100% - 8px), var(--panel-edge) calc(100% - 8px)),
-    linear-gradient(180deg, rgb(255 255 255 / 0.04), transparent 40%),
-    var(--panel);
-  border-radius: var(--radius-panel);
-  box-shadow: var(--shadow-panel);
+  padding: 16px 18px 20px;
 }
 
 .shop__header {
@@ -1215,7 +1237,7 @@ button {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
   padding: 0 4px;
 }
 
@@ -1244,154 +1266,94 @@ button {
   z-index: 1;
 }
 
-/* Shelf board the item stands on; extends into the gaps so a row reads as one shelf. */
+/* A lit display plinth under each item. */
 .shop__ledge {
   position: relative;
-  height: 12px;
-  margin: 0 -10px 10px;
-  background: linear-gradient(180deg, #8d948f 0 3px, #5d635f 3px 9px, #3f4441 9px);
-  border-radius: 2px;
-  box-shadow: 0 6px 10px rgb(0 0 0 / 0.35);
+  height: 6px;
+  margin: 2px 6px 10px;
+  border-radius: var(--radius-pill);
+  background: radial-gradient(50% 100% at 50% 0%, rgb(255 255 255 / 0.28), transparent);
+  filter: blur(1px);
 }
 
-/* Hanging price tag: a manila tag with a punched hole. */
+/* Price as a glossy gold tab on the corner. */
 .price-tag {
   position: absolute;
-  top: -4px;
-  right: -8px;
-  z-index: 3;
+  top: -2px;
+  right: -6px;
+  z-index: 4;
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 52px;
-  padding: 14px 8px 6px;
+  min-width: 46px;
+  padding: 5px 9px 4px;
   font-family: var(--font-display);
-  font-weight: 900;
+  font-weight: 800;
   line-height: 1;
-  color: var(--print);
-  background:
-    radial-gradient(circle at 50% 7px, transparent 0 3px, var(--print) 3px 4px, transparent 4px),
-    var(--paper);
-  clip-path: polygon(22% 0, 78% 0, 100% 14%, 100% 100%, 0 100%, 0 14%);
-  filter: drop-shadow(0 3px 2px rgb(0 0 0 / 0.35));
-  transform: rotate(9deg);
-  transform-origin: 50% 0;
+  color: #1a1204;
+  background: linear-gradient(180deg, #fff1bf, var(--rarity-gold) 55%, #e0a93a);
+  border: 1px solid rgb(255 255 255 / 0.5);
+  border-radius: 10px;
+  box-shadow: 0 6px 14px rgb(0 0 0 / 0.45), 0 0 18px -6px rgb(255 207 90 / 0.7);
   pointer-events: none;
 }
 
 .price-tag__now {
-  font-size: var(--text-xl);
+  font-size: var(--text-md);
   font-variant-numeric: tabular-nums;
 }
 
 .price-tag__was {
-  font-size: var(--text-sm);
-  color: var(--print-dim);
-  text-decoration-color: var(--stamp-red);
+  font-size: var(--text-xs);
+  opacity: 0.7;
   text-decoration-thickness: 2px;
 }
 
-/* Rubber stamps across the merchandise. */
+/* Badges across the merchandise (Sold, Sale). */
 .stamp {
   position: absolute;
   top: 70px;
   left: 50%;
-  z-index: 2;
-  padding: 2px 10px 0;
+  z-index: 4;
+  padding: 5px 14px;
   font-family: var(--font-display);
-  font-size: var(--text-xl);
-  font-weight: 900;
-  letter-spacing: 0.08em;
+  font-size: var(--text-md);
+  font-weight: 800;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--stamp-red);
-  border: 3px solid currentColor;
-  border-radius: 4px;
-  opacity: 0.85;
-  mix-blend-mode: multiply;
-  transform: translateX(-50%) rotate(-14deg);
+  color: #fff;
+  background: rgb(255 84 112 / 0.85);
+  border: 1px solid rgb(255 255 255 / 0.3);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.45);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  transform: translateX(-50%) rotate(-8deg);
   pointer-events: none;
   animation: stamp-in var(--dur-med) var(--ease-spring) both;
 }
 
 .stamp--sold {
-  color: var(--print);
+  color: var(--chalk-dim);
+  background: rgb(16 24 40 / 0.85);
 }
 
 @keyframes stock-in {
   from {
     opacity: 0;
-    transform: translateY(-26px) rotate(-2deg);
+    transform: translateY(-20px) scale(0.97);
   }
 }
 
 @keyframes stamp-in {
   from {
     opacity: 0;
-    transform: translateX(-50%) rotate(-14deg) scale(2.2);
+    transform: translateX(-50%) rotate(-8deg) scale(1.8);
   }
-}
-
-/* ---------- Button states ---------- */
-
-/* Still clickable so the state owner can explain why; just looks unavailable. */
-.btn--unaffordable {
-  filter: grayscale(0.7) brightness(0.75);
-}
-
-/* ---------- Rarity finishes ---------- */
-
-/* Common is plain matte stock. The others get a finish laid over the card face. */
-.card--rarity-uncommon::before,
-.card--rarity-rare::before,
-.card--rarity-legendary::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  border-radius: inherit;
-  pointer-events: none;
-}
-
-/* Satin: a soft sheen across the stock. */
-.card--rarity-uncommon::before {
-  background: linear-gradient(115deg, transparent 30%, rgb(255 255 255 / 0.5) 45%, transparent 60%);
-  mix-blend-mode: soft-light;
-}
-
-/* Holographic foil that shifts as the pointer moves over it. */
-.card--rarity-rare {
-  box-shadow: 0 0 0 2px #9fc7e8, var(--shadow-card);
-}
-
-.card--rarity-rare::before {
-  background: var(--finish-rare);
-  background-size: 250% 250%;
-  mix-blend-mode: color-burn;
-  opacity: 0.35;
-  transition: background-position var(--dur-slow) var(--ease-out);
-}
-
-/* Gold foil edge and wash. */
-.card--rarity-legendary {
-  box-shadow: 0 0 0 3px #c9a03b, var(--shadow-card);
-}
-
-.card--rarity-legendary::before {
-  background: var(--finish-legendary);
-  background-size: 250% 250%;
-  mix-blend-mode: multiply;
-  opacity: 0.3;
-  transition: background-position var(--dur-slow) var(--ease-out);
-}
-
-.shop__item:hover .card--rarity-rare::before,
-.shop__item:hover .card--rarity-legendary::before {
-  background-position: 100% 100%;
 }
 
 /* ---------- Play area (tally / summary slot) ---------- */
 
-/* A loading zone painted on the floor: worn dashed outline with hazard stripes at the ends. */
 .play-area {
   position: relative;
   display: flex;
@@ -1399,55 +1361,32 @@ button {
   justify-content: center;
   min-height: 160px;
   padding: 14px;
-  border: 3px dashed rgb(232 185 35 / 0.3);
+  border: 1px dashed rgb(255 255 255 / 0.14);
   border-radius: var(--radius-panel);
-}
-
-.play-area::before,
-.play-area::after {
-  content: '';
-  position: absolute;
-  top: 10px;
-  bottom: 10px;
-  width: 10px;
-  background: repeating-linear-gradient(
-    -45deg,
-    rgb(232 185 35 / 0.35) 0 8px,
-    transparent 8px 16px
-  );
-  pointer-events: none;
-}
-
-.play-area::before {
-  left: 10px;
-}
-
-.play-area::after {
-  right: 10px;
+  background: radial-gradient(ellipse at 50% 100%, rgb(46 197 255 / 0.07), transparent 70%);
 }
 
 .play-area__hint {
   margin: 0;
   font-family: var(--font-display);
-  font-size: var(--text-lg);
-  font-weight: 800;
-  color: rgb(232 185 35 / 0.55);
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--chalk-dim);
 }
 
-/* ---------- Score tally (register receipt) ---------- */
+/* ---------- Ledger (the score tally and the Shift receipt) ---------- */
 
-/* The section carries the shadow; the paper inside is masked into zigzag tear edges. */
 .tally {
   width: min(100%, 360px);
   cursor: pointer;
   user-select: none;
-  filter: drop-shadow(0 10px 14px rgb(0 0 0 / 0.4));
   animation: receipt-feed var(--dur-med) var(--ease-out) both;
 }
 
 .tally:focus-visible {
-  outline: 3px solid var(--focus);
+  outline: 2px solid var(--focus);
   outline-offset: 6px;
+  border-radius: var(--radius-panel);
 }
 
 .receipt {
@@ -1455,42 +1394,36 @@ button {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 18px 20px 20px;
+  padding: 16px 18px 18px;
+  overflow: hidden;
   color: var(--register-ink);
-  background:
-    linear-gradient(90deg, rgb(61 52 112 / 0.03) 1px, transparent 1px) 0 0 / 3px 100%,
-    var(--paper);
-  --zig: 10px;
-  -webkit-mask:
-    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / var(--zig) 51% repeat-x,
-    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / var(--zig) 51% repeat-x;
-  mask:
-    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / var(--zig) 51% repeat-x,
-    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / var(--zig) 51% repeat-x;
 }
 
 .receipt__head {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   padding-bottom: 8px;
-  border-bottom: 1.5px dashed currentColor;
+  border-bottom: 1px solid var(--paper-rule);
 }
 
 .receipt__store {
   font-family: var(--font-display);
-  font-size: var(--text-lg);
-  font-weight: 900;
-  letter-spacing: 0.04em;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cat-gadgets);
 }
 
 .receipt__kind {
-  font-size: var(--text-xs);
-  font-weight: 600;
-  opacity: 0.75;
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: 700;
+  color: var(--print);
 }
 
-/* Lines print in from the bottom; older ones scroll up and out, like paper feeding. */
+/* Lines appear from the bottom; older ones scroll up and out. */
 .tally__sources {
   display: flex;
   flex-direction: column;
@@ -1510,30 +1443,30 @@ button {
   align-items: baseline;
   gap: 6px;
   flex: 0 0 auto;
-  padding: 1px 4px;
-  border-radius: 2px;
-  animation: print-line var(--dur-med) steps(8, end) both;
+  padding: 2px 6px;
+  border-radius: 6px;
+  animation: line-in var(--dur-med) var(--ease-out) both;
 }
 
-/* Dotted leader between the description and the amount. */
 .tally__source-label {
   display: flex;
   flex: 1;
   gap: 6px;
   min-width: 0;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .tally__source-label::after {
   content: '';
   flex: 1;
-  border-bottom: 1.5px dotted currentColor;
-  opacity: 0.45;
+  border-bottom: 1px dotted currentColor;
+  opacity: 0.25;
   transform: translateY(-4px);
 }
 
 .tally__source-amount {
-  font-weight: 800;
+  font-weight: 700;
+  color: var(--print);
 }
 
 .tally__source--pending {
@@ -1541,12 +1474,12 @@ button {
 }
 
 .tally__source--active {
-  background: rgb(61 52 112 / 0.1);
+  background: rgb(46 197 255 / 0.12);
 }
 
 .tally__source--note .tally__source-label {
   font-style: italic;
-  font-weight: 500;
+  opacity: 0.8;
 }
 
 .tally__source--note .tally__source-label::after {
@@ -1558,7 +1491,7 @@ button {
 }
 
 .tally__source--xmult .tally__source-amount {
-  color: var(--dept-violet);
+  color: var(--type-design);
   font-size: var(--text-md);
 }
 
@@ -1569,7 +1502,7 @@ button {
   justify-content: center;
   gap: 10px;
   padding-top: 8px;
-  border-top: 1.5px dashed currentColor;
+  border-top: 1px solid var(--paper-rule);
 }
 
 .tally__box {
@@ -1580,15 +1513,16 @@ button {
 
 .tally__box-label {
   font-size: var(--text-xs);
-  font-weight: 700;
+  font-weight: 600;
   opacity: 0.75;
 }
 
 .tally__box-value {
   font-family: var(--font-display);
   font-size: var(--text-xl);
-  font-weight: 900;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
+  color: var(--print);
 }
 
 .tally__box--b .tally__box-value {
@@ -1603,8 +1537,8 @@ button {
 .tally__op {
   font-family: var(--font-display);
   font-size: var(--text-lg);
-  font-weight: 800;
-  opacity: 0.6;
+  font-weight: 700;
+  opacity: 0.5;
 }
 
 .receipt__total {
@@ -1612,39 +1546,40 @@ button {
   align-items: center;
   justify-content: space-between;
   min-height: 56px;
-  padding-top: 6px;
-  border-top: 3px double currentColor;
+  padding-top: 8px;
+  border-top: 1px solid var(--paper-rule);
 }
 
 .receipt__total-label {
   font-family: var(--font-display);
-  font-size: var(--text-lg);
-  font-weight: 900;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--print-dim);
 }
 
 .tally__total {
   font-family: var(--font-display);
   font-size: var(--text-2xl);
-  font-weight: 900;
+  font-weight: 800;
   line-height: 1;
+  letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
+  color: var(--print);
 }
 
-/* The final total is rubber-stamped in red. */
+/* The final total lands with a glow. */
 .tally__total--slam {
-  padding: 2px 12px 0;
-  color: var(--stamp-red);
-  border: 3px solid currentColor;
-  border-radius: 4px;
-  transform: rotate(-6deg);
-  mix-blend-mode: multiply;
-  animation: total-stamp var(--dur-med) var(--ease-spring) both;
+  color: var(--cash);
+  text-shadow: 0 0 24px rgb(61 220 151 / 0.6);
+  animation: total-land var(--dur-med) var(--ease-spring) both;
 }
 
 .receipt__flash {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 50% 40%, rgb(255 230 120 / 0.7), transparent 70%);
+  background: radial-gradient(circle at 50% 60%, rgb(61 220 151 / 0.35), transparent 70%);
   pointer-events: none;
   animation: hit-flash var(--dur-slow) ease-out both;
 }
@@ -1657,37 +1592,33 @@ button {
 }
 
 .tally__speed {
-  padding: 2px 9px;
+  padding: 2px 10px;
   font-size: var(--text-xs);
-  font-weight: 700;
+  font-weight: 600;
   text-transform: capitalize;
   color: inherit;
-  background: transparent;
-  border: 1.5px solid currentColor;
+  background: rgb(255 255 255 / 0.05);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-pill);
   cursor: pointer;
 }
 
 .tally__hint {
   margin-left: auto;
-  font-weight: 600;
   opacity: 0.7;
 }
 
 @keyframes receipt-feed {
   from {
     opacity: 0;
-    transform: translateY(-24px) scaleY(0.6);
-    transform-origin: 50% 0;
+    transform: translateY(-14px) scale(0.98);
   }
 }
 
-@keyframes print-line {
+@keyframes line-in {
   from {
-    clip-path: inset(0 100% 0 0);
-  }
-  to {
-    clip-path: inset(0 0 0 0);
+    opacity: 0;
+    transform: translateX(-8px);
   }
 }
 
@@ -1697,14 +1628,14 @@ button {
   }
 }
 
-@keyframes total-stamp {
+@keyframes total-land {
   0% {
     opacity: 0;
-    transform: rotate(-6deg) scale(2.6);
+    transform: scale(1.8);
   }
   100% {
     opacity: 1;
-    transform: rotate(-6deg) scale(1);
+    transform: scale(1);
   }
 }
 
@@ -1717,27 +1648,23 @@ button {
   }
 }
 
-/* ---------- Round summary (remittance slip) ---------- */
+/* ---------- Round summary (payout) ---------- */
 
 .summary {
   width: min(100%, 400px);
   padding: 16px 20px 20px;
   color: var(--print);
-  background:
-    repeating-linear-gradient(180deg, transparent 0 27px, var(--paper-rule) 27px 28px) 0 54px / 100% 100% no-repeat,
-    var(--paper);
-  border-top: 6px solid var(--cash);
-  border-radius: var(--radius-panel);
-  box-shadow: var(--shadow-panel);
+  border-top: 2px solid var(--cash);
+  box-shadow: var(--shadow-panel), 0 -10px 30px -18px rgb(61 220 151 / 0.6);
   animation: stock-in var(--dur-slow) var(--ease-spring) both;
 }
 
 .summary__heading {
   margin: 0 0 8px;
   font-family: var(--font-display);
-  font-size: var(--text-xl);
-  font-weight: 900;
-  line-height: 1;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: 1.15;
 }
 
 .summary__lines {
@@ -1752,7 +1679,7 @@ button {
   gap: 8px;
   min-height: 28px;
   padding-top: 4px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .summary__line > span:first-child {
@@ -1764,14 +1691,14 @@ button {
 .summary__line > span:first-child::after {
   content: '';
   flex: 1;
-  border-bottom: 1.5px dotted var(--print-dim);
+  border-bottom: 1px dotted rgb(255 255 255 / 0.2);
   transform: translateY(-4px);
 }
 
 .summary__amount {
   font-family: var(--font-display);
-  font-size: var(--text-lg);
-  font-weight: 900;
+  font-size: var(--text-md);
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--cash);
 }
@@ -1790,19 +1717,20 @@ button {
   position: absolute;
   right: 6px;
   bottom: 6px;
+  z-index: 4;
   width: 20px;
   height: 20px;
   padding: 0;
-  border: 0;
+  border: 1px solid var(--glass-border);
   border-radius: 50%;
-  background: #3a4052;
-  color: var(--bg-card);
+  background: rgb(255 255 255 / 0.08);
+  color: var(--chalk);
   font-size: 0.7rem;
-  font-weight: 900;
+  font-weight: 800;
   font-style: italic;
-  line-height: 20px;
+  line-height: 18px;
   cursor: pointer;
-  opacity: 0.55;
+  opacity: 0.7;
 }
 
 /* Keep card text clear of the toggle. */
@@ -1814,7 +1742,6 @@ button {
   padding-bottom: 8px;
 }
 
-/* Keep compact text clear of the toggle without insetting the colour band. */
 .tooltip-anchor > .card--compact .card__title,
 .tooltip-anchor > .card--compact .card__desc {
   padding-right: 32px;
@@ -1830,18 +1757,20 @@ button {
   bottom: calc(100% + 10px);
   left: 50%;
   z-index: 50;
-  width: 240px;
-  padding: 10px 12px;
+  width: 250px;
+  padding: 11px 13px;
   transform: translateX(-50%);
-  background: #0b0d12;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 0.6);
-  color: var(--ink);
-  font-size: 0.8rem;
+  background: var(--glass), rgb(10 16 29 / 0.94);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.6);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  color: var(--chalk);
+  font-size: var(--text-sm);
   text-align: left;
   pointer-events: none;
-  animation: tooltip-in 120ms ease-out 200ms both;
+  animation: tooltip-in 140ms ease-out 200ms both;
 }
 
 .tooltip--pinned {
@@ -1851,7 +1780,7 @@ button {
 
 .tooltip__body {
   margin: 0;
-  line-height: 1.35;
+  line-height: 1.4;
 }
 
 .tooltip__glossary {
@@ -1860,13 +1789,13 @@ button {
   gap: 4px;
   margin: 8px 0 0;
   padding-top: 8px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--glass-border);
 }
 
 .tooltip__entry dt {
   display: inline;
-  font-weight: 900;
-  color: var(--accent-select);
+  font-weight: 700;
+  color: var(--focus);
 }
 
 .tooltip__entry dt::after {
@@ -1876,7 +1805,7 @@ button {
 .tooltip__entry dd {
   display: inline;
   margin: 0;
-  color: var(--ink-dim);
+  color: var(--chalk-dim);
 }
 
 @keyframes tooltip-in {
@@ -1903,8 +1832,8 @@ button {
   .tooltip-toggle {
     width: 26px;
     height: 26px;
-    line-height: 26px;
-    opacity: 0.8;
+    line-height: 24px;
+    opacity: 0.85;
   }
 }
 
@@ -1919,7 +1848,7 @@ button {
 
 .toast-stack {
   position: fixed;
-  top: 12px;
+  top: 14px;
   left: 50%;
   z-index: 100;
   display: flex;
@@ -1935,36 +1864,39 @@ button {
 
 .toast {
   pointer-events: auto;
-  animation: toast-in 260ms cubic-bezier(0.2, 1.6, 0.4, 1);
+  animation: toast-in 280ms var(--ease-spring);
 }
 
 .toast__button {
-  padding: 10px 22px;
-  border: 0;
-  border-radius: var(--radius);
-  font-size: 1.05rem;
-  font-weight: 900;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  color: #fff;
-  background: #3a4052;
-  box-shadow: var(--shadow);
+  --tone: var(--dept-blue);
+  max-width: min(92vw, 520px);
+  padding: 10px 18px 10px 16px;
+  border: 1px solid var(--glass-border);
+  border-left: 3px solid var(--tone);
+  border-radius: 12px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-align: left;
+  color: var(--chalk);
+  background: var(--glass), rgb(10 16 29 / 0.92);
+  box-shadow: 0 12px 30px rgb(0 0 0 / 0.5), 0 0 24px -10px var(--tone);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
   cursor: pointer;
 }
 
 .toast--success .toast__button {
-  background: var(--accent-value);
+  --tone: var(--cash);
 }
 
 .toast--error .toast__button {
-  background: var(--accent-discard);
+  --tone: var(--dept-red);
 }
 
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translateY(-16px) scale(0.9);
+    transform: translateY(-16px) scale(0.95);
   }
 }
 
@@ -1974,7 +1906,15 @@ button {
   *::after {
     animation-duration: 1ms !important;
     animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
+  }
+
+  /* No foil sweeping across rare cards: hold a still sheen instead. */
+  .card--rarity-rare::before,
+  .card--rarity-legendary::before {
+    animation: none !important;
+    background-position: 40% 40%;
   }
 }
 
@@ -1985,18 +1925,13 @@ button {
     padding: 10px 16px 16px;
   }
 
-  .app::before {
-    inset: 0 3px;
-    border-inline-width: 3px;
-  }
-
   /* Quarter block on the left; revenue across the top; counters below it. */
   .hud {
     grid-template-columns: 62px repeat(3, 1fr);
   }
 
   .hud__stat {
-    padding: 5px 9px 6px;
+    padding: 6px 10px 7px;
   }
 
   .hud__stat--round {
@@ -2008,13 +1943,7 @@ button {
     grid-column: 2 / -1;
   }
 
-  .hud__stat--plays {
-    border-left: 0;
-    border-top: 1px solid var(--paper-rule);
-  }
-
-  .hud__stat--discards,
-  .hud__stat--cash {
+  .hud__stat:not(.hud__stat--round, .hud__stat--score) {
     border-top: 1px solid var(--paper-rule);
   }
 
@@ -2052,11 +1981,6 @@ button {
     padding: 10px 8px;
   }
 
-  .play-area::before,
-  .play-area::after {
-    display: none;
-  }
-
   .card {
     min-height: 156px;
   }
@@ -2071,18 +1995,27 @@ button {
   }
 
   .card__title {
-    font-size: 1.1rem;
+    font-size: 0.95rem;
   }
 
   .badge--value {
-    font-size: 2.2rem;
+    font-size: 1.9rem;
+  }
+
+  .card--windowed .badge--value {
+    font-size: 1.25rem;
+  }
+
+  .card--windowed .card__title {
+    padding-right: 10px;
+    padding-top: 14px;
   }
 
   .hand__controls {
     position: sticky;
     bottom: 0;
     padding: 10px 0;
-    background: linear-gradient(transparent, var(--bg) 35%);
+    background: linear-gradient(transparent, var(--floor) 35%);
   }
 
   .hand__controls .btn {
@@ -2096,12 +2029,7 @@ button {
 
   .price-tag {
     right: -4px;
-    min-width: 44px;
-    padding: 12px 6px 5px;
-  }
-
-  .play-area {
-    min-height: 0;
+    min-width: 40px;
   }
 
   .tally__sources {

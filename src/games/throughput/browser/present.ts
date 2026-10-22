@@ -5,7 +5,7 @@ import type { Offer, ShiftResult, ThroughputRun } from '../rules';
 import { CATEGORY_ICON, cardArt, contractArt, fixtureArt } from './art';
 
 /** Department colour per Category (keys from ui/theme/tokens.css). */
-export const CATEGORY_ACCENT: Readonly<Record<Category, string>> = { Apparel: 'violet', Gadgets: 'blue', Home: 'orange', Food: 'green' };
+export const CATEGORY_ACCENT: Readonly<Record<Category, string>> = { Apparel: 'rose', Gadgets: 'cyan', Home: 'amber', Food: 'lime' };
 
 export const STAGE_NAME: Readonly<Record<TrendStage, string>> = { hot: 'Hot', emerging: 'Emerging', saturated: 'Saturated', neutral: 'Neutral' };
 

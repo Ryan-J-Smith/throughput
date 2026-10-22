@@ -1,4 +1,5 @@
-/* THROUGHPUT screens. Colours, type, radii, shadows and motion come from ui/theme/tokens.css. */
+/* THROUGHPUT screens: the premium dark skin. Colours, type, radii, shadows and motion come from
+   ui/theme/tokens.css; Category colours arrive as --accent through data-accent. */
 
 .screen--tp {
   gap: 14px;
@@ -8,66 +9,95 @@
   font-size: var(--text-xl);
 }
 
-/* ---------- Market: a printed trend board ---------- */
+/* Dark glass panels, matching ui/styles.css. */
+.tp-market,
+.tp-line,
+.tp-grant,
+.tp-deck,
+.tp-rules,
+.tp-last {
+  background: var(--glass), var(--glass-solid);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
+
+/* ---------- Market: the trend board ---------- */
 
 .tp-market {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px 14px 12px;
+  gap: 10px;
+  padding: 12px 16px 14px;
   color: var(--print);
-  background: var(--paper);
-  border-radius: var(--radius-panel);
-  box-shadow: var(--shadow-panel);
 }
 
 .tp-market__grid {
   display: grid;
   align-items: center;
-  gap: 4px 10px;
+  gap: 6px 12px;
 }
 
 .tp-market__corner {
   font-family: var(--font-display);
   font-size: var(--text-lg);
-  font-weight: 900;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
 .tp-market__quarter {
-  padding-bottom: 3px;
+  padding-bottom: 4px;
   font-size: var(--text-xs);
   font-weight: 700;
+  letter-spacing: 0.04em;
   color: var(--print-dim);
-  border-bottom: 1.5px solid var(--paper-rule);
+  border-bottom: 2px solid rgb(255 255 255 / 0.08);
   font-variant-numeric: tabular-nums;
 }
 
 .tp-market__quarter.is-now {
   color: var(--print);
-  border-bottom-color: var(--print);
+  border-image: linear-gradient(90deg, var(--cat-gadgets), transparent) 1;
 }
 
 .tp-market__quarter em {
   font-style: normal;
-  color: var(--stamp-red);
+  color: var(--cat-gadgets);
 }
 
+/* Row labels as pills: Hot burns, Emerging glows green, the rest recede. */
 .tp-market__stage {
-  font-size: var(--text-sm);
+  justify-self: start;
+  padding: 2px 10px;
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
   font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
 }
 
 .tp-market__stage--hot {
-  color: var(--stamp-red);
+  color: #fff;
+  background: linear-gradient(135deg, #ff4d6d, #ff9a1f);
+  border-color: rgb(255 255 255 / 0.3);
+  box-shadow: 0 0 16px -2px rgb(255 110 60 / 0.65);
 }
 
 .tp-market__stage--emerging {
   color: var(--cash);
+  background: rgb(61 220 151 / 0.1);
+  border-color: rgb(61 220 151 / 0.45);
 }
 
 .tp-market__stage--saturated,
 .tp-market__stage--neutral {
   color: var(--print-dim);
+  background: rgb(255 255 255 / 0.04);
+  border-color: rgb(255 255 255 / 0.08);
 }
 
 .tp-market__cell {
@@ -81,73 +111,153 @@
 .tp-chip {
   display: inline-block;
   max-width: 100%;
-  padding: 1px 7px;
+  padding: 2px 8px;
   overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.25);
   border-radius: var(--radius-pill);
   font-size: var(--text-xs);
   font-weight: 700;
   white-space: nowrap;
   text-overflow: ellipsis;
   color: var(--accent-ink);
-  background: var(--accent);
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.3), rgb(255 255 255 / 0) 60%),
+    var(--accent);
+}
+
+/*
+ * Each row's cells follow its stage label, so a sibling chain tells them apart: Hot chips glow,
+ * Emerging chips are outlined, Saturated and Neutral chips fade back.
+ */
+.tp-market__stage--hot ~ .tp-market__cell .tp-chip {
+  box-shadow: 0 0 14px -2px var(--accent);
+}
+
+.tp-market__stage--emerging ~ .tp-market__cell .tp-chip {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  box-shadow: none;
+}
+
+.tp-market__stage--saturated ~ .tp-market__cell .tp-chip,
+.tp-market__stage--neutral ~ .tp-market__cell .tp-chip {
+  color: var(--print-dim);
+  background: rgb(255 255 255 / 0.05);
+  border-color: rgb(255 255 255 / 0.12);
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 .tp-pips {
   display: inline-flex;
-  gap: 3px;
+  gap: 4px;
+  margin-left: 2px;
 }
 
 .tp-pip {
-  width: 8px;
-  height: 8px;
-  border: 1.5px solid var(--stamp-red);
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid #ff7a4d;
   border-radius: 50%;
 }
 
 .tp-pip.is-on {
-  background: var(--stamp-red);
+  background: radial-gradient(circle at 35% 35%, #ffd2a0, #ff7a4d 60%);
+  box-shadow: 0 0 8px rgb(255 122 77 / 0.8);
 }
 
-.tp-market__equity {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
-  padding-top: 6px;
-  border-top: 1px dashed var(--paper-rule);
+/* Demand bars (layout in demand.css): glossy accent fills, striped for what the Line will use. */
+.tp-market .tp-demand {
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--paper-rule);
 }
 
-.tp-market__equity-label {
-  font-size: var(--text-sm);
+.tp-market .tp-demand__label {
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--print-dim);
+}
+
+.tp-market .tp-demand__row,
+.tp-grant .tp-grant__category {
+  --dept: var(--accent);
+}
+
+.tp-market .tp-demand__name {
+  color: var(--accent);
+}
+
+.tp-market .tp-demand__bar {
+  height: 10px;
+  background: rgb(255 255 255 / 0.07);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.45);
+}
+
+.tp-market .tp-demand__fill {
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.35), rgb(255 255 255 / 0) 60%),
+    var(--accent);
+  box-shadow: 0 0 10px -1px var(--accent);
+}
+
+.tp-market .tp-demand__using {
+  background: repeating-linear-gradient(-45deg, var(--accent) 0 3px, color-mix(in srgb, var(--accent) 25%, transparent) 3px 6px);
+}
+
+.tp-market .tp-demand__count {
+  font-family: var(--font-display);
   font-weight: 700;
 }
 
+.tp-market .tp-demand__row[data-sells-out] .tp-demand__cues {
+  color: var(--focus);
+}
+
+.tp-market .tp-demand__row[data-sells-out] .tp-demand__bar {
+  box-shadow:
+    inset 0 1px 2px rgb(0 0 0 / 0.45),
+    0 0 0 1px rgb(255 209 102 / 0.6),
+    0 0 12px -2px rgb(255 209 102 / 0.6);
+}
+
 .tp-market__boards {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   margin: 0;
-  padding: 6px 0 0;
+  padding: 8px 10px;
   list-style: none;
   font-size: var(--text-sm);
-  border-top: 1.5px dashed var(--stamp-red);
+  background: rgb(255 84 112 / 0.08);
+  border: 1px solid rgb(255 84 112 / 0.28);
+  border-radius: var(--radius-button);
+}
+
+.tp-market__boards:empty {
+  display: none;
 }
 
 .tp-market__boards strong {
-  color: var(--stamp-red);
+  font-family: var(--font-display);
+  color: #ff8fa3;
 }
 
-/* ---------- The Line: a steel conveyor of bays ---------- */
+/* ---------- The Line: a lit conveyor of bays ---------- */
 
 .tp-line {
-  padding: 12px 12px 24px;
+  padding: 12px 12px 30px;
   overflow-x: auto;
   background:
-    radial-gradient(circle, #8a8f8c 0 3px, #4a504c 3.5px 5px, transparent 5.5px) 0 calc(100% - 3px) / 26px 12px repeat-x,
-    linear-gradient(180deg, transparent calc(100% - 16px), #1b1e1d calc(100% - 16px)),
-    repeating-linear-gradient(90deg, rgb(255 255 255 / 0.03) 0 2px, transparent 2px 24px),
-    var(--panel);
-  border: 1px solid var(--panel-edge);
-  border-radius: var(--radius-panel);
-  box-shadow: var(--shadow-panel);
+    /* rollers under the belt */
+    radial-gradient(circle at 50% 50%, #c9d3e6 0 2px, #4d5872 2.5px 4.5px, transparent 5px) 0 calc(100% - 4px) / 24px 12px repeat-x,
+    /* the belt, with a teal edge light */
+    linear-gradient(180deg, transparent calc(100% - 20px), rgb(34 211 197 / 0.55) calc(100% - 20px) calc(100% - 19px), #0b111e calc(100% - 19px)),
+    var(--glass),
+    var(--glass-solid);
 }
 
 .tp-line__bays {
@@ -167,69 +277,102 @@
   width: 148px;
 }
 
+/* The Fixture plate over each bay; fixture art (span.tp-bay__fixture-art > img) fades in from the right. */
 .tp-bay__plate {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 1px;
   min-height: 58px;
-  padding: 5px 8px 6px;
+  padding: 6px 9px 7px;
+  overflow: hidden;
   color: var(--chalk);
-  background: #262a28;
-  border-left: 5px solid var(--panel-edge);
-  border-radius: 3px;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.06), rgb(255 255 255 / 0.02));
+  border: 1px solid rgb(255 255 255 / 0.08);
+  border-radius: 10px;
 }
 
 .tp-bay__plate[data-accent] {
-  border-left-color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background:
+    radial-gradient(90% 120% at 0% 0%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%),
+    linear-gradient(180deg, rgb(255 255 255 / 0.07), rgb(255 255 255 / 0.02));
+  box-shadow: inset 0 2px 0 -1px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+.tp-bay__plate > :not(.tp-bay__fixture-art) {
+  position: relative;
+}
+
+.tp-bay__fixture-art {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 64%;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 65%);
+  mask-image: linear-gradient(90deg, transparent, #000 65%);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.tp-bay__fixture-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .tp-bay__number {
   font-family: var(--font-display);
   font-size: var(--text-xs);
   font-weight: 800;
-  color: var(--floor-paint);
+  color: var(--accent, var(--chalk-dim));
 }
 
 .tp-bay__fixture {
   font-family: var(--font-display);
   font-size: var(--text-md);
-  font-weight: 800;
-  line-height: 1.05;
+  font-weight: 700;
+  line-height: 1.1;
+  text-shadow: 0 1px 6px rgb(0 0 0 / 0.6);
 }
 
 .tp-bay__fixture-text {
   font-size: var(--text-xs);
-  line-height: 1.25;
-  color: var(--chalk-dim);
+  line-height: 1.3;
+  color: #c3cde2;
+  text-shadow: 0 1px 4px rgb(0 0 0 / 0.7);
 }
 
-/* A Mod under a card it never acts on: plate goes dull, with a note. */
+/* A Mod under a card it never acts on: the plate goes dull, with a note. */
 .tp-bay__plate.is-idle {
-  border-left-style: dashed;
-  opacity: 0.72;
+  border-style: dashed;
+  filter: saturate(0.3);
+  opacity: 0.75;
 }
 
 .tp-bay__idle {
   font-size: var(--text-xs);
   font-weight: 700;
-  color: var(--chalk);
+  color: var(--floor-paint);
 }
 
 .tp-bay__moved {
   font-family: var(--font-body);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--chalk);
 }
 
-/* Boss notice above the bays (Line Shift), in hazard yellow. */
+/* Boss notice above the bays (Line Shift), as a hazard light bar. */
 .tp-line__notice {
-  margin: 0 0 10px;
-  padding: 6px 10px;
+  margin: 0 0 12px;
+  padding: 7px 12px;
   font-size: var(--text-sm);
   font-weight: 700;
-  color: var(--floor-deep);
-  background: var(--floor-paint);
-  border-radius: 3px;
+  color: #ffd79a;
+  background: linear-gradient(90deg, rgb(255 176 46 / 0.2), rgb(255 176 46 / 0.06));
+  border: 1px solid rgb(255 176 46 / 0.45);
+  border-radius: var(--radius-button);
+  box-shadow: 0 0 18px -8px rgb(255 176 46 / 0.8);
 }
 
 .tp-bay__spot {
@@ -238,12 +381,16 @@
   justify-content: center;
   min-height: 176px;
   padding: 0;
-  border: 2px dashed rgb(239 234 223 / 0.18);
+  border: 1.5px dashed rgb(255 255 255 / 0.14);
   border-radius: var(--radius-card);
-  background: rgb(0 0 0 / 0.18);
+  background: radial-gradient(ellipse at 50% 100%, rgb(34 211 197 / 0.07), transparent 70%), rgb(0 0 0 / 0.22);
   font: inherit;
+  color: inherit;
   text-align: left;
   cursor: pointer;
+  transition:
+    border-color var(--dur-med) linear,
+    background-color var(--dur-med) linear;
 }
 
 /* Between rounds the Line is empty: keep the bays short so the shop stays in view. */
@@ -261,7 +408,7 @@
 }
 
 .tp-bay__spot:focus-visible {
-  outline: 3px solid var(--focus);
+  outline: 2px solid var(--focus);
   outline-offset: 3px;
 }
 
@@ -272,76 +419,115 @@
 .tp-bay__empty {
   align-self: center;
   font-family: var(--font-display);
-  font-size: var(--text-lg);
-  font-weight: 800;
-  color: rgb(239 234 223 / 0.3);
+  font-size: var(--text-md);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: rgb(255 255 255 / 0.22);
 }
 
+/* Where the selected card or Fixture can go: a pulsing gold bay. */
 .tp-bay--target .tp-bay__spot {
   border-color: var(--focus);
-  background: rgb(245 197 24 / 0.08);
+  border-style: solid;
+  background-color: rgb(255 209 102 / 0.07);
+  box-shadow: 0 0 22px -8px rgb(255 209 102 / 0.8);
   animation: tp-bay-ready 1.2s ease-in-out infinite alternate;
 }
 
 .tp-bay--selected .tp-bay__plate {
-  outline: 3px solid var(--focus);
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
 
 @keyframes tp-bay-ready {
   to {
-    background: rgb(245 197 24 / 0.2);
+    background-color: rgb(255 209 102 / 0.18);
   }
 }
 
-/* A Station fills the bay: a striped machine block. */
+/* A Station fills the bay: a glowing amber machine block. */
 .tp-bay--station .tp-bay__spot {
-  border: 2px solid var(--print);
-  background: repeating-linear-gradient(-45deg, var(--dept-mustard) 0 12px, #2b2b2b 12px 24px);
+  border: 1px solid rgb(255 176 46 / 0.55);
+  background:
+    radial-gradient(ellipse at 50% 60%, rgb(255 176 46 / 0.28), transparent 70%),
+    repeating-linear-gradient(-45deg, rgb(255 176 46 / 0.12) 0 10px, transparent 10px 20px),
+    #121a2a;
+  box-shadow: inset 0 0 24px rgb(255 176 46 / 0.18);
 }
 
 .tp-bay--station .tp-bay__empty {
-  padding: 4px 8px;
-  color: var(--print);
-  background: var(--dept-mustard);
-  border: 2px solid var(--print);
+  padding: 5px 10px;
+  font-size: var(--text-sm);
+  color: #1a1204;
+  background: linear-gradient(180deg, #ffe08a, var(--cat-home));
+  border-radius: var(--radius-pill);
+  box-shadow: 0 0 16px -2px rgb(255 176 46 / 0.7);
 }
 
+/* Welded shut by the Board: cold steel with a red-hot seam. */
 .tp-bay--welded .tp-bay__spot {
-  border: 2px solid var(--print);
-  background: repeating-linear-gradient(45deg, #3a3a3a 0 6px, #232323 6px 12px);
+  border: 1px solid rgb(255 84 112 / 0.45);
+  background:
+    linear-gradient(135deg, transparent 47%, rgb(255 120 90 / 0.85) 49%, rgb(255 210 150 / 0.9) 50%, rgb(255 120 90 / 0.85) 51%, transparent 53%),
+    repeating-linear-gradient(45deg, #1f2738 0 6px, #171e2c 6px 12px);
+  box-shadow: inset 0 0 20px rgb(255 84 112 / 0.2);
   cursor: not-allowed;
 }
 
+.tp-bay--welded .tp-bay__fixture {
+  color: #ff8fa3;
+}
+
+/* Parked cards (loaded on an earlier Shift) sit back; new loads glow. */
+.tp-bay--parked .tp-bay__spot .card {
+  filter: saturate(0.55) brightness(0.78);
+}
+
+.tp-bay:has(.tp-bay__status.is-new) .tp-bay__spot .card {
+  border-color: var(--cat-gadgets);
+  box-shadow: 0 0 0 1px var(--cat-gadgets), var(--shadow-card), 0 0 24px -6px rgb(46 197 255 / 0.8);
+}
+
 .tp-bay__status {
+  align-self: center;
+  max-width: 100%;
+  padding: 2px 9px;
   font-size: var(--text-xs);
   font-weight: 700;
+  line-height: 1.3;
   text-align: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
 }
 
 .tp-bay__status.is-parked {
   color: var(--chalk-dim);
+  background: rgb(255 255 255 / 0.05);
+  border-color: rgb(255 255 255 / 0.12);
 }
 
 .tp-bay__status.is-new {
-  color: var(--floor-paint);
+  color: var(--cat-gadgets);
+  background: rgb(46 197 255 / 0.12);
+  border-color: rgb(46 197 255 / 0.4);
 }
 
 .tp-bay__scrap {
   align-self: center;
-  padding: 2px 10px;
-  border: 1.5px solid var(--chalk-dim);
-  border-radius: var(--radius-button);
+  padding: 3px 12px;
+  border: 1px solid rgb(255 84 112 / 0.5);
+  border-radius: var(--radius-pill);
   font-size: var(--text-xs);
   font-weight: 700;
-  color: var(--chalk);
-  background: transparent;
+  color: #ff8fa3;
+  background: rgb(255 84 112 / 0.08);
   cursor: pointer;
 }
 
 .tp-bay__scrap:hover {
-  border-color: var(--dept-red);
   color: #fff;
   background: var(--dept-red);
+  box-shadow: 0 0 14px -2px rgb(255 77 109 / 0.7);
 }
 
 /* ---------- Desk: hand and the preview receipt ---------- */
@@ -366,7 +552,7 @@
 
 .tp-hint--shop {
   text-align: center;
-  color: var(--floor-paint);
+  color: var(--focus);
 }
 
 .tp-hand .hand__cards {
@@ -378,14 +564,16 @@
   flex-wrap: wrap;
 }
 
-.tp-receipt {
-  filter: drop-shadow(0 10px 14px rgb(0 0 0 / 0.4));
+/* The ledger: one line per bay, a slot badge, the Batch so far and what each line earned. */
+.tp-receipt .receipt {
+  border-top: 2px solid var(--cat-gadgets);
+  box-shadow: var(--shadow-panel), 0 -10px 30px -20px rgb(46 197 255 / 0.8);
 }
 
 .tp-receipt__lines {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -394,59 +582,90 @@
 
 .tp-receipt__line {
   display: grid;
-  grid-template-columns: 1.2em minmax(0, 1fr) auto 3.6em;
+  grid-template-columns: 1.6em minmax(0, 1fr) auto 3.6em;
   align-items: baseline;
   gap: 6px;
+  padding: 3px 4px;
+  border-radius: 6px;
+}
+
+.tp-receipt__line:nth-child(odd) {
+  background: rgb(255 255 255 / 0.025);
 }
 
 .tp-receipt__line.is-empty {
-  opacity: 0.45;
+  opacity: 0.4;
 }
 
 .tp-receipt__slot {
-  font-weight: 800;
+  display: inline-grid;
+  place-items: center;
+  width: 1.5em;
+  height: 1.5em;
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--print-dim);
+  border: 1px solid rgb(255 255 255 / 0.15);
+  border-radius: 50%;
+}
+
+.tp-receipt__slot:empty {
+  visibility: hidden;
 }
 
 .tp-receipt__what {
   display: flex;
   flex-direction: column;
-  font-weight: 700;
+  font-weight: 600;
+  color: var(--print);
 }
 
 .tp-receipt__what small {
   font-size: var(--text-xs);
   font-weight: 500;
   line-height: 1.3;
-  opacity: 0.8;
+  color: var(--print-dim);
 }
 
 .tp-receipt__batch {
   font-size: var(--text-xs);
-  opacity: 0.7;
+  color: var(--print-dim);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .tp-receipt__amount {
-  font-weight: 800;
+  font-family: var(--font-display);
+  font-weight: 700;
   text-align: right;
+  color: var(--cash);
   font-variant-numeric: tabular-nums;
 }
 
 .tp-receipt__line--leftover {
-  padding-top: 4px;
-  border-top: 1px dashed currentColor;
+  margin-top: 2px;
+  padding-top: 6px;
+  border-top: 1px dashed rgb(255 255 255 / 0.15);
+  border-radius: 0;
+  background: none;
 }
 
 .tp-receipt__round {
+  align-self: flex-end;
   margin: 0;
+  padding: 3px 10px;
   font-size: var(--text-sm);
   font-weight: 700;
-  text-align: right;
+  color: var(--print-dim);
+  background: rgb(255 255 255 / 0.05);
+  border-radius: var(--radius-pill);
 }
 
 .tp-receipt__round.is-cleared {
-  color: var(--stamp-red);
+  color: var(--cash);
+  background: rgb(61 220 151 / 0.12);
+  box-shadow: 0 0 16px -6px rgb(61 220 151 / 0.8);
 }
 
 /* ---------- Shop ---------- */
@@ -459,6 +678,7 @@
   margin: 0;
   font-size: var(--text-sm);
   font-weight: 600;
+  color: var(--chalk-dim);
 }
 
 .tp-fixture-bar {
@@ -471,7 +691,7 @@
 }
 
 .tp-shop__pending {
-  outline: 3px dashed var(--focus);
+  outline: 2px dashed var(--focus);
   outline-offset: 6px;
   border-radius: var(--radius-card);
 }
@@ -482,22 +702,62 @@
   justify-content: center;
 }
 
+/* R&D Grant picker (layout in demand.css): a glass card per Category with two glossy choices. */
+.tp-grant {
+  padding: 16px 18px 18px;
+}
+
+.tp-grant .tp-grant__title {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+}
+
+.tp-grant .tp-grant__category {
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-top: 3px solid var(--accent);
+  background:
+    radial-gradient(100% 70% at 50% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
+    rgb(255 255 255 / 0.03);
+  box-shadow: 0 -8px 24px -16px var(--accent);
+}
+
+.tp-grant .tp-grant__name {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  color: var(--accent);
+}
+
+.tp-grant .tp-grant__option {
+  --btn: color-mix(in srgb, var(--accent) 35%, #141d30);
+  --btn-2: color-mix(in srgb, var(--accent) 15%, #141d30);
+}
+
+.tp-grant .tp-grant__option:hover:not(:disabled) {
+  --btn-2: color-mix(in srgb, var(--accent) 45%, #141d30);
+}
+
+/* ---------- Deck, rules and the last receipt: folding glass panels ---------- */
+
 .tp-deck,
 .tp-rules,
 .tp-last {
-  padding: 8px 12px;
-  border: 1px solid var(--panel-edge);
-  border-radius: var(--radius-panel);
-  background: rgb(0 0 0 / 0.15);
+  padding: 10px 14px;
 }
 
 .tp-deck summary,
 .tp-rules summary,
 .tp-last summary {
   font-family: var(--font-display);
-  font-size: var(--text-lg);
-  font-weight: 800;
+  font-size: var(--text-md);
+  font-weight: 700;
+  color: var(--chalk);
   cursor: pointer;
+}
+
+.tp-deck summary::marker,
+.tp-rules summary::marker,
+.tp-last summary::marker {
+  color: var(--cat-gadgets);
 }
 
 .tp-last .tp-receipt {
@@ -524,14 +784,16 @@
   flex: 1;
   flex-direction: column;
   min-width: 0;
-  padding: 5px 8px;
-  border: 0;
-  border-left: 5px solid var(--accent);
-  border-radius: 3px;
+  padding: 6px 9px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, rgb(255 255 255 / 0.06));
+  border-radius: 9px;
   font: inherit;
   text-align: left;
   color: var(--print);
-  background: var(--stock);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 20%, transparent), transparent 60%),
+    var(--stock);
+  box-shadow: inset 3px 0 0 var(--accent);
   cursor: pointer;
 }
 
@@ -540,11 +802,12 @@
 }
 
 .tp-deck__card:not(:disabled):hover {
-  outline: 2px solid var(--focus);
+  border-color: var(--focus);
+  box-shadow: inset 3px 0 0 var(--accent), 0 0 16px -6px rgb(255 209 102 / 0.8);
 }
 
 .tp-deck__name {
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .tp-deck__effect {
@@ -553,23 +816,28 @@
 }
 
 .tp-deck__sell {
-  padding: 0 8px;
-  border: 1.5px solid var(--chalk-dim);
-  border-radius: var(--radius-button);
+  padding: 0 9px;
+  border: 1px solid rgb(255 176 46 / 0.45);
+  border-radius: 9px;
   font-size: var(--text-xs);
   font-weight: 700;
-  color: var(--chalk);
-  background: transparent;
+  color: #ffd79a;
+  background: rgb(255 176 46 / 0.08);
   cursor: pointer;
+}
+
+.tp-deck__sell:hover {
+  color: #1a1204;
+  background: var(--cat-home);
 }
 
 .tp-rules__text {
   margin: 10px 0 0;
   font-family: var(--font-body);
   font-size: var(--text-sm);
-  line-height: 1.45;
+  line-height: 1.5;
   white-space: pre-wrap;
-  color: var(--chalk);
+  color: #c9d4ea;
 }
 
 .tp-end-actions {
@@ -577,6 +845,52 @@
   flex-wrap: wrap;
   justify-content: center;
   gap: 14px;
+}
+
+/* ---------- How to play: numbered glowing steps ---------- */
+
+.tp-howto__heading {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+}
+
+.tp-howto__steps {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: tp-step;
+}
+
+.tp-howto__steps > li {
+  position: relative;
+  padding-left: 38px;
+  line-height: 1.45;
+  color: #c9d4ea;
+  counter-increment: tp-step;
+}
+
+.tp-howto__steps > li::before {
+  content: counter(tp-step);
+  position: absolute;
+  top: -1px;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, #3f6bff, #22b8ff);
+  border-radius: 50%;
+  box-shadow: 0 0 14px -3px rgb(46 197 255 / 0.8);
+}
+
+.tp-howto__steps strong {
+  color: var(--chalk);
 }
 
 /* ---------- Narrow screens ---------- */
@@ -594,7 +908,7 @@
 
 @media (max-width: 640px) {
   .tp-market {
-    padding: 8px 10px 10px;
+    padding: 10px 12px 12px;
   }
 
   /* Keep the Line next to the hand while loading; the trend board follows the receipt. */
@@ -608,7 +922,12 @@
   }
 
   .tp-market__grid {
-    gap: 3px 6px;
+    gap: 4px 6px;
+  }
+
+  .tp-market__stage {
+    padding: 2px 7px;
+    font-size: 0.625rem;
   }
 
   .tp-bay {

@@ -1,5 +1,20 @@
 {
   "variants": {
+    "bg-factory-hall": [
+      "plain"
+    ],
+    "boss-jit-auditor": [
+      "plain"
+    ],
+    "boss-line-shift": [
+      "plain"
+    ],
+    "boss-supply-shock": [
+      "plain"
+    ],
+    "boss-turnover": [
+      "plain"
+    ],
     "card-apparel-design": [
       "plain"
     ],
@@ -7,6 +22,21 @@
       "plain"
     ],
     "card-apparel-ship": [
+      "plain"
+    ],
+    "card-boutique": [
+      "plain"
+    ],
+    "card-factory-floor": [
+      "plain"
+    ],
+    "card-food-design": [
+      "plain"
+    ],
+    "card-food-make": [
+      "plain"
+    ],
+    "card-food-ship": [
       "plain"
     ],
     "card-gadgets-design": [
@@ -27,10 +57,64 @@
     "card-home-ship": [
       "plain"
     ],
+    "card-influencer": [
+      "plain"
+    ],
+    "card-wholesale-club": [
+      "plain"
+    ],
+    "contract-downsizing": [
+      "plain"
+    ],
+    "contract-floor-expansion": [
+      "plain"
+    ],
+    "contract-tooling-upgrade": [
+      "plain"
+    ],
+    "end-loss": [
+      "plain"
+    ],
+    "end-win": [
+      "plain"
+    ],
+    "fixture-assembly-line": [
+      "plain"
+    ],
+    "fixture-automation": [
+      "plain"
+    ],
+    "fixture-brand-manager": [
+      "plain"
+    ],
+    "fixture-flagship-store": [
+      "plain"
+    ],
+    "fixture-overtime-crew": [
+      "plain"
+    ],
+    "fixture-price-gun": [
+      "plain"
+    ],
+    "fixture-quality-lab": [
+      "plain"
+    ],
+    "fixture-rnd-lab": [
+      "plain"
+    ],
     "fixture-robot-arm": [
       "plain"
     ],
+    "fixture-showroom": [
+      "plain"
+    ],
+    "fixture-warehouse": [
+      "plain"
+    ],
     "title-key-art": [
+      "plain"
+    ],
+    "token-hero-robot": [
       "plain"
     ]
   },
