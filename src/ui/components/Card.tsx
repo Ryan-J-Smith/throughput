@@ -14,6 +14,10 @@ export type CardProps = {
   /** Position in its row, used to stagger entrance animations. */
   index?: number;
   onClick?: () => void;
+  /** Loads or plays the card in one go (desktop); the two clicks before it still reach `onClick`. */
+  onDoubleClick?: () => void;
+  /** Makes an interactive card draggable (desktop): `onStart` as the drag begins, `onEnd` when it ends, dropped or not. */
+  drag?: { readonly onStart: () => void; readonly onEnd: () => void };
   footer?: ReactNode;
 };
 
@@ -24,7 +28,7 @@ export type CardProps = {
  * Where the CSS gives the card a fixed template, the title and blurb step their type down to fit
  * their boxes and, failing that, clamp with the full text in a tooltip (see useFitText).
  */
-export function Card({ card, selected = false, disabled = false, compact = false, rarity, index, onClick, footer }: CardProps) {
+export function Card({ card, selected = false, disabled = false, compact = false, rarity, index, onClick, onDoubleClick, drag, footer }: CardProps) {
   const isDisabled = disabled || card.disabled === true;
   const windowed = !compact && (card.art !== undefined || card.icon !== undefined);
   const className = [
@@ -94,6 +98,19 @@ export function Card({ card, selected = false, disabled = false, compact = false
       aria-pressed={selected}
       disabled={isDisabled}
       onClick={onClick}
+      onDoubleClick={onDoubleClick}
+      draggable={drag !== undefined && !isDisabled ? true : undefined}
+      onDragStart={
+        drag === undefined
+          ? undefined
+          : (event) => {
+              // Firefox starts a drag only with some data set.
+              event.dataTransfer.effectAllowed = 'move';
+              event.dataTransfer.setData('text/plain', card.title);
+              drag.onStart();
+            }
+      }
+      onDragEnd={drag?.onEnd}
     >
       {body}
     </button>

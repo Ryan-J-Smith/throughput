@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { Card, ToastStack } from '../../../ui/components';
 import type { BrowserGameProps } from '../../../ui/games';
@@ -11,6 +11,8 @@ import type { ThroughputAction } from '../cli';
 import { cardName } from '../model';
 import { ThroughputRun } from '../rules';
 import type { ShiftResult } from '../rules';
+import { IDLE, KEYS_HINT, dropKind, firstOpenBay, shiftKey } from './input';
+import type { Mode, ShiftIntent } from './input';
 import { LineView } from './LineView';
 import type { BayState } from './LineView';
 import { MarketBoard } from './MarketBoard';
@@ -30,18 +32,6 @@ import { TraceReceipt } from './TraceReceipt';
 import { ShiftReplay, replayTiming } from '../spectacle';
 import type { ReplayTiming } from '../spectacle';
 import './throughput.css';
-
-/** What a tap means right now. Cards are tracked by uid because hand positions shift. */
-type Mode =
-  | { readonly kind: 'idle' }
-  | { readonly kind: 'place'; readonly uid: number }
-  | { readonly kind: 'retool'; readonly uids: readonly number[] }
-  | { readonly kind: 'install'; readonly offer: number }
-  | { readonly kind: 'contract'; readonly offer: number }
-  | { readonly kind: 'grant'; readonly offer: number }
-  | { readonly kind: 'fixture'; readonly slot: number };
-
-const IDLE: Mode = { kind: 'idle' };
 
 const SILENT = new SilentPlayer();
 
@@ -76,6 +66,15 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
   const replayKey = useRef(0);
   /** A Run is replaying and not yet applied; guards against applying it twice. */
   const replaying = useRef(false);
+  /** The hand card being dragged onto the Line, if any. */
+  const [dragging, setDragging] = useState<number | null>(null);
+  /** This render's key handler; the window listener below always calls the latest. */
+  const onKey = useRef<(event: KeyboardEvent) => void>(() => {});
+  useEffect(() => {
+    const listener = (event: KeyboardEvent) => onKey.current(event);
+    window.addEventListener('keydown', listener);
+    return () => window.removeEventListener('keydown', listener);
+  }, []);
 
   const notify = (kind: ToastKind, message: string) => setToasts((t) => [...t, { id: `tp-${toastId.current++}`, kind, message }]);
   const dismiss = useCallback((id: string) => setToasts((t) => t.filter((x) => x.id !== id)), []);
@@ -111,6 +110,7 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
     setReveal(null);
   };
 
+  onKey.current = () => {};
   if (run.phase === 'won' || run.phase === 'lost') return <RunSummaryView run={run} onNewRun={newRun} onQuit={onQuit} />;
 
   const handIndex = (uid: number) => run.hand.findIndex((c) => c.uid === uid);
@@ -133,12 +133,44 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
     pick(mode.kind === 'place' && mode.uid === uid ? IDLE : { kind: 'place', uid });
   };
 
+  /** Retools the marked hand cards. */
+  const confirmRetool = (uids: readonly number[]) => {
+    const hand = uids.map(handIndex);
+    const restocked = run.restocked;
+    attempt(run.whyCannotRetool(hand), { verb: 'retool', hand: hand.map((h) => handNumber(run, h)) }, () => {
+      run.retool(hand);
+      announceRestock(restocked);
+    });
+  };
+
+  /** Loads the hand card `uid` into bay `slot`, however the player asked (tap, drag, double-click or keys). */
+  const loadInto = (uid: number, slot: number) => {
+    const placement = [{ hand: handIndex(uid), slot }];
+    const entry: ThroughputAction = { verb: 'load', placements: [{ hand: handNumber(run, handIndex(uid)), slot }] };
+    attempt(run.whyCannotLoad(placement), entry, () => run.load(placement));
+  };
+
+  /** Double-click (or Enter): the leftmost empty bay that can take the card. */
+  const quickLoad = (uid: number) => {
+    const slot = firstOpenBay(run, uid);
+    if (slot < 0) return notify('info', 'No empty bay can take that card');
+    loadInto(uid, slot);
+  };
+
+  /** A dragged hand card dropped on a bay: load it, or swap it for the card loaded there this Shift (which goes back to the hand). */
+  const dropOnBay = (slot: number) => {
+    const uid = dragging;
+    setDragging(null);
+    if (uid === null) return;
+    const kind = dropKind(run, uid, slot);
+    if (kind === 'swap') attempt(run.whyCannotUnload([slot]), { verb: 'unload', slots: [slot] }, () => run.unload([slot]));
+    if (kind !== null) loadInto(uid, slot);
+  };
+
   const tapBayInShift = (slot: number) => {
     const held = run.line[slot]?.card;
     if (mode.kind === 'place') {
-      const placement = [{ hand: handIndex(mode.uid), slot }];
-      const entry: ThroughputAction = { verb: 'load', placements: [{ hand: handNumber(run, handIndex(mode.uid)), slot }] };
-      attempt(run.whyCannotLoad(placement), entry, () => run.load(placement));
+      loadInto(mode.uid, slot);
     } else if (held != null && run.whyCannotUnload([slot]) === null) {
       attempt(run.whyCannotUnload([slot]), { verb: 'unload', slots: [slot] }, () => run.unload([slot]));
     } else if (held == null) {
@@ -187,6 +219,44 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
     finishReplay();
   };
 
+  /** Carries out what a key asked for. */
+  const doIntent = (intent: ShiftIntent) => {
+    switch (intent.kind) {
+      case 'mode':
+        return pick(intent.mode);
+      case 'load':
+        return loadInto(intent.uid, intent.slot);
+      case 'retool':
+        return mode.kind === 'retool' ? confirmRetool(mode.uids) : undefined;
+      case 'run':
+        return runShift();
+      case 'notice':
+        return notify('info', intent.text);
+    }
+  };
+
+  onKey.current = (event) => {
+    if (event.ctrlKey || event.metaKey || event.altKey || event.repeat) return;
+    // Not while a dialog (Settings) is open or the player is typing.
+    if (document.querySelector('[aria-modal="true"]') !== null) return;
+    const target = event.target;
+    if (target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
+    // Space and Enter on a control reached with the keyboard keep their usual meaning: pressing it.
+    if ((event.key === ' ' || event.key === 'Enter') && target instanceof HTMLElement && target !== document.body && target.matches(':focus-visible')) return;
+    if (replaying.current) {
+      if (event.key === ' ' || event.key === 'Escape') {
+        event.preventDefault();
+        finishReplay();
+      }
+      return;
+    }
+    if (run.phase !== 'shift') return;
+    const intent = shiftKey(run, mode, event.key);
+    if (intent === null) return;
+    event.preventDefault();
+    doIntent(intent);
+  };
+
   const applyRun = () => {
     const before = { salesBefore: run.sales, target: run.target, heading: `Round ${run.round}, Shift ${run.shift}` };
     const restocked = run.restocked;
@@ -232,6 +302,8 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
   const bayState = (slot: number): BayState => {
     const state = run.line[slot];
     if (state === undefined) return 'idle';
+    // A dragged card can also swap with a card loaded this Shift.
+    if (inShift && dragging !== null) return dropKind(run, dragging, slot) !== null ? 'target' : 'idle';
     if (inShift) return mode.kind === 'place' && run.whyCannotLoad([{ hand: Math.max(0, handIndex(mode.uid)), slot }]) === null ? 'target' : 'idle';
     if (mode.kind === 'install') return run.whyCannotBuy(mode.offer, { slot }) === null ? 'target' : 'idle';
     if (mode.kind === 'fixture') return slot === mode.slot ? 'selected' : 'target';
@@ -270,7 +342,14 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
       <TpHud run={run} reveal={reveal} pending={replay === null ? (preview?.total ?? null) : null} />
       {!inShift && <PayoutSlip run={run} />}
       <MarketBoard run={run} preview={preview} />
-      <LineView run={run} bayState={bayState} onBay={inShift ? tapBayInShift : tapBayInShop} onScrap={inShift ? (s) => attempt(run.whyCannotScrap([s]), { verb: 'scrap', slots: [s] }, () => run.scrap([s])) : undefined} bayLabel={bayLabel} />
+      <LineView
+        run={run}
+        bayState={bayState}
+        onBay={inShift ? tapBayInShift : tapBayInShop}
+        onScrap={inShift ? (s) => attempt(run.whyCannotScrap([s]), { verb: 'scrap', slots: [s] }, () => run.scrap([s])) : undefined}
+        bayLabel={bayLabel}
+        {...(inShift && dragging !== null ? { canDrop: (slot: number) => dropKind(run, dragging, slot) !== null, onDropCard: dropOnBay } : {})}
+      />
       {replay !== null && (
         <ShiftReplay
           key={replay.key}
@@ -294,7 +373,27 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
             <div className="hand__cards">
               {run.hand.map((card, i) => {
                 const selected = (mode.kind === 'place' && mode.uid === card.uid) || (mode.kind === 'retool' && mode.uids.includes(card.uid));
-                return <Card key={card.uid} card={cardView(card, undefined, run.demandLeft)} index={i} selected={selected} onClick={() => tapHand(i)} />;
+                return (
+                  <Card
+                    key={card.uid}
+                    card={cardView(card, undefined, run.demandLeft)}
+                    index={i}
+                    selected={selected}
+                    onClick={() => tapHand(i)}
+                    onDoubleClick={() => quickLoad(card.uid)}
+                    drag={{
+                      onStart: () => {
+                        setDragging(card.uid);
+                        pick({ kind: 'place', uid: card.uid });
+                      },
+                      // Dropped anywhere but an accepting bay: nothing happens, and the card is put down.
+                      onEnd: () => {
+                        setDragging(null);
+                        setMode(IDLE);
+                      },
+                    }}
+                  />
+                );
               })}
             </div>
             {tipFor('run')}
@@ -305,14 +404,7 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
                     type="button"
                     className="btn btn--discard"
                     disabled={mode.uids.length === 0}
-                    onClick={() => {
-                      const hand = mode.uids.map(handIndex);
-                      const restocked = run.restocked;
-                      attempt(run.whyCannotRetool(hand), { verb: 'retool', hand: hand.map((h) => handNumber(run, h)) }, () => {
-                        run.retool(hand);
-                        announceRestock(restocked);
-                      });
-                    }}
+                    onClick={() => confirmRetool(mode.uids)}
                   >
                     Retool {mode.uids.length}
                   </button>
@@ -330,7 +422,7 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
                 type="button"
                 className="btn btn--play"
                 onClick={runShift}
-                title={preview.overCap > 0 ? `Makes $${preview.total + preview.overCap}; the Shift cap counts $${preview.total}` : undefined}
+                title={`${preview.overCap > 0 ? `Makes $${preview.total + preview.overCap}; the Shift cap counts $${preview.total}. ` : ''}Keys: ${KEYS_HINT}`}
               >
                 Run Shift {run.shift}: ${preview.total}
                 {preview.overCap > 0 && ' (capped)'}

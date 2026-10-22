@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Card } from '../../../ui/components';
 import { Icon } from '../../../ui/icons';
 import { fixtureText } from '../cli';
@@ -16,13 +17,19 @@ export type LineViewProps = {
   onScrap?: (slot: number) => void;
   /** Label for the bay button, for screen readers. */
   bayLabel: (slot: number) => string;
+  /** While a hand card is dragged: true for bays it can be dropped on (they highlight as it passes over). */
+  canDrop?: (slot: number) => boolean;
+  /** A dragged hand card dropped on a bay that `canDrop` accepts. */
+  onDropCard?: (slot: number) => void;
 };
 
 /**
  * The factory Line as a conveyor of bays, left to right. Each bay shows its Fixture plate and
  * the card loaded there; the Batch runs in that order.
  */
-export function LineView({ run, bayState, onBay, onScrap, bayLabel }: LineViewProps) {
+export function LineView({ run, bayState, onBay, onScrap, bayLabel, canDrop, onDropCard }: LineViewProps) {
+  /** The bay a dragged card is over, if it can be dropped there. */
+  const [over, setOver] = useState<number | null>(null);
   const inShift = run.phase === 'shift';
   const notice = lineNotice(run);
   const movedFrom = new Map(inShift ? run.fixtureMoves.map((m) => [m.to, m.from]) : []);
@@ -41,12 +48,32 @@ export function LineView({ run, bayState, onBay, onScrap, bayLabel }: LineViewPr
           const state = bayState(i);
           // Between rounds only bays that hold a Fixture (to move or sell) or accept one can be tapped.
           const inert = !inShift && state === 'idle' && slot.fixture === null;
-          const classes = ['tp-bay', `tp-bay--${state}`, welded && 'tp-bay--welded', station && 'tp-bay--station', parked && 'tp-bay--parked']
+          const classes = ['tp-bay', `tp-bay--${state}`, welded && 'tp-bay--welded', station && 'tp-bay--station', parked && 'tp-bay--parked', canDrop !== undefined && over === i && 'tp-bay--dragover']
             .filter(Boolean)
             .join(' ');
           const art = slot.fixture === null || welded ? undefined : fixtureArt(slot.fixture.def.id);
           return (
-            <li key={i} className={classes} data-slot={i + 1} data-fixture={slot.fixture?.def.id} data-kind={slot.fixture?.def.kind}>
+            <li
+              key={i}
+              className={classes}
+              data-slot={i + 1}
+              data-fixture={slot.fixture?.def.id}
+              data-kind={slot.fixture?.def.kind}
+              onDragOver={(event) => {
+                if (canDrop?.(i) !== true) return;
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'move';
+                setOver(i);
+              }}
+              onDragLeave={(event) => {
+                if (!(event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget))) setOver(null);
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                setOver(null);
+                if (canDrop?.(i) === true) onDropCard?.(i);
+              }}
+            >
               <div
                 className={`tp-bay__plate ${idle ? 'is-idle' : ''}`}
                 data-accent={slot.fixture === null ? undefined : station ? 'mustard' : 'teal'}

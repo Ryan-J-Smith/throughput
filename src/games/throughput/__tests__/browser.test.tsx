@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { GrantPicker, HowToPlay, LineView, MarketBoard, Shelf, ThroughputBrowserGame, ThroughputScreen, TpHud, TraceReceipt, cardView, demandBossCut, demandViews, fixtureView, lineNotice, plateText } from '../browser';
+import { GrantPicker, HowToPlay, KEYS_HINT, LineView, MarketBoard, Shelf, ThroughputBrowserGame, ThroughputScreen, TpHud, TraceReceipt, cardView, demandBossCut, demandViews, fixtureView, lineNotice, plateText } from '../browser';
 import { cardText, demandUseText, grownText } from '../cli';
 import { DEFAULT_CONFIG, REBRAND, SKETCH, TRUCK, WORKSHOP } from '../content';
 import type { BayState } from '../browser';
@@ -36,6 +36,14 @@ describe('THROUGHPUT browser screen', () => {
     expect(html).toContain('Retool (3 per round)');
     expect(html).toContain('draw back up to 8');
     expect(html).not.toContain('refilled from your discards');
+    expect(html).toContain('or drag it onto a bay, or double-click it to fill the first empty bay');
+    expect(html).toContain(`<li data-step="keys"><strong>Keys.</strong> ${KEYS_HINT}</li></ol>`);
+  });
+
+  it('hand cards drag and double-click, and the Run button says its key', () => {
+    const html = renderToStaticMarkup(<ThroughputScreen seed={1} onQuit={() => {}} store={new MemoryStore()} resume={false} />);
+    expect(html.match(/<button type="button" class="card card--windowed card--interactive"[^>]*draggable="true"/g)).toHaveLength(7);
+    expect(html).toContain(`title="Keys: ${KEYS_HINT}">Run Shift 1: $0</button>`);
   });
 
   it('opens on Shift 1 with the Line, the Market board and an empty preview receipt', () => {

@@ -1,4 +1,6 @@
 export { HowToPlay } from './HowToPlay';
+export { IDLE, KEYS_HINT, dropKind, firstOpenBay, shiftKey } from './input';
+export type { Mode, ShiftIntent } from './input';
 export type { HowToPlayProps } from './HowToPlay';
 export { LineView } from './LineView';
 export { MarketBoard } from './MarketBoard';

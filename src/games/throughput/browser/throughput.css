@@ -594,6 +594,14 @@ body:has(.screen--tp-shop[data-year])::before {
   animation: tp-bay-ready 1.2s ease-in-out infinite alternate;
 }
 
+/* The accepting bay a dragged card is over: solid, brighter, and still. */
+.tp-bay--dragover .tp-bay__spot {
+  background-color: color-mix(in srgb, var(--focus) 18%, transparent);
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  animation: none;
+}
+
 .tp-bay--selected .tp-bay__plate {
   outline: 2px solid var(--focus);
   outline-offset: 2px;

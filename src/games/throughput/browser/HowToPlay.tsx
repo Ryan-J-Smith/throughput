@@ -1,5 +1,6 @@
 import { DEFAULT_CONFIG } from '../content';
 import type { ThroughputConfig } from '../content';
+import { KEYS_HINT } from './input';
 
 export type HowToPlayProps = { config?: ThroughputConfig };
 
@@ -16,7 +17,7 @@ export function HowToPlay({ config = DEFAULT_CONFIG }: HowToPlayProps) {
           {years} to win.
         </li>
         <li data-step="load">
-          <strong>Load the Line.</strong> Tap a card in your hand, then a bay. Each Shift a Batch moves through the bays from left to right: Designs raise the Margin, Makes add Units, and
+          <strong>Load the Line.</strong> Tap a card in your hand, then a bay; or drag it onto a bay, or double-click it to fill the first empty bay. Each Shift a Batch moves through the bays from left to right: Designs raise the Margin, Makes add Units, and
           Ships sell the Units so far. So put Designs and Makes before the Ship that sells them.
         </li>
         <li data-step="run">
@@ -33,6 +34,9 @@ export function HowToPlay({ config = DEFAULT_CONFIG }: HowToPlayProps) {
         </li>
         <li data-step="board">
           <strong>Beat the Board.</strong> The last round of each Year is a Board Review with a twist on the rules, shown in advance.
+        </li>
+        <li data-step="keys">
+          <strong>Keys.</strong> {KEYS_HINT}
         </li>
       </ol>
     </div>
