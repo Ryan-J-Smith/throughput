@@ -7,7 +7,7 @@ export type AppProps = {
   model: ShellModel;
 };
 
-/** Renders whatever `model` says; all game state lives in the model. */
+/** Renders whatever `model` says; all game state lives in the model. The Launcher supplies the page frame. */
 export function App({ model }: AppProps) {
   const view = useSyncExternalStore(model.subscribe, () => model.getView());
   const toasts = useSyncExternalStore(model.subscribe, () => model.getToasts());
@@ -15,14 +15,6 @@ export function App({ model }: AppProps) {
   const [tallySpeed, setTallySpeed] = useState<TallySpeed>('normal');
 
   return (
-    <div className="app">
-      <GameShell
-        view={view}
-        toasts={toasts}
-        actions={model.actions}
-        tallySpeed={tallySpeed}
-        onTallySpeedChange={setTallySpeed}
-      />
-    </div>
+    <GameShell view={view} toasts={toasts} actions={model.actions} tallySpeed={tallySpeed} onTallySpeedChange={setTallySpeed} />
   );
 }

@@ -2,6 +2,8 @@ export { ContentPresenter } from './ContentPresenter';
 export type { CardFace, ModifierFace, SortKeys } from './ContentPresenter';
 export { GameController } from './GameController';
 export { GameDefinition } from './GameDefinition';
+export { RunBrowserGame } from './RunBrowserGame';
+export type { RunBrowserGameSpec } from './RunBrowserGame';
 export { sortHand } from './handSort';
 export { toggleSelection } from './selection';
 export { contributionKind, toNextRound, toRoundSummary, toScoreTally } from './viewMapping';
