@@ -64,6 +64,10 @@ export type FixtureDef = {
   readonly text: string;
   /** A 2–4 word gist for the bay plate (e.g. "+$1 per Make before"); the plate shows `text` without one. */
   readonly short?: string;
+  /** First Year whose shops offer it (the premium Fixtures: Year 3); 1 when absent. */
+  readonly earliestYear?: number;
+  /** Offer weight, outside the rarity odds (the premium Fixtures); the rarity's share when absent. */
+  readonly weight?: number;
   readonly effect: FixtureEffect;
 };
 

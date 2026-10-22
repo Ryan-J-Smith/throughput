@@ -982,3 +982,31 @@ skilled player take it?" better than the roster. Then the set was simmed togethe
     +5% at 49% picks, and Packaging Line +9%.
   - The roster's `skimmer` wins 6.0%. The other bots are unchanged within noise (station-volume 11.7%).
   - The late curve is left alone, as asked.
+
+### Premium Fixtures for late shops (round 3 §7 #8)
+
+Six of eight testers said Year 3–4 shops had nothing worth buying. Three rare Fixtures now come only in shops leading
+into Year 3 or later, at 12–14C, built on existing hooks:
+
+| Fixture | Price | Rule | Hook |
+|---|---|---|---|
+| Creative Director | 12C | The Design here resolves three times. | `resolveCount` |
+| Global Brand | 12C | A Ship here sells at Margin ×2 (stacks with Hot). | `saleMultiplier` |
+| Conglomerate | 14C | Margin ×1.5, carrying on to later slots. | `onSlot` |
+
+- **Offers:**
+  - `FixtureDef` gains `earliestYear` and `weight`. The shop's restock takes the Year of the round it leads into.
+  - Premium Fixtures carry their own weight (5 each), outside the 60 / 30 / 10 rarity odds. So Year 1–2 odds are
+    unchanged, and they make about 13% of late Fixture offers, about 1.9 a run.
+- **Expert, 400 seeds** (on the item-4 build), offer weight 3 vs 5:
+
+  | | Wins | R10–R12 | Picks: Creative Director / Global Brand / Conglomerate |
+  |---|---|---|---|
+  | None (before) | 48.0% | 1.18 | – |
+  | Weight 3 | 51.5% | 1.19 | 18% / 20% / 9% |
+  | **Weight 5** | 51.3% | 1.18 | 18% / 21% / 8% |
+
+  - Buyers of Creative Director (+20% aware) and Conglomerate (+12%) win more often; Global Brand is at par.
+  - R10–R12 ratios don't move: the premium items compete with each other and with the late spending the expert
+    already does. So late shops gain real choices without softening the end.
+- Not done, since they're new features for the user: the paid boss mitigation and the reroll lock.

@@ -18,14 +18,14 @@ import { ThroughputRun, ThroughputShop, scoreLine } from '../rules';
 import { boss, card, context, easyConfig, fixture, quotaCapRun, slot } from './fixtures';
 
 // Content wave 1 (completion plan): 12 shop cards, 24 Fixtures, 8 Contracts, 8 Board bosses (9 with playtest-2's Quota Cap).
-// Playtest 3 retired Wholesale Club from the shop: 11 shop cards.
+// Playtest 3 retired Wholesale Club from the shop (11 shop cards) and added 3 premium Fixtures (27).
 
 const words = (text: string) => text.split(/\s+/).filter(Boolean).length;
 
 describe('content catalogue', () => {
   it('has the wave-1 counts, unique ids, and modifier text of at most 20 words', () => {
     expect(SHOP_CARDS).toHaveLength(11);
-    expect(FIXTURES).toHaveLength(24);
+    expect(FIXTURES).toHaveLength(27);
     expect(CONTRACTS).toHaveLength(8);
     expect(BOSSES).toHaveLength(9);
     for (const list of [SHOP_CARDS, FIXTURES, CONTRACTS, BOSSES] as const) {
@@ -135,6 +135,30 @@ describe('playtest-3 supply', () => {
     const noGrants = new ThroughputShop(DEFAULT_CONFIG, new Rng(1));
     for (let visit = 1; visit <= 3; visit++) noGrants.restock((c) => c.effect !== 'grant');
     expect(noGrants.offers[4]?.kind === 'contract' && noGrants.offers[4].def.effect).not.toBe('grant');
+  });
+
+  it('offers the premium Fixtures only in shops leading into Year 3 or later', () => {
+    const premium = new Set(FIXTURES.filter((f) => f.earliestYear === 3).map((f) => f.id));
+    expect([...premium].sort()).toEqual(['conglomerate', 'creative-director', 'global-brand']);
+    const seen = (year: number) => {
+      const shop = new ThroughputShop(DEFAULT_CONFIG, new Rng(year));
+      const ids = new Set<string>();
+      for (let visit = 0; visit < 300; visit++) {
+        shop.restock(() => true, year);
+        for (const offer of shop.offers.slice(0, 2)) if (offer?.kind === 'fixture') ids.add(offer.def.id);
+      }
+      return [...ids].filter((id) => premium.has(id));
+    };
+    expect(seen(2)).toEqual([]);
+    expect(seen(3).sort()).toEqual(['conglomerate', 'creative-director', 'global-brand']);
+  });
+
+  it('Creative Director resolves a Design three times; Global Brand doubles a Ship; Conglomerate is Margin ×1.5 onward', () => {
+    expect(scoreLine([slot(fixture('creative-director'), card(INFLUENCER, 'Home'))], context()).steps[0]?.margin).toBe(2 * 1.5 ** 3);
+    const brand = [slot(null, card(WORKSHOP, 'Home')), slot(fixture('global-brand'), card(TRUCK, 'Food'))];
+    expect(scoreLine(brand, context()).total).toBe(6 * 2 * 2);
+    const group = [slot(fixture('conglomerate'), card(WORKSHOP, 'Home')), slot(null, card(TRUCK, 'Food'))];
+    expect(scoreLine(group, context()).total).toBe(6 * 2 * 1.5);
   });
 });
 

@@ -34,6 +34,8 @@ export class ThroughputShop {
   private rerollCost_: number;
   private visits = 0;
   private grantOffered = false;
+  /** The Year of the round a visit leads into: premium Fixtures wait for their `earliestYear`. */
+  private year = 1;
 
   constructor(config: ThroughputConfig, rng: Rng) {
     this.config = config;
@@ -72,9 +74,11 @@ export class ThroughputShop {
 
   /**
    * Fresh stock for a shop visit; Contracts the run can't take (`allowed` false) are left out. By
-   * visit `GRANT_BY_VISIT`, an R&D Grant not yet offered this run fills the Contract slot.
+   * visit `GRANT_BY_VISIT`, an R&D Grant not yet offered this run fills the Contract slot. `year`
+   * is the Year of the round the visit leads into.
    */
-  restock(allowed: (contract: ContractDef) => boolean): void {
+  restock(allowed: (contract: ContractDef) => boolean, year = 1): void {
+    this.year = year;
     this.rerollCost_ = this.config.rerollBaseCost;
     this.visits++;
     this.stock(allowed, this.visits >= GRANT_BY_VISIT && !this.grantOffered);
@@ -110,7 +114,7 @@ export class ThroughputShop {
   }
 
   private stock(allowed: (contract: ContractDef) => boolean, grantDue = false): void {
-    this.fixtures.restock();
+    this.fixtures.restock((def) => (def.earliestYear ?? 1) <= this.year);
     this.cards.restock();
     const grant = (contract: ContractDef) => contract.effect === 'grant' && allowed(contract);
     const forced = grantDue && CONTRACTS.some(grant);
@@ -119,8 +123,9 @@ export class ThroughputShop {
   }
 }
 
+/** Each rarity's odds split among its Fixtures; premium Fixtures carry their own `weight` instead. */
 function fixtureWeights(): Record<Rarity, number> {
-  const count = (rarity: Rarity) => FIXTURES.filter((f) => f.rarity === rarity).length;
+  const count = (rarity: Rarity) => FIXTURES.filter((f) => f.rarity === rarity && f.weight === undefined).length;
   return {
     common: FIXTURE_ODDS.common / count('common'),
     uncommon: FIXTURE_ODDS.uncommon / count('uncommon'),

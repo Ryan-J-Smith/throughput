@@ -933,7 +933,7 @@ export class ThroughputRun {
   private enterShop(): void {
     this.phase_ = 'shop';
     if (this.stored_ > 0) this.storageNotice_ = `Warehouse: ${this.stored_} Units in stock for the next Board Review`;
-    this.shop_.restock((c) => this.whyContractUnavailable(c) === null);
+    this.shop_.restock((c) => this.whyContractUnavailable(c) === null, this.quarterOf(this.round_ + 1).year);
   }
 
   private applyContract(effect: ContractEffect, { deckCard, category, option }: BuyTarget): void {

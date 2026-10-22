@@ -275,6 +275,38 @@ class RoboticsCell extends FixtureEffect {
   }
 }
 
+class CreativeDirector extends FixtureEffect {
+  override resolveCount(card: Card): number {
+    return card.def.stage === 'design' ? 3 : 1;
+  }
+
+  override appliesTo(card: Card): boolean {
+    return card.def.stage === 'design';
+  }
+}
+
+class GlobalBrand extends FixtureEffect {
+  override saleMultiplier(card: Card): number {
+    return card.def.stage === 'ship' ? 2 : 1;
+  }
+
+  override appliesTo(card: Card): boolean {
+    return card.def.stage === 'ship';
+  }
+}
+
+class Conglomerate extends FixtureEffect {
+  override onSlot(batch: Batch): void {
+    batch.mulMargin(1.5, 'Conglomerate');
+  }
+}
+
+/**
+ * Offer weight of each premium Fixture (playtest 3: late shops had nothing worth buying). They come
+ * from Year 3 on, outside the rarity odds: 3 × 5 on top of 100 makes about 13% of late Fixture offers.
+ */
+const PREMIUM_WEIGHT = 5;
+
 /** ×1.2, +0.15 per round cleared since the Flagship was bought. */
 export function flagshipMultiplier(roundsOwned: number): number {
   return Math.round((1.2 + 0.15 * roundsOwned) * 100) / 100;
@@ -429,6 +461,42 @@ export const FIXTURES: readonly FixtureDef[] = [
     text: 'With a Ship card here: Margin ×(1 + all Batch Units ÷ 50) before it sells, even Units beyond Demand.',
     short: 'Ship ×(1 + Units/50)',
     effect: new Superstore(),
+  },
+  {
+    id: 'creative-director',
+    name: 'Creative Director',
+    kind: 'mod',
+    rarity: 'rare',
+    price: 12,
+    earliestYear: 3,
+    weight: PREMIUM_WEIGHT,
+    text: 'The Design here resolves three times.',
+    short: 'Design resolves 3×',
+    effect: new CreativeDirector(),
+  },
+  {
+    id: 'global-brand',
+    name: 'Global Brand',
+    kind: 'mod',
+    rarity: 'rare',
+    price: 12,
+    earliestYear: 3,
+    weight: PREMIUM_WEIGHT,
+    text: 'A Ship here sells at Margin ×2.',
+    short: 'Ship ×2',
+    effect: new GlobalBrand(),
+  },
+  {
+    id: 'conglomerate',
+    name: 'Conglomerate',
+    kind: 'mod',
+    rarity: 'rare',
+    price: 14,
+    earliestYear: 3,
+    weight: PREMIUM_WEIGHT,
+    text: 'Margin ×1.5 (carries on to later slots).',
+    short: 'Margin ×1.5, carries on',
+    effect: new Conglomerate(),
   },
   { id: 'robotics-cell', name: 'Robotics Cell', kind: 'mod', rarity: 'rare', price: 7, text: 'A Make card here resolves three times.', short: 'Make resolves 3×', effect: new RoboticsCell() },
 ];
