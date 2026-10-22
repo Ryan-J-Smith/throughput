@@ -46,11 +46,12 @@ export function buildQaScene(bossId = 'supply-shock', config: ThroughputConfig =
 }
 
 /**
- * A finished run for the run summary: `won` plays every round against $1 targets; otherwise the
- * Y1 Board's target is out of reach, so the run ends there (and the summary shows the Board).
+ * A finished run for the run summary: `won` plays every round against $20 targets (enough over a
+ * Quota Cap's 60% per Shift); otherwise the first two rounds are free and the Y1 Board keeps its
+ * real target, which this Line misses by a believable margin, so the summary shows the Board.
  */
 export function buildQaEnding(won: boolean): QaScene {
-  const targets = DEFAULT_CONFIG.targets.map((t, i) => (won || i < 2 ? 1 : t * 1000));
+  const targets = DEFAULT_CONFIG.targets.map((t, i) => (won ? 20 : i < 2 ? 1 : t));
   const run = new ThroughputRun(7, { ...DEFAULT_CONFIG, startingCapital: 60, targets });
   for (let guard = 0; (run.phase === 'shift' || run.phase === 'shop') && guard < 200; guard++) {
     if (run.phase === 'shift') {
