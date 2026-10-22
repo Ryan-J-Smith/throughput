@@ -7,6 +7,8 @@ import { ThroughputRun } from '../rules';
 import type { BuyTarget, Placement } from '../rules';
 import { formatAction, parseAction } from './actions';
 import type { ThroughputAction } from './actions';
+
+type BuyAction = Extract<ThroughputAction, { verb: 'buy' }>;
 import { rulesText } from './rules-text';
 import { deckText, formatView, legalActions, movesText, quarterLabel, stateData, traceLines } from './text-view';
 
@@ -40,11 +42,16 @@ export class ThroughputTextGame extends ReplayTextGame<ThroughputRun> {
   }
 }
 
-function buyTarget(run: ThroughputRun, offer: number, target: number | null): BuyTarget | string {
+function buyTarget(run: ThroughputRun, action: BuyAction): BuyTarget | string {
+  const { offer, target, grant } = action;
   const item = run.offers[offer];
-  if (target === null || item == null) return {};
+  if (item == null) return {};
+  const grantable = item.kind === 'contract' && item.def.targetsCategory;
+  if (grant !== undefined) return grantable ? { category: grant.category, option: grant.option } : `${item.def.name} doesn't take a Category`;
+  if (target === null) return {};
   if (item.kind === 'fixture') return { slot: target };
   if (item.kind === 'contract' && item.def.targetsCard) return { deckCard: target };
+  if (grantable) return `${item.def.name} needs a Category and scale or premium, e.g. "buy ${offer + 1} home scale"`;
   return `${item.def.name} takes no target; use "buy ${offer + 1}"`;
 }
 
@@ -88,7 +95,7 @@ function whyCannot(run: ThroughputRun, action: ThroughputAction): string | null 
     case 'run':
       return run.whyCannotRun();
     case 'buy': {
-      const target = buyTarget(run, action.offer, action.target);
+      const target = buyTarget(run, action);
       return typeof target === 'string' ? target : run.whyCannotBuy(action.offer, target);
     }
     case 'sell':
@@ -136,9 +143,17 @@ function apply(run: ThroughputRun, action: ThroughputAction): string[] {
     case 'run':
       return runLog(run);
     case 'buy': {
-      const target = buyTarget(run, action.offer, action.target) as BuyTarget;
+      const target = buyTarget(run, action) as BuyTarget;
       const item = run.buy(action.offer, target);
-      const where = item.kind === 'fixture' ? ` into slot ${(target.slot ?? 0) + 1}` : item.kind === 'card' ? ' into your deck' : '';
+      const grant = action.grant;
+      const where =
+        item.kind === 'fixture'
+          ? ` into slot ${(target.slot ?? 0) + 1}`
+          : item.kind === 'card'
+            ? ' into your deck'
+            : grant !== undefined
+              ? `: ${grant.category} ${grant.option === 'scale' ? 'Scale' : 'Premium'} ${run.grants[grant.category][grant.option]}`
+              : '';
       const lines = [`Bought ${item.kind === 'card' ? `${item.def.name}-${item.category.charAt(0)}` : item.def.name} for ${item.price}C${where}. Capital ${run.wallet.cash}C.`];
       if (target.slot !== undefined) lines.push(...weldWarning(run, target.slot));
       return lines;

@@ -52,8 +52,11 @@ function playAndRecord(seed: number, steps: number, store: MemoryStore): Through
     } else {
       const d = bot.shopTurn(run);
       if (d.kind === 'buy') {
-        const target = 'slot' in d.target ? (d.target.slot ?? null) : 'deckCard' in d.target ? (d.target.deckCard ?? null) : null;
-        entry = { verb: 'buy', offer: d.offer, target };
+        const { slot, deckCard, category, option } = d.target;
+        entry =
+          category !== undefined && option !== undefined
+            ? { verb: 'buy', offer: d.offer, target: null, grant: { category, option } }
+            : { verb: 'buy', offer: d.offer, target: slot ?? deckCard ?? null };
         run.buy(d.offer, d.target);
       } else if (d.kind === 'sellFixture') {
         entry = { verb: 'sell', what: 'fixture', index: d.slot };

@@ -1,4 +1,9 @@
+import { CATEGORIES, CATEGORY_CODE } from '../model';
+import type { Category, GrantOption } from '../model';
 import type { Placement } from '../rules';
+
+/** An R&D Grant's choice: which Category, and Scale or Premium. */
+export type GrantChoice = { readonly category: Category; readonly option: GrantOption };
 
 /**
  * A parsed text command. Numbers are 0-based here; the text uses 1-based. Hand numbers are stable
@@ -8,7 +13,7 @@ export type ThroughputAction =
   | { readonly verb: 'load'; readonly placements: readonly Placement[] }
   | { readonly verb: 'unload' | 'scrap'; readonly slots: readonly number[] }
   | { readonly verb: 'retool'; readonly hand: readonly number[] }
-  | { readonly verb: 'buy'; readonly offer: number; readonly target: number | null }
+  | { readonly verb: 'buy'; readonly offer: number; readonly target: number | null; readonly grant?: GrantChoice }
   | { readonly verb: 'sell'; readonly what: 'fixture' | 'card'; readonly index: number }
   | { readonly verb: 'move'; readonly from: number; readonly to: number }
   | { readonly verb: 'run' | 'reroll' | 'continue' | 'rules' | 'deck' };
@@ -46,8 +51,12 @@ export function parseAction(text: string): ParsedAction {
       return hand === null ? fail('retool needs hand card numbers, e.g. "retool 2 6"') : { ok: true, action: { verb, hand } };
     }
     case 'buy': {
+      const grant = grantChoice(args.slice(1));
       const [offer, target, ...rest] = args.map(number);
-      if (offer == null || rest.length > 0 || target === null) return fail('buy needs an offer number and maybe a slot or deck card, e.g. "buy 1 3"');
+      if (offer != null && grant !== null) return { ok: true, action: { verb, offer, target: null, grant } };
+      if (offer == null || rest.length > 0 || target === null) {
+        return fail('buy needs an offer number and maybe a slot, a deck card, or "<category> scale|premium", e.g. "buy 1 3" or "buy 5 home scale"');
+      }
       return { ok: true, action: { verb, offer, target: target ?? null } };
     }
     case 'sell': {
@@ -80,6 +89,7 @@ export function formatAction(action: ThroughputAction): string {
     case 'retool':
       return `retool ${action.hand.map(one).join(' ')}`;
     case 'buy':
+      if (action.grant !== undefined) return `buy ${one(action.offer)} ${action.grant.category.toLowerCase()} ${action.grant.option}`;
       return `buy ${one(action.offer)}${action.target === null ? '' : ` ${one(action.target)}`}`;
     case 'sell':
       return `sell ${action.what} ${one(action.index)}`;
@@ -88,6 +98,14 @@ export function formatAction(action: ThroughputAction): string {
     default:
       return action.verb;
   }
+}
+
+/** "<category> scale|premium" (a Category by name or letter, e.g. "home" or "h"), or null. */
+function grantChoice(args: readonly string[]): GrantChoice | null {
+  const [name, option, ...rest] = args;
+  const category = CATEGORIES.find((c) => c.toLowerCase() === name || CATEGORY_CODE[c].toLowerCase() === name);
+  if (category === undefined || (option !== 'scale' && option !== 'premium') || rest.length > 0) return null;
+  return { category, option };
 }
 
 /** A 1-based positive integer as 0-based, or null. */

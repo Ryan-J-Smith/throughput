@@ -134,7 +134,9 @@ COMMANDS
   scrap <slot> …         discard parked cards
   retool <hand> …        discard 1–${c.retoolMax} hand cards and draw as many
   run                    run the Shift
-  buy <offer> [<slot> | <deck card>]   Fixtures need a slot; Tooling Upgrade/Downsizing a deck card
+  buy <offer> [<slot> | <deck card> | <category> scale|premium]
+                         Fixtures need a slot; Tooling Upgrade/Downsizing a deck card; R&D Grant a
+                         Category and Scale or Premium, e.g. "buy 5 home scale"
   sell fixture <slot> | sell card <deck card>
   move <from slot> <to slot>
   reroll | continue

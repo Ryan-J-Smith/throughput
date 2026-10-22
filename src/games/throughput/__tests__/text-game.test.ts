@@ -38,6 +38,8 @@ describe('parseAction / formatAction', () => {
     ['retool 1 4 6', 'retool 1 4 6'],
     ['buy 2', 'buy 2'],
     ['buy 1 3', 'buy 1 3'],
+    ['buy 5 Home Scale', 'buy 5 home scale'],
+    ['buy 5 f premium', 'buy 5 food premium'],
     ['sell fixture 2', 'sell fixture 2'],
     ['sell card 21', 'sell card 21'],
     ['move 1 4', 'move 1 4'],
@@ -49,7 +51,7 @@ describe('parseAction / formatAction', () => {
     expect(formatAction(parsed.action)).toBe(canonical);
   });
 
-  it.each(['load', 'load 3-1', 'load 0:1', 'retool', 'buy', 'buy x', 'sell 2', 'move 1', 'run now', 'dance'])('rejects "%s"', (text) => {
+  it.each(['load', 'load 3-1', 'load 0:1', 'retool', 'buy', 'buy x', 'buy 5 home', 'buy 5 toys scale', 'buy 5 home scale 2', 'sell 2', 'move 1', 'run now', 'dance'])('rejects "%s"', (text) => {
     expect(parseAction(text).ok).toBe(false);
   });
 });
@@ -166,6 +168,27 @@ describe('ThroughputTextGame', () => {
     expect(shop.view.legalActions.at(-3)).toBe('continue — start Y1 Q2 (round 2, target $10)');
     const next = ok(game.take(shop.save, 'continue'));
     expect(next.view.state).toMatchObject({ phase: 'shift', round: 2 });
+  });
+
+  it('buys an R&D Grant for a Category with Scale or Premium, and replays it', () => {
+    const toShop = (seed: number) => {
+      const hand = handOf(game, game.newSave(seed));
+      return ok(game.take(play(game, seed, [`load ${numberOf(hand, 'make')}:1 ${numberOf(hand, 'ship')}:2`]), 'run')).save;
+    };
+    const grantOffer = (save: SaveFile) => (game.show(save).state as { shop: { offers: ({ text: string } | null)[] } }).shop.offers.findIndex((o) => o?.text.startsWith('Contract · R&D Grant') === true);
+    const seed = Array.from({ length: 200 }, (_, i) => i + 1).find((s) => grantOffer(toShop(s)) >= 0);
+    if (seed === undefined) throw new Error('no seed offers an R&D Grant after round 1');
+    const shop = toShop(seed);
+    const n = grantOffer(shop) + 1;
+    expect(game.show(shop).legalActions).toContain(
+      `buy ${n} <category> scale|premium — R&D Grant for 5C: Scale gives that Category +10 Demand and +3 Units at its Ships; Premium +25% on its sale price`,
+    );
+    expect(game.take(shop, `buy ${n}`)).toMatchObject({ ok: false, reason: `Say which Category and scale or premium (buy ${n} <category> scale|premium)` });
+    expect(game.take(shop, `buy ${n} 2`)).toMatchObject({ ok: false, reason: `R&D Grant needs a Category and scale or premium, e.g. "buy ${n} home scale"` });
+    const bought = ok(game.take(shop, `buy ${n} H scale`));
+    expect(bought.log[0]).toMatch(/^Bought R&D Grant for 5C: Home Scale 1\. Capital \d+C\.$/);
+    expect(bought.save.actions.at(-1)).toBe(`buy ${n} home scale`);
+    expect((game.show(bought.save).state as { demand: Record<string, unknown> }).demand.Home).toMatchObject({ scale: 1, premium: 0 });
   });
 });
 

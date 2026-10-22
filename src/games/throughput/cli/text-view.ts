@@ -2,7 +2,7 @@ import { computeInterest } from '../../../engine/economy';
 import { TRUCK } from '../content';
 import { CATEGORIES, cardEffect, cardName, formatAmount } from '../model';
 import type { Card, CardDef, Category, Fixture, TrendStage } from '../model';
-import type { FixtureMove, Offer, ShiftResult, ThroughputRun, Trends } from '../rules';
+import type { BuyTarget, FixtureMove, Offer, ShiftResult, ThroughputRun, Trends } from '../rules';
 
 const STAGE_ORDER: readonly TrendStage[] = ['hot', 'emerging', 'saturated', 'neutral'];
 const STAGE_NAME: Readonly<Record<TrendStage, string>> = { hot: 'Hot', emerging: 'Emerging', saturated: 'Saturated', neutral: 'Neutral' };
@@ -114,7 +114,14 @@ export function offerBlocker(run: ThroughputRun, offer: number): string | null {
   if (item.kind === 'fixture') {
     return run.line.some((_, s) => run.whyCannotBuy(offer, { slot: s }) === null) ? null : 'no slot without a Fixture (sell or move one first)';
   }
-  return run.whyCannotBuy(offer, item.kind === 'contract' && item.def.targetsCard ? { deckCard: 0 } : {});
+  return run.whyCannotBuy(offer, sampleTarget(item));
+}
+
+/** A legal-looking target for `item`, to ask whether anything but the target blocks buying it. */
+function sampleTarget(item: Offer): BuyTarget {
+  if (item.kind !== 'contract') return {};
+  if (item.def.targetsCard) return { deckCard: 0 };
+  return item.def.targetsCategory ? { category: 'Apparel', option: 'scale' } : {};
 }
 
 export function legalActions(run: ThroughputRun): string[] {
@@ -152,6 +159,13 @@ export function legalActions(run: ThroughputRun): string[] {
         if (free.length > 0) out.push(`buy ${n} <slot> — ${offer.def.name} for ${offer.price}C into a slot without a Fixture (${list(free)})`);
       } else if (offer.kind === 'contract' && offer.def.targetsCard) {
         if (run.whyCannotBuy(i, { deckCard: 0 }) === null) out.push(`buy ${n} <deck card> — ${offer.def.name} for ${offer.price}C (deck cards 1–${run.deck.length})`);
+      } else if (offer.kind === 'contract' && offer.def.targetsCategory) {
+        const g = run.config.grant;
+        if (run.whyCannotBuy(i, sampleTarget(offer)) === null) {
+          out.push(
+            `buy ${n} <category> scale|premium — ${offer.def.name} for ${offer.price}C: Scale gives that Category +${g.scaleDemand} Demand and +${g.scaleUnits} Units at its Ships; Premium +${Math.round(g.premiumStep * 100)}% on its sale price`,
+          );
+        }
       } else if (run.whyCannotBuy(i) === null) {
         out.push(`buy ${n} — ${offer.kind === 'card' ? `${offer.def.name}-${offer.category.charAt(0)} into your deck` : offer.def.name} for ${offer.price}C`);
       }
