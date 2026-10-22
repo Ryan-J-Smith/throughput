@@ -24,7 +24,8 @@ export class DemoPresenter extends ContentPresenter<DemoCard> {
     return {
       title: `Card ${card.value}`,
       description: `+${card.value} base`,
-      tags: high ? ['High'] : [],
+      tags: [high ? 'High' : 'Low'],
+      accent: high ? 'red' : 'blue',
       value: card.value,
       tooltip: { body, glossary: glossaryFor(`${body} multiplier`) },
     };
@@ -36,13 +37,17 @@ export class DemoPresenter extends ContentPresenter<DemoCard> {
   }
 
   override presentModifier(modifier: Modifier<DemoCard>): ModifierFace {
-    return { ...super.presentModifier(modifier), tooltip: { body: modifier.description, glossary: glossaryFor(modifier.description) } };
+    return {
+      ...super.presentModifier(modifier),
+      accent: 'teal',
+      tooltip: { body: modifier.description, glossary: glossaryFor(modifier.description) },
+    };
   }
 
   override presentOffer(def: RunShopDef<DemoCard>): CardFace {
     const face = super.presentOffer(def);
     if (def.kind === 'card') return face;
-    return { ...face, tooltip: { body: def.description, glossary: glossaryFor(def.description) } };
+    return { ...face, accent: 'teal', tooltip: { body: def.description, glossary: glossaryFor(def.description) } };
   }
 
   override statLabel(stat: string): string {

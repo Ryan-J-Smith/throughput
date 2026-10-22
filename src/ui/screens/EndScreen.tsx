@@ -22,7 +22,7 @@ export function EndScreen({ outcome, hud, onRestart }: EndScreenProps) {
         <dd>${hud.cash}</dd>
       </dl>
       <button type="button" className="btn btn--play btn--large" onClick={onRestart}>
-        New Run
+        New run
       </button>
     </main>
   );

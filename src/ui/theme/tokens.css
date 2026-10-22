@@ -1,0 +1,116 @@
+/*
+ * Shelf Life design tokens. Everything visual reads from here so the game can be re-skinned by
+ * editing this file alone. Sections: palette, department accents, type, space/radii, shadows,
+ * motion. Legacy aliases at the bottom keep older component styles working.
+ */
+
+:root {
+  /* ---- Palette: warehouse floor, card stock, print ---- */
+  --floor: #2a2e2c;
+  --floor-deep: #1e2120;
+  --floor-paint: #e8b923; /* aisle-line yellow */
+  --panel: #353a37; /* steel shelving */
+  --panel-edge: #4a504c;
+  --chalk: #efeadf; /* light text on the floor */
+  --chalk-dim: #a9aa9f;
+
+  --stock: #f1e6cb; /* manila card stock */
+  --stock-edge: #d8c9a3;
+  --stock-shade: #e6d8b6;
+  --print: #1f1a14; /* warm print black */
+  --print-dim: #5e5546;
+
+  --paper: #fbf7ee; /* report and receipt paper */
+  --paper-rule: #c9d6e6; /* ledger rule blue */
+  --register-ink: #3d3470; /* faded register purple */
+  --stamp-red: #c8102e;
+
+  --cash: #2c8c5a;
+  --focus: #f5c518;
+
+  /* ---- Department accents (presenter picks one by key) ---- */
+  --dept-red: #d7263d;
+  --dept-blue: #1d4e9e;
+  --dept-mustard: #e8a913;
+  --dept-green: #2c8c5a;
+  --dept-teal: #13817f;
+  --dept-violet: #6c3fa0;
+  --dept-orange: #e86a1c;
+  --dept-neutral: #5a6168;
+
+  /* ---- Rarity finishes ---- */
+  --finish-uncommon: #9fb7a8; /* satin */
+  --finish-rare: linear-gradient(115deg, #b8f3ff, #f8c8ff 30%, #fff6b0 55%, #b9ffcf 80%, #b8f3ff);
+  --finish-legendary: linear-gradient(115deg, #a8741a, #f7d77a 35%, #b8862b 60%, #ffe9a3 85%, #a8741a);
+
+  /* ---- Type ---- */
+  --font-display: 'Big Shoulders Display', 'Arial Narrow', 'Roboto Condensed', Impact, sans-serif;
+  --font-body: 'Archivo', 'Helvetica Neue', Arial, system-ui, sans-serif;
+  --text-xs: 0.6875rem;
+  --text-sm: 0.8125rem;
+  --text-md: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.75rem;
+  --text-2xl: 2.5rem;
+  --text-3xl: clamp(3.5rem, 13vw, 7rem);
+
+  /* ---- Space, radii ---- */
+  --gap: 16px;
+  --radius-card: 6px;
+  --radius-panel: 4px;
+  --radius-button: 5px;
+  --radius-pill: 999px;
+
+  /* ---- Shadows ---- */
+  --shadow-card: 0 1px 0 rgb(255 255 255 / 0.5) inset, 0 3px 0 var(--stock-edge), 0 10px 18px rgb(0 0 0 / 0.35);
+  --shadow-lift: 0 1px 0 rgb(255 255 255 / 0.5) inset, 0 3px 0 var(--stock-edge), 0 22px 30px rgb(0 0 0 / 0.45);
+  --shadow-print: 3px 3px 0 var(--print);
+  --shadow-panel: 0 2px 0 rgb(0 0 0 / 0.35), 0 12px 24px rgb(0 0 0 / 0.25);
+
+  /* ---- Motion ---- */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.3, 1);
+  --ease-spring: cubic-bezier(0.25, 1.6, 0.45, 1);
+  --dur-fast: 120ms;
+  --dur-med: 240ms;
+  --dur-slow: 480ms;
+  --stagger: 45ms;
+
+  color-scheme: dark;
+
+  /* ---- Legacy aliases (older sections; remove as they are restyled) ---- */
+  --bg: var(--floor);
+  --bg-raised: var(--panel);
+  --bg-card: var(--stock);
+  --ink-card: var(--print);
+  --ink: var(--chalk);
+  --ink-dim: var(--chalk-dim);
+  --line: var(--panel-edge);
+  --accent-score: #4f9fe0;
+  --accent-plays: var(--dept-blue);
+  --accent-discard: var(--dept-red);
+  --accent-cash: var(--dept-mustard);
+  --accent-value: var(--dept-green);
+  --accent-select: var(--focus);
+  --accent-mult: #e8405a;
+  --accent-xmult: #9b6bd6;
+  --rarity-common: var(--stock-edge);
+  --rarity-uncommon: var(--dept-green);
+  --rarity-rare: var(--dept-blue);
+  --rarity-legendary: var(--dept-violet);
+  --radius: var(--radius-card);
+  --shadow: 0 4px 0 rgb(0 0 0 / 0.45);
+  --font: var(--font-body);
+}
+
+/* Department accent map: components set data-accent="<key>" and read --accent. */
+[data-accent] {
+  --accent: var(--dept-neutral);
+  --accent-ink: #fff;
+}
+[data-accent='red'] { --accent: var(--dept-red); }
+[data-accent='blue'] { --accent: var(--dept-blue); }
+[data-accent='mustard'] { --accent: var(--dept-mustard); --accent-ink: var(--print); }
+[data-accent='green'] { --accent: var(--dept-green); }
+[data-accent='teal'] { --accent: var(--dept-teal); }
+[data-accent='violet'] { --accent: var(--dept-violet); }
+[data-accent='orange'] { --accent: var(--dept-orange); }

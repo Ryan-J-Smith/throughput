@@ -21,6 +21,8 @@ export type CardView = {
   value?: number;
   disabled?: boolean;
   tooltip?: TooltipView;
+  /** Department colour key from the theme's accent map (e.g. "red", "teal"); presentational only. */
+  accent?: string;
 };
 
 export type ModifierView = {
@@ -29,6 +31,8 @@ export type ModifierView = {
   description: string;
   tags: readonly string[];
   tooltip?: TooltipView;
+  /** Department colour key, as on CardView. */
+  accent?: string;
   /** Cash received if sold now. */
   sellValue: number;
   /** Styling hint only; Sell stays clickable so the state owner can explain a refusal. */

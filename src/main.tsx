@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { GameController } from './app';
 import { DemoGame } from './content/demo';
 import { App } from './ui/shell';
+import './ui/theme/tokens.css';
 import './ui/styles.css';
 
 const root = document.getElementById('root');
