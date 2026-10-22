@@ -102,6 +102,18 @@ describe('ThroughputTextGame', () => {
     expect(ran.log).toContain(`Drew ${handOf(game, ran.save).slice(0, 2).map((c) => `${c.name} (${c.n})`).join(', ')}.`);
   });
 
+  it('the preview says when a Shift clears and what overkill it pays', () => {
+    const hand = handOf(game, game.newSave(1));
+    const save = play(game, 1, [`load ${numberOf(hand, 'make')}:1 ${numberOf(hand, 'ship')}:2`]);
+    const run = new ThroughputRun(1, easyConfig());
+    const view = game.show(save);
+    // Target $10; one Make and one Ship make $12: 20% over, under the first 25% step.
+    expect(view.text).toContain('  This Shift clears the target.');
+    expect(view.legalActions).toContain(`run — run Shift 1 of 4 (makes $12; round reaches $12 of $${run.target}; clears the target)`);
+    const big = new ThroughputTextGame(easyConfig({ targets: [5, 10, 10] }));
+    expect(big.show(play(big, 1, [`load ${numberOf(hand, 'make')}:1 ${numberOf(hand, 'ship')}:2`])).text).toContain('  This Shift clears the target, +5C overkill (140% over).');
+  });
+
   it('marks what stays on the Line after the run', () => {
     const hand = handOf(game, game.newSave(1));
     const view = game.show(play(game, 1, [`load ${numberOf(hand, 'design')}:1 ${numberOf(hand, 'make')}:2`])).text;
@@ -148,6 +160,7 @@ describe('rules and shop text', () => {
     expect(text).toContain('Line Shift: before every Shift, including Shift 1');
     expect(text).toContain(`Targets: Y1 ${DEFAULT_CONFIG.targets.slice(0, 3).join('/')}`);
     expect(rulesText({ ...DEFAULT_CONFIG, handSize: 8 })).toContain('a hand of 8');
+    expect(text).toContain(`each full ${DEFAULT_CONFIG.overkill.step * 100}% of the target you sold beyond it pays +1C`);
   });
 
   it('a shop card offer names its Category and type, in the same words the deck uses', () => {

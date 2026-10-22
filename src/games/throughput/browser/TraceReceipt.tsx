@@ -7,10 +7,12 @@ export type TraceReceiptProps = {
   /** Round Sales before this Shift, to show where it lands against the target. */
   salesBefore: number;
   target: number;
+  /** Overkill pay if this Shift clears the round (preview only). */
+  overkillPay?: number;
 };
 
 /** A Shift's Batch printed as a register receipt: one line per slot, then leftovers and the total. */
-export function TraceReceipt({ result, heading, salesBefore, target }: TraceReceiptProps) {
+export function TraceReceipt({ result, heading, salesBefore, target, overkillPay }: TraceReceiptProps) {
   const after = Math.max(0, salesBefore + result.total);
   const cleared = result.leftover - result.storedUnits;
   return (
@@ -57,7 +59,7 @@ export function TraceReceipt({ result, heading, salesBefore, target }: TraceRece
         </div>
         <p className={`tp-receipt__round ${after >= target ? 'is-cleared' : ''}`}>
           Round ${after} of ${target}
-          {after >= target ? ': target hit' : `: $${target - after} to go`}
+          {after >= target ? `: target hit${overkillPay !== undefined && overkillPay > 0 ? `, +${overkillPay}C overkill` : ''}` : `: $${target - after} to go`}
         </p>
       </div>
     </section>

@@ -74,6 +74,14 @@ export function traceLines(result: ShiftResult, indent = '  '): string[] {
   return lines;
 }
 
+/** "clears the target, +3C overkill (47% over)" if round Sales of `sales` would clear, else ''. */
+export function overkillNote(run: ThroughputRun, sales: number): string {
+  if (sales < run.target) return '';
+  const pay = run.overkillPayFor(sales);
+  const over = Math.floor((100 * (sales - run.target)) / run.target);
+  return pay > 0 ? `clears the target, +${pay}C overkill (${over}% over)` : 'clears the target';
+}
+
 /** "Showroom 5→1, Quality Lab 1→2" (1-based slots). */
 export function movesText(moves: readonly FixtureMove[]): string {
   return moves.map((m) => `${m.fixture.def.name} ${m.from + 1}→${m.to + 1}`).join(', ');
@@ -130,7 +138,9 @@ export function legalActions(run: ThroughputRun): string[] {
       out.push(`retool <hand> … — discard ${cards} and draw as many into their places (${run.retoolsLeft} left this round)`);
     }
     const preview = run.preview();
-    out.push(`run — run Shift ${run.shift} of ${run.config.shiftsPerRound} (makes $${preview.total}; round reaches $${Math.max(0, run.sales + preview.total)} of $${run.target})`);
+    const after = Math.max(0, run.sales + preview.total);
+    const clears = overkillNote(run, after);
+    out.push(`run — run Shift ${run.shift} of ${run.config.shiftsPerRound} (makes $${preview.total}; round reaches $${after} of $${run.target}${clears === '' ? '' : `; ${clears}`})`);
   }
   if (run.phase === 'shop') {
     run.offers.forEach((offer, i) => {
@@ -219,7 +229,10 @@ export function formatView(run: ThroughputRun, context: ViewContext): string {
   if (run.phase === 'shift') {
     const hand = run.handSlots.flatMap((card, i) => (card === null ? [] : [`  ${i + 1}. ${cardText(card)}`]));
     lines.push('', `Hand (${run.hand.length}; a card keeps its number until it leaves the hand):`, ...hand);
-    lines.push('', 'If you run now:', ...traceLines(run.preview()));
+    const preview = run.preview();
+    const clears = overkillNote(run, Math.max(0, run.sales + preview.total));
+    lines.push('', 'If you run now:', ...traceLines(preview));
+    if (clears !== '') lines.push(`  This Shift ${clears}.`);
   } else {
     lines.push(...nextBoardLayout(run));
     lines.push('', `Shop (reroll ${run.rerollCost}C):`);

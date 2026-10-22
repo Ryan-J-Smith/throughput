@@ -81,6 +81,8 @@ CAPITAL AND THE SHOP
   Capital (C) is separate from Sales. When a round clears you earn ${income},
   plus ${c.unusedShiftBonus}C per unused Shift, plus interest: ${c.interest.amount}C per full ${c.interest.per}C you hold when the round
   clears, counted before that round's payout (at most +${c.interest.cap}C, reached at ${interestFull}C).
+  Overkill: when a round clears, each full ${Math.round(c.overkill.step * 100)}% of the target you sold beyond it pays +1C
+  (at most +${c.overkill.cap}C a round).
   Each shop offers 2 Fixtures, 2 Cards and 1 Contract. Reroll: ${c.rerollBaseCost}C, +${c.rerollCostIncrement}C each time per visit.
   Sell a Fixture, or a card you bought, for half its price (rounded down). Starter cards can't be sold.
   Contracts: Tooling Upgrade (a deck card gets Design +$1, Make +3 Units or Ship +5 cap),

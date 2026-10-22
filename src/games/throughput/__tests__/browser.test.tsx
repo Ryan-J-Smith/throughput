@@ -66,6 +66,8 @@ describe('THROUGHPUT browser screen', () => {
     expect(html).toContain('Ship sells');
     expect(html).toContain(`$${preview.total}`);
     expect(html).toContain('target hit');
+    const overkill = renderToStaticMarkup(<TraceReceipt result={preview} heading="If you run now" salesBefore={0} target={5} overkillPay={4} />);
+    expect(overkill).toContain('target hit, +4C overkill');
   });
 
   it('each loaded card says whether it stays after the run', () => {

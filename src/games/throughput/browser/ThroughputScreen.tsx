@@ -177,7 +177,13 @@ export function ThroughputScreen({ seed, onQuit }: BrowserGameProps) {
             </div>
           </section>
           <aside className="tp-desk__receipt">
-            <TraceReceipt result={preview} heading="If you run now" salesBefore={run.sales} target={run.target} />
+            <TraceReceipt
+              result={preview}
+              heading="If you run now"
+              salesBefore={run.sales}
+              target={run.target}
+              overkillPay={run.overkillPayFor(Math.max(0, run.sales + preview.total))}
+            />
           </aside>
         </div>
       )}
