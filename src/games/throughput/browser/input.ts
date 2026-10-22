@@ -85,5 +85,14 @@ export function shiftKey(run: ThroughputRun, mode: Mode, key: string): ShiftInte
   return null;
 }
 
+/**
+ * True if Space or Enter should press the focused control rather than act as a Shift key: only
+ * when the player moved focus to it with Tab. A control focused by a click (a bay, a hand card)
+ * leaves the keys to the game, so "pick a card, Enter" or Space to Run still works after clicking.
+ */
+export function keyPressesControl(key: string, onControl: boolean, focusFromTab: boolean): boolean {
+  return (key === ' ' || key === 'Enter') && onControl && focusFromTab;
+}
+
 /** The keys in a line, for How to play and the Run button's tooltip. */
 export const KEYS_HINT = '1–7 picks a hand card, then 1–7 a bay (Enter: the first empty one). R Retool, Space Run, Esc cancel.';

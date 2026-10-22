@@ -9,6 +9,8 @@ export type PileStackProps = {
   ships?: number;
   /** A short status after the counts, e.g. "Restock ready". */
   note?: string;
+  /** What the note means, on hover. */
+  noteHelp?: string;
 };
 
 /** How many card backs a pile shows stacked (0 to 4), so a glance says roughly how much is left. */
@@ -20,7 +22,7 @@ export function pileDepth(count: number): number {
  * The draw pile as a little stack of card backs with its count, beside a smaller discard stack.
  * Display only: the label says it all in words.
  */
-export function PileStack({ draw, discard, ships, note }: PileStackProps) {
+export function PileStack({ draw, discard, ships, note, noteHelp }: PileStackProps) {
   const shipsText = ships === undefined ? undefined : `${ships} Ship${ships === 1 ? '' : 's'} left to draw`;
   const label = `Draw pile ${draw}${shipsText === undefined ? '' : ` (${shipsText})`}, ${discard} discarded${note === undefined ? '' : `, ${note}`}`;
   return (
@@ -28,14 +30,18 @@ export function PileStack({ draw, discard, ships, note }: PileStackProps) {
       <Pile kind="draw" count={draw} />
       <Pile kind="discard" count={discard} />
       {shipsText !== undefined && <span className="tp-piles__ships">{shipsText}</span>}
-      {note !== undefined && <span className="tp-piles__note">{note}</span>}
+      {note !== undefined && (
+        <span className="tp-piles__note" title={noteHelp}>
+          {note}
+        </span>
+      )}
     </span>
   );
 }
 
 function Pile({ kind, count }: { kind: 'draw' | 'discard'; count: number }) {
   return (
-    <span className={`tp-pile tp-pile--${kind}`} data-depth={pileDepth(count)}>
+    <span className={`tp-pile tp-pile--${kind}`} data-depth={pileDepth(count)} title={`${kind === 'draw' ? 'Draw pile' : 'Discard pile'}: ${count} card${count === 1 ? '' : 's'}`}>
       <span className="tp-pile__count">{count}</span>
     </span>
   );

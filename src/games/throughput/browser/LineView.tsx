@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card } from '../../../ui/components';
 import { Icon } from '../../../ui/icons';
 import { fixtureText } from '../cli';
+import { cardName } from '../model';
 import type { ThroughputRun } from '../rules';
 import { fixtureArt } from './art';
 import { cardView, lineNotice, plateText } from './present';
@@ -106,16 +107,22 @@ export function LineView({ run, bayState, onBay, onScrap, bayLabel, canDrop, onD
                 )}
               </button>
               {held !== null && inShift && (
-                <span className={`tp-bay__status ${parked ? 'is-parked' : 'is-new'}`}>
+                <span className={`tp-bay__status ${parked ? 'is-parked' : 'is-new'}`} title={statusHelp(parked, run.staysAfterShift(i))}>
                   {parked
                     ? `Parked since Shift ${held.loadedShift}${run.whyCannotUnload([i]) === null ? ', tap to take back' : ''}`
                     : run.staysAfterShift(i)
-                      ? 'Loaded, stays after the run'
-                      : 'Loaded, used up by the run'}
+                      ? 'Loaded, stays for later Shifts'
+                      : 'Loaded, used up this Shift'}
                 </span>
               )}
-              {parked && onScrap !== undefined && (
-                <button type="button" className="tp-bay__scrap" onClick={() => onScrap(i)}>
+              {parked && onScrap !== undefined && held !== null && (
+                <button
+                  type="button"
+                  className="tp-bay__scrap"
+                  aria-label={`Scrap ${cardName(held.card)} from bay ${i + 1}`}
+                  title="Discard this parked card to free the bay. It goes to your discard pile, not out of your deck."
+                  onClick={() => onScrap(i)}
+                >
                   Scrap
                 </button>
               )}
@@ -125,4 +132,10 @@ export function LineView({ run, bayState, onBay, onScrap, bayLabel, canDrop, onD
       </ol>
     </section>
   );
+}
+
+/** What happens to a loaded card when the Shift runs, for its status line's tooltip. */
+function statusHelp(parked: boolean, stays: boolean): string {
+  if (parked) return 'Stays on the Line for the rest of the round, adding its effect to every Shift.';
+  return stays ? 'Stays on the Line after this Shift runs, adding its effect to each later Shift this round.' : 'Goes to your discard pile when this Shift runs.';
 }

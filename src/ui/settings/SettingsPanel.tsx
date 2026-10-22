@@ -5,6 +5,27 @@ import './settings.css';
 
 const SPEED_LABEL: Readonly<Record<AnimationSpeed, string>> = { slow: 'Slow', normal: 'Normal', fast: 'Fast' };
 
+/**
+ * Where Tab should move focus to stay inside a dialog whose tab stops are `stops` (in order):
+ * from the last stop forward to the first, from the first backward to the last, or to the first
+ * if focus is somewhere else. Null when the browser's own Tab already stays inside.
+ */
+export function wrapTab<T>(stops: readonly T[], active: T | null, backward: boolean): T | null {
+  const first = stops[0];
+  const last = stops[stops.length - 1];
+  if (first === undefined || last === undefined) return null;
+  if (active === null || !stops.includes(active)) return backward ? last : first;
+  if (backward) return active === first ? last : null;
+  return active === last ? first : null;
+}
+
+/** The dialog's tab stops: enabled controls, counting a radio group once (at its checked radio). */
+function tabStops(root: HTMLElement): HTMLElement[] {
+  return [...root.querySelectorAll<HTMLElement>('input, button, select, textarea, [tabindex]:not([tabindex="-1"])')].filter(
+    (el) => !el.matches(':disabled') && !(el instanceof HTMLInputElement && el.type === 'radio' && !el.checked),
+  );
+}
+
 export type SettingsPanelProps = {
   settings: Settings;
   onChange: (settings: Settings) => void;
@@ -22,13 +43,26 @@ export function SettingsPanel({ settings, onChange, onResetTips, onClose }: Sett
   close.current = onClose;
   const volumePercent = Math.round(settings.volume * 100);
 
-  // Focus the first control once on open; Escape closes.
+  // Focus the first control once on open; Escape closes; Tab stays inside; closing hands focus
+  // back to whatever opened the panel.
   useEffect(() => {
     const root = panel.current;
+    const opener = document.activeElement;
     (root?.querySelector<HTMLElement>('input[type="radio"]:checked') ?? root?.querySelector<HTMLElement>('input, button'))?.focus();
-    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && close.current();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') return close.current();
+      if (event.key !== 'Tab' || root === null) return;
+      const active = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      const target = wrapTab(tabStops(root), active, event.shiftKey);
+      if (target === null) return;
+      event.preventDefault();
+      target.focus();
+    };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
+    };
   }, []);
 
   return (

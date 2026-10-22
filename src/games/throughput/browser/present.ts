@@ -1,5 +1,6 @@
 import type { CardView } from '../../../ui/types';
 import { fixtureNow } from '../cli';
+import type { ThroughputConfig } from '../content';
 import { CATEGORIES, cardEffect, designAdd, formatAmount, growthText, makeUnits, shipCap } from '../model';
 import type { Card, CardDef, Category, Fixture, FixtureDef, Stage, TrendStage } from '../model';
 import type { Offer, ShiftResult, ThroughputRun } from '../rules';
@@ -264,6 +265,11 @@ function deckStacks(deck: readonly Card[]): { view: CardView; count: number }[] 
       const mark = card.upgrades > 0 || card.growth > 0 ? 'Improved' : card.paid > 0 ? 'Bought' : null;
       return { view: mark === null ? view : { ...view, tags: [...view.tags, mark] }, count };
     });
+}
+
+/** What overkill pays, for the hover on the receipt's "+NC overkill". */
+export function overkillHelp(config: ThroughputConfig): string {
+  return `Overkill: when a round clears, each full ${Math.round(config.overkill.step * 100)}% of the target you sold past it pays +1C (at most +${config.overkill.cap}C a round).`;
 }
 
 /** A hover explanation for a receipt event that names a rule rather than a card or Fixture; undefined otherwise. */

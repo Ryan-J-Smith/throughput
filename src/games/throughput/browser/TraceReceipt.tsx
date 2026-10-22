@@ -12,6 +12,8 @@ export type TraceReceiptProps = {
   target: number;
   /** Overkill pay if this Shift clears the round (preview only). */
   overkillPay?: number;
+  /** What overkill is, for a hover on the word (preview only). */
+  overkillHelp?: string;
   /** A line under the slots explaining the total, e.g. what a Shift with no Ship still earns (preview only). */
   note?: string | null;
   /** The Margin every Shift's Batch starts at, for the Margin column's explanation. */
@@ -19,7 +21,7 @@ export type TraceReceiptProps = {
 };
 
 /** A Shift's Batch printed as a register receipt: one line per slot, then leftovers and the total. */
-export function TraceReceipt({ result, heading, salesBefore, target, overkillPay, note = null, baseMargin }: TraceReceiptProps) {
+export function TraceReceipt({ result, heading, salesBefore, target, overkillPay, overkillHelp, note = null, baseMargin }: TraceReceiptProps) {
   const after = Math.max(0, salesBefore + result.total);
   const cleared = result.leftover;
   return (
@@ -103,7 +105,12 @@ export function TraceReceipt({ result, heading, salesBefore, target, overkillPay
         </div>
         <p className={`tp-receipt__round ${after >= target ? 'is-cleared' : ''}`}>
           Round ${after} of ${target}
-          {after >= target ? `: target hit${overkillPay !== undefined && overkillPay > 0 ? `, +${overkillPay}C overkill` : ''}` : `: $${target - after} to go`}
+          {after >= target ? ': target hit' : `: $${target - after} to go`}
+          {after >= target && overkillPay !== undefined && overkillPay > 0 && (
+            <>
+              , +{overkillPay}C {overkillHelp === undefined ? 'overkill' : <abbr title={overkillHelp}>overkill</abbr>}
+            </>
+          )}
         </p>
       </div>
     </section>

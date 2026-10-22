@@ -11,13 +11,13 @@ import type { ThroughputAction } from '../cli';
 import { cardName } from '../model';
 import { ThroughputRun } from '../rules';
 import type { ShiftResult } from '../rules';
-import { IDLE, KEYS_HINT, dropKind, firstOpenBay, shiftKey } from './input';
+import { IDLE, KEYS_HINT, dropKind, firstOpenBay, keyPressesControl, shiftKey } from './input';
 import type { Mode, ShiftIntent } from './input';
 import { LineView } from './LineView';
 import type { BayState } from './LineView';
 import { MarketBoard } from './MarketBoard';
 import { PileStack } from './PileStack';
-import { cardView } from './present';
+import { cardView, overkillHelp } from './present';
 import { RunAutosave, handNumber } from './run-autosave';
 import { RunSummaryView } from './RunSummary';
 import { beatReveal, hitStopMs, salesBefore } from './replay-hud';
@@ -78,10 +78,22 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
   const [dragging, setDragging] = useState<number | null>(null);
   /** This render's key handler; the window listener below always calls the latest. */
   const onKey = useRef<(event: KeyboardEvent) => void>(() => {});
+  /** Focus last moved with Tab, not a click: Space and Enter then press the focused control. */
+  const focusFromTab = useRef(false);
   useEffect(() => {
-    const listener = (event: KeyboardEvent) => onKey.current(event);
+    const listener = (event: KeyboardEvent) => {
+      if (event.key === 'Tab') focusFromTab.current = true;
+      onKey.current(event);
+    };
+    const pointer = () => {
+      focusFromTab.current = false;
+    };
     window.addEventListener('keydown', listener);
-    return () => window.removeEventListener('keydown', listener);
+    window.addEventListener('pointerdown', pointer, true);
+    return () => {
+      window.removeEventListener('keydown', listener);
+      window.removeEventListener('pointerdown', pointer, true);
+    };
   }, []);
 
   const notify = (kind: ToastKind, message: string) => setToasts((t) => [...t, { id: `tp-${toastId.current++}`, kind, message }]);
@@ -251,8 +263,9 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
     if (document.querySelector('[aria-modal="true"]') !== null) return;
     const target = event.target;
     if (target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
-    // Space and Enter on a control reached with the keyboard keep their usual meaning: pressing it.
-    if ((event.key === ' ' || event.key === 'Enter') && target instanceof HTMLElement && target !== document.body && target.matches(':focus-visible')) return;
+    // Space and Enter on a control reached with Tab keep their usual meaning: pressing it. (Not
+    // :focus-visible, which Chrome also turns on for a clicked control once any key is pressed.)
+    if (keyPressesControl(event.key, target instanceof HTMLElement && target !== document.body, focusFromTab.current)) return;
     if (replaying.current) {
       if (event.key === ' ' || event.key === 'Escape') {
         event.preventDefault();
@@ -328,6 +341,8 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
 
   const preview = inShift ? run.preview() : null;
   const restockNote = run.config.restocksPerRound === 0 ? null : run.restocksLeft > 0 ? 'Restock ready' : 'Restocked';
+  const restockHelp =
+    run.restocksLeft > 0 ? 'Restock: once a round, when the draw pile runs out, your discards are shuffled into a new draw pile.' : "This round's Restock is used; it comes back next round.";
   const tip = currentTip(run, preview, tips.done);
   const tipFor = (id: TipId) =>
     tip === id && (
@@ -436,7 +451,7 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
                   Retool ({run.retoolsLeft} left)
                 </button>
               )}
-              <PileStack draw={run.drawPile.length} discard={run.discardPile.length} ships={shipsToDraw(run)} {...(restockNote === null ? {} : { note: restockNote })} />
+              <PileStack draw={run.drawPile.length} discard={run.discardPile.length} ships={shipsToDraw(run)} {...(restockNote === null ? {} : { note: restockNote, noteHelp: restockHelp })} />
               <button
                 type="button"
                 className="btn btn--play"
@@ -455,6 +470,7 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
               salesBefore={run.sales}
               target={run.target}
               overkillPay={run.overkillPayFor(Math.max(0, run.sales + preview.total))}
+              overkillHelp={overkillHelp(run.config)}
               note={noShipNote(run)}
               baseMargin={run.config.baseMargin}
             />

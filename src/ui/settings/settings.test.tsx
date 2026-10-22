@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { MemoryStore } from '../storage';
-import { DEFAULT_SETTINGS, SettingsPanel, SettingsStore, applySettings } from '.';
+import { DEFAULT_SETTINGS, SettingsPanel, SettingsStore, applySettings, wrapTab } from '.';
 import type { SettingsTarget } from '.';
 
 describe('settings', () => {
@@ -26,6 +26,19 @@ describe('settings', () => {
     expect(root.dataset).toEqual({ speed: 'slow', motion: 'reduced' });
     applySettings({ ...DEFAULT_SETTINGS, speed: 'normal', reduceMotion: false }, root);
     expect(root.dataset).toEqual({ speed: 'normal' });
+  });
+
+  it('Tab wraps around inside the panel instead of leaving it for the page behind', () => {
+    const stops = ['speed', 'motion', 'sound', 'done'];
+    expect(wrapTab(stops, 'done', false)).toBe('speed');
+    expect(wrapTab(stops, 'speed', true)).toBe('done');
+    // Between the ends the browser's own Tab order stays inside.
+    expect(wrapTab(stops, 'motion', false)).toBeNull();
+    expect(wrapTab(stops, 'done', true)).toBeNull();
+    // Focus outside the panel comes back in at the near end.
+    expect(wrapTab(stops, 'menu', false)).toBe('speed');
+    expect(wrapTab(stops, null, true)).toBe('done');
+    expect(wrapTab([], 'menu', false)).toBeNull();
   });
 
   it('sound starts on at a low volume', () => {

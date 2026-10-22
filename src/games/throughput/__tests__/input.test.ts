@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { IDLE, dropKind, firstOpenBay, shiftKey } from '../browser';
+import { IDLE, dropKind, firstOpenBay, keyPressesControl, shiftKey } from '../browser';
 import type { Mode } from '../browser';
 import type { Stage } from '../model';
 import { ThroughputRun } from '../rules';
@@ -81,5 +81,15 @@ describe('THROUGHPUT Shift keys', () => {
     r.load([0, 1, 2, 3, 4].map((i) => ({ hand: i, slot: i })));
     const uid = r.hand[0]?.uid as number;
     expect(shiftKey(r, { kind: 'place', uid }, 'Enter')).toMatchObject({ kind: 'notice', text: expect.stringMatching(/^No empty bay can take /) });
+  });
+
+  it('Space and Enter press a focused control only when Tab moved focus there, not a click', () => {
+    expect(keyPressesControl(' ', true, true)).toBe(true);
+    expect(keyPressesControl('Enter', true, true)).toBe(true);
+    // A bay or card the player clicked keeps Space for Run and Enter for the first empty bay.
+    expect(keyPressesControl(' ', true, false)).toBe(false);
+    expect(keyPressesControl('Enter', true, false)).toBe(false);
+    expect(keyPressesControl(' ', false, true)).toBe(false);
+    expect(keyPressesControl('3', true, true)).toBe(false);
   });
 });

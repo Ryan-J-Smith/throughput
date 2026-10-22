@@ -893,6 +893,8 @@ body:has(.screen--tp-shop[data-year])::before {
     letter-spacing: -0.01em;
     white-space: nowrap;
     text-overflow: clip;
+    /* Centred over the chips below, so "Y1 Board" doesn't run into the next column's label. */
+    text-align: center;
   }
 
   :is(.screen--tp-shift, .screen--tp-shop) .tp-market__stage {
@@ -1206,6 +1208,16 @@ body:has(.screen--tp-shop[data-year])::before {
   aspect-ratio: 5 / 7;
   border: 1px dashed rgb(255 255 255 / 0.14);
   border-radius: var(--radius-card);
+}
+
+/* A keyboard buy leaves focus on the Sold plate (ShopParts): ring the card shape, not the column. */
+.tp-shop .tp-shop__sold:focus-visible {
+  outline: none;
+}
+
+.tp-shop .tp-shop__sold:focus-visible::before {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
 }
 
 /* The Line in the centre column: bays share the width, cards show title, art, value and stage. */

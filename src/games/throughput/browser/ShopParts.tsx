@@ -43,6 +43,18 @@ export type ShelfProps = {
 /** Five offers on the shop shelf: 2 Fixtures, 2 Cards, 1 Contract. */
 export function Shelf({ run, pending, replacing, onBuy, onReroll, onContinue }: ShelfProps) {
   const next = run.round + 1;
+  // An offer bought from its focused Buy button turns into a Sold plate, which takes the focus so
+  // a keyboard player's next Tab carries on along the shelf instead of starting over at the top.
+  const refocus = useRef<number | null>(null);
+  const buy = (index: number, button: HTMLButtonElement) => {
+    refocus.current = document.activeElement === button ? index : null;
+    onBuy(index);
+  };
+  const soldRef = (index: number) => (plate: HTMLDivElement | null) => {
+    if (plate === null || refocus.current !== index || document.activeElement !== document.body) return;
+    refocus.current = null;
+    plate.focus();
+  };
   return (
     <section className="shop tp-shop" aria-label="Shop">
       <div className="shop__header">
@@ -66,7 +78,7 @@ export function Shelf({ run, pending, replacing, onBuy, onReroll, onContinue }: 
       </div>
       <div className="shop__shelf">
         {run.offers.map((offer, i) => (
-          <ShelfItem key={i} run={run} offer={offer} index={i} pending={pending === i} replacing={replacing} onBuy={onBuy} />
+          <ShelfItem key={i} run={run} offer={offer} index={i} pending={pending === i} replacing={replacing} onBuy={buy} soldRef={soldRef(i)} />
         ))}
       </div>
     </section>
@@ -80,17 +92,19 @@ function ShelfItem({
   pending,
   replacing,
   onBuy,
+  soldRef,
 }: {
   run: ThroughputRun;
   offer: Offer | null;
   index: number;
   pending: boolean;
   replacing: number | null;
-  onBuy: (offer: number) => void;
+  onBuy: (offer: number, button: HTMLButtonElement) => void;
+  soldRef: (plate: HTMLDivElement | null) => void;
 }) {
   if (offer === null) {
     return (
-      <div className="shop__item tp-shop__sold" style={{ '--i': index } as CSSProperties}>
+      <div className="shop__item tp-shop__sold" ref={soldRef} tabIndex={-1} style={{ '--i': index } as CSSProperties}>
         <span className="stamp stamp--sold">Sold</span>
       </div>
     );
@@ -121,7 +135,7 @@ function ShelfItem({
           Replaces {replaced.def.name} (+{run.fixtureRefund(replacing)}C)
         </p>
       )}
-      <button type="button" className={`btn btn--buy ${affordable ? '' : 'btn--unaffordable'}`} onClick={() => onBuy(index)}>
+      <button type="button" className={`btn btn--buy ${affordable ? '' : 'btn--unaffordable'}`} onClick={(event) => onBuy(index, event.currentTarget)}>
         {pending ? pendingLabel(offer) : `Buy ${offer.price}C`}
       </button>
     </div>

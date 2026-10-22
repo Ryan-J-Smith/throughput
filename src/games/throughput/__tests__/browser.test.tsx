@@ -1,10 +1,10 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { GrantPicker, HowToPlay, KEYS_HINT, LineView, MarketBoard, Shelf, ThroughputBrowserGame, ThroughputScreen, TpHud, TraceReceipt, cardView, demandBossCut, demandViews, fixtureView, lineNotice, plateText } from '../browser';
+import { GrantPicker, HowToPlay, KEYS_HINT, LineView, MarketBoard, Shelf, ThroughputBrowserGame, ThroughputScreen, TpHud, TraceReceipt, cardView, demandBossCut, demandViews, fixtureView, lineNotice, overkillHelp, plateText } from '../browser';
 import { cardText, demandUseText, grownText } from '../cli';
 import { DEFAULT_CONFIG, REBRAND, SKETCH, TRUCK, WORKSHOP } from '../content';
 import type { BayState } from '../browser';
-import { CATEGORIES, cardEffect, growthText } from '../model';
+import { CATEGORIES, cardEffect, cardName, growthText } from '../model';
 import type { Category, Stage } from '../model';
 import { ThroughputRun, scoreLine } from '../rules';
 import { MemoryStore } from '../../../ui/storage';
@@ -89,6 +89,13 @@ describe('THROUGHPUT browser screen', () => {
     expect(html).toContain('target hit');
     const overkill = renderToStaticMarkup(<TraceReceipt result={preview} heading="If you run now" salesBefore={0} target={5} overkillPay={4} />);
     expect(overkill).toContain('target hit, +4C overkill');
+    // In play the word explains itself on hover, with the numbers from the config.
+    const explained = renderToStaticMarkup(
+      <TraceReceipt result={preview} heading="If you run now" salesBefore={0} target={5} overkillPay={4} overkillHelp={overkillHelp(DEFAULT_CONFIG)} />,
+    );
+    expect(explained).toContain(
+      `target hit, +4C <abbr title="Overkill: when a round clears, each full ${DEFAULT_CONFIG.overkill.step * 100}% of the target you sold past it pays +1C (at most +${DEFAULT_CONFIG.overkill.cap}C a round).">overkill</abbr>`,
+    );
   });
 
   it('under Quota Cap the receipt takes off what is over the cap, and the HUD gives the cap in dollars', () => {
@@ -171,6 +178,8 @@ describe('THROUGHPUT browser screen', () => {
     expect(offer(picked, 1)).toContain('data-afford="yes"');
     expect(offer(picked, 2)).not.toContain('shop__note');
     expect(shelf(null)).not.toContain('shop__note');
+    // The bought offer's Sold plate can hold focus, so a keyboard buy doesn't drop focus to the page.
+    expect(shelf(null)).toContain('<div class="shop__item tp-shop__sold" tabindex="-1"');
     // Unpicked, the offer is still affordable: it can go over the Fixture in slot 1.
     expect(offer(shelf(null), 1)).toContain('data-afford="yes"');
     run.wallet.spend(1);
@@ -318,15 +327,29 @@ describe('THROUGHPUT browser screen', () => {
     expect(plateText({ ...fixture('quality-lab'), def: { ...fixture('quality-lab').def, short: '+$4 to a Design' } })).toBe('+$4 to a Design');
   });
 
-  it('each loaded card says whether it stays after the run', () => {
+  it('each loaded card says whether it stays for later Shifts or is used up this Shift', () => {
     const run = new ThroughputRun(1, easyConfig({ targets: [10_000] }));
     run.load([
       { hand: handIndex(run, 'design'), slot: 0 },
       { hand: handIndex(run, 'make'), slot: 1 },
     ]);
     const html = renderLine(run);
-    expect(html).toContain('Loaded, stays after the run');
-    expect(html).toContain('Loaded, used up by the run');
+    expect(html).toContain('Loaded, stays for later Shifts');
+    expect(html).toContain('Loaded, used up this Shift');
+    expect(html).toContain('title="Goes to your discard pile when this Shift runs."');
+  });
+
+  it('a parked card says it stays all round, and Scrap says it only discards', () => {
+    const run = new ThroughputRun(1, easyConfig({ targets: [10_000] }));
+    const design = handIndex(run, 'design');
+    const card = run.hand[design];
+    if (card === undefined) throw new Error('no Design in hand');
+    const name = cardName(card);
+    run.load([{ hand: design, slot: 0 }]);
+    run.runShift();
+    const html = renderToStaticMarkup(<LineView run={run} bayState={() => 'idle'} onBay={() => {}} onScrap={() => {}} bayLabel={(i) => `Bay ${i + 1}`} />);
+    expect(html).toContain('title="Stays on the Line for the rest of the round, adding its effect to every Shift.">Parked since Shift 1');
+    expect(html).toContain(`aria-label="Scrap ${name} from bay 1" title="Discard this parked card to free the bay. It goes to your discard pile, not out of your deck."`);
   });
 
   it('Line Shift: the shop warns before the Board, and each Shift shows which Fixtures moved', () => {

@@ -1,5 +1,5 @@
 export { HowToPlay } from './HowToPlay';
-export { IDLE, KEYS_HINT, dropKind, firstOpenBay, shiftKey } from './input';
+export { IDLE, KEYS_HINT, dropKind, firstOpenBay, keyPressesControl, shiftKey } from './input';
 export type { Mode, ShiftIntent } from './input';
 export type { HowToPlayProps } from './HowToPlay';
 export { LineView } from './LineView';
@@ -12,7 +12,7 @@ export { ThroughputBrowserGame } from './ThroughputBrowserGame';
 export { ThroughputScreen } from './ThroughputScreen';
 export { TraceReceipt } from './TraceReceipt';
 export type { TraceReceiptProps } from './TraceReceipt';
-export { CATEGORY_ACCENT, cardView, demandBossCut, demandViews, eventHelp, fixtureView, lineNotice, money, offerView, plateText, runProgressLabel, runSummary } from './present';
+export { CATEGORY_ACCENT, cardView, demandBossCut, demandViews, eventHelp, fixtureView, lineNotice, money, offerView, overkillHelp, plateText, runProgressLabel, runSummary } from './present';
 export type { DemandView, RunSummary } from './present';
 export { RunAutosave, handNumber } from './run-autosave';
 export { RunSummaryView } from './RunSummary';
