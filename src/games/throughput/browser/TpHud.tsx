@@ -1,5 +1,7 @@
 import { perksText } from '../cli';
+import { bossArt } from './art';
 import type { ThroughputRun } from '../rules';
+import './art-slots.css';
 
 export type TpHudProps = { run: ThroughputRun };
 
@@ -50,7 +52,12 @@ export function TpHud({ run }: TpHudProps) {
       </div>
       {perksText(run) !== '' && <p className="tp-hud__perks">{perksText(run)}</p>}
       {boss !== null && (
-        <div className="hud__boss">
+        <div className="hud__boss" data-boss={boss.id}>
+          {bossArt(boss.id) !== undefined && (
+            <span className="hud__boss-art" aria-hidden="true">
+              <img src={bossArt(boss.id)} alt="" loading="lazy" />
+            </span>
+          )}
           <span className="hud__boss-label">Board review</span>
           <span className="hud__boss-name">{boss.name}</span>
           <span className="hud__boss-desc">{boss.text}</span>

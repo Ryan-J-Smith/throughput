@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card, useTickingNumber } from '../../../ui/components';
 import { prefersReducedMotion, speedScale } from '../../../ui/motion';
 import type { ThroughputRun } from '../rules';
+import { bossArt } from './art';
 import { money, runSummary } from './present';
 import './summary.css';
 
@@ -43,6 +44,15 @@ export function RunSummaryView({ run, onNewRun, onQuit, copy = clipboardCopy }: 
       <header className="tp-summary__header">
         <h1 className="tp-summary__title">{summary.won ? 'Victory' : 'Run over'}</h1>
         <p className="tp-summary__outcome">{summary.outcome}</p>
+        {summary.finalBoss !== null && (
+          <p className="tp-summary__boss" data-boss={summary.finalBoss.id}>
+            {bossArt(summary.finalBoss.id) !== undefined && <img className="tp-summary__boss-art" src={bossArt(summary.finalBoss.id)} alt="" loading="lazy" />}
+            <span>
+              {summary.won ? 'Final Board: ' : 'Stopped by the Board: '}
+              <strong>{summary.finalBoss.name}</strong>
+            </span>
+          </p>
+        )}
       </header>
 
       <p className="tp-summary__hero" aria-label={`Total sales ${money(summary.totalSales)}`}>

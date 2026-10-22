@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { Rng } from '../../../engine/rng';
-import { RunSummaryView, runSummary } from '../browser';
+import { LineView, RunSummaryView, runSummary } from '../browser';
 import type { ThroughputConfig } from '../content';
 import { ThroughputRun } from '../rules';
 import { GreedyBot } from '../sim';
@@ -103,5 +103,34 @@ describe('THROUGHPUT run summary', () => {
     expect(html).toContain(`<code class="tp-summary__seed-value">${run.seed}</code>`);
     expect(html).toContain('Copy seed');
     expect(html.match(/class="card card--compact/g)?.length ?? 0).toBe(summary.line.filter((f) => f !== null).length + summary.cards.length);
+  });
+});
+
+describe('THROUGHPUT art slots', () => {
+  it('Fixture plates lead with the Fixture\'s art (or its kind\'s icon) and carry data hooks', () => {
+    const run = lostRun(29);
+    const html = renderToStaticMarkup(<LineView run={run} bayState={() => 'idle'} onBay={() => {}} bayLabel={(slot) => `Bay ${slot + 1}`} />);
+    run.line.forEach((slot, i) => {
+      if (slot.fixture === null) return;
+      const li = new RegExp(`<li class="[^"]*" data-slot="${i + 1}" data-fixture="${slot.fixture.def.id}" data-kind="${slot.fixture.def.kind}"><div class="tp-bay__plate[^"]*"[^>]*><span class="tp-bay__fixture-art`);
+      expect(html).toMatch(li);
+    });
+    const plates = run.line.filter((s) => s.fixture !== null).length;
+    expect((html.match(/<img src="[^"]+" alt="" loading="lazy"\/>|<svg class="icon"/g) ?? []).length).toBe(plates);
+  });
+
+  it('the run summary names the Board that ended a run on a Board Review', () => {
+    for (let seed = 29; seed < 229; seed++) {
+      const run = lostRun(seed);
+      const last = run.history[run.history.length - 1];
+      if (last === undefined || !last.isBoard) continue;
+      const boss = run.bossOf(last.round);
+      expect(runSummary(run).finalBoss).toEqual({ id: boss?.id, name: boss?.name });
+      const html = renderToStaticMarkup(<RunSummaryView run={run} onNewRun={() => {}} onQuit={() => {}} copy={async () => {}} />);
+      expect(html).toContain(`data-boss="${boss?.id}"`);
+      expect(html).toContain(`Stopped by the Board: <strong>${boss?.name}</strong>`);
+      return;
+    }
+    throw new Error('no run lost on a Board Review');
   });
 });

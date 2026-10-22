@@ -1,6 +1,8 @@
 import { Card } from '../../../ui/components';
+import { Icon } from '../../../ui/icons';
 import { fixtureNow } from '../cli';
 import type { ThroughputRun } from '../rules';
+import { fixtureArt } from './art';
 import { cardView, lineNotice } from './present';
 
 export type BayState = 'target' | 'selected' | 'idle';
@@ -42,9 +44,15 @@ export function LineView({ run, bayState, onBay, onScrap, bayLabel }: LineViewPr
           const classes = ['tp-bay', `tp-bay--${state}`, welded && 'tp-bay--welded', station && 'tp-bay--station', parked && 'tp-bay--parked']
             .filter(Boolean)
             .join(' ');
+          const art = slot.fixture === null || welded ? undefined : fixtureArt(slot.fixture.def.id);
           return (
-            <li key={i} className={classes}>
+            <li key={i} className={classes} data-slot={i + 1} data-fixture={slot.fixture?.def.id} data-kind={slot.fixture?.def.kind}>
               <div className={`tp-bay__plate ${idle ? 'is-idle' : ''}`} data-accent={slot.fixture === null ? undefined : station ? 'mustard' : 'teal'}>
+                {slot.fixture !== null && !welded && (
+                  <span className={`tp-bay__fixture-art ${art === undefined ? 'tp-bay__fixture-art--icon' : ''}`} aria-hidden="true">
+                    {art !== undefined ? <img src={art} alt="" loading="lazy" /> : <Icon name={station ? 'station' : 'mod'} />}
+                  </span>
+                )}
                 <span className="tp-bay__number">
                   {i + 1}
                   {from !== undefined && <span className="tp-bay__moved"> moved from bay {from + 1}</span>}

@@ -1,0 +1,28 @@
+/*
+ * Minimum sizing for art slots, so a missing theme rule never shows an image at full size. Single
+ * class selectors on purpose: the theme's rules override these.
+ */
+
+.tp-market__board-art {
+  width: 2.25rem;
+  height: 2.25rem;
+  margin-right: 8px;
+  border-radius: 6px;
+  object-fit: cover;
+  vertical-align: middle;
+}
+
+.hud__boss-art {
+  display: inline-flex;
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.hud__boss-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

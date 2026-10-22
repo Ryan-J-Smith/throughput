@@ -180,6 +180,8 @@ export type RunSummary = {
   readonly cards: readonly CardView[];
   /** R&D Grants bought, per Category, e.g. "Gadgets Scale 1, Premium ×1.5". */
   readonly grants: readonly string[];
+  /** The Board boss of the last round played, if it was a Board Review. */
+  readonly finalBoss: { readonly id: string; readonly name: string } | null;
   readonly seed: number;
 };
 
@@ -203,6 +205,7 @@ export function runSummary(run: ThroughputRun): RunSummary {
   }
   const last = run.history[run.history.length - 1];
   const won = run.phase === 'won';
+  const boss = last === undefined ? null : run.bossOf(last.round);
   const outcome =
     last === undefined
       ? ''
@@ -223,6 +226,7 @@ export function runSummary(run: ThroughputRun): RunSummary {
       const parts = [scale > 0 ? `Scale ${scale}` : '', premium > 0 ? `Premium ×${formatAmount(1 + run.config.grant.premiumStep * premium)}` : ''].filter(Boolean);
       return parts.length === 0 ? [] : [`${c} ${parts.join(', ')}`];
     }),
+    finalBoss: boss == null ? null : { id: boss.id, name: boss.name },
     seed: run.seed,
   };
 }
