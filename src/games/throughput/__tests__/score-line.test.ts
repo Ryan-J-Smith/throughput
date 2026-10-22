@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BOUTIQUE, DEFAULT_CONFIG, FACTORY_FLOOR, INFLUENCER, REBRAND, SKETCH, TRUCK, WHOLESALE_CLUB, WORKSHOP } from '../content';
+import { BOUTIQUE, DEFAULT_CONFIG, EXPORT_DEAL, FACTORY_FLOOR, INFLUENCER, REBRAND, SKETCH, TRUCK, WORKSHOP } from '../content';
 import type { Card } from '../model';
 import { scoreLine } from '../rules';
 import type { LineSlot } from '../rules';
@@ -76,10 +76,30 @@ describe('scoreLine: seed-03 worked example', () => {
 });
 
 describe('scoreLine: cards and fixtures', () => {
-  it('Wholesale Club sells everything at half Margin, ignoring cap cuts', () => {
-    const line = [slot(fixture('price-gun'), null), slot(null, card(FACTORY_FLOOR, 'Food')), slot(null, card(WHOLESALE_CLUB, 'Food'))];
-    // Margin 2 ×2 = 4, Factory Floor -1 = 3, handoff +1 = 4; 14 Units at $2.
-    expect(scoreLine(line, context()).total).toBe(28);
+  it('Export Deal sells the whole Batch at ×0.75; a Price Gun before it halves that share', () => {
+    const deal = [slot(null, card(FACTORY_FLOOR, 'Food')), slot(null, card(EXPORT_DEAL, 'Food'))];
+    // Margin 2 - 1 = 1, handoff +1 = 2; all 14 Units at $1.5.
+    expect(scoreLine(deal, context())).toMatchObject({ shipSales: 21, leftover: 0 });
+    // Price Gun: Margin 2 ×2 = 4, -1 = 3, handoff +1 = 4; half the Batch (7 Units) at $3, and 7 clear at $1.
+    const gunned = scoreLine([slot(fixture('price-gun'), null), ...deal], context());
+    expect(gunned).toMatchObject({ shipSales: 21, leftover: 7, total: 28 });
+    expect(gunned.steps[2]?.events).toContain('Ship sells 7 × $3 = $21 (cap ×0.5 of the Batch, ×0.75)');
+  });
+
+  it('Express Lane takes the larger of its ×3 and Hot ×2, spending the pip only when Hot is larger', () => {
+    const line = [slot(null, card(WORKSHOP, 'Food')), slot(fixture('express-lane'), card(TRUCK, 'Food'))];
+    const hot = { trends: trends({ Food: 'hot' }) };
+    // Shift 1: Margin 2 + Handoff 1 = 3; ×3 beats Hot ×2, so 6 Units at $9, and the pip is kept.
+    const first = scoreLine(line, context(hot));
+    expect(first.total).toBe(6 * 9);
+    expect(first.hotPipUsed).toBe(false);
+    expect(first.steps[1]?.events.join(' ')).toContain('Express Lane ×3, Hot ×2 not used: Express Lane ×3 is larger)');
+    // Shift 2: Express Lane is ×1, so Hot ×2 applies and spends the pip.
+    const later = scoreLine(line, context({ ...hot, shift: 2 }));
+    expect(later.total).toBe(6 * 6);
+    expect(later.hotPipUsed).toBe(true);
+    // Not Hot: the ×3 alone.
+    expect(scoreLine(line, context()).total).toBe(6 * 9);
   });
 
   it('two Guns quarter Truck capacity', () => {
@@ -209,11 +229,11 @@ describe('scoreLine: Demand', () => {
     expect(result.soldOut).toEqual([]);
   });
 
-  it('Boutique sells up to 8 and its Demand left; Wholesale Club ignores Demand', () => {
+  it('Boutique sells up to 8 and its Demand left; Export Deal ignores Demand', () => {
     expect(scoreLine(big(card(BOUTIQUE, 'Home')), context({ demandLeft: demandLeft({ Home: 5 }) })).demandSold).toEqual({ Home: 5 });
-    const wholesale = scoreLine(big(card(WHOLESALE_CLUB, 'Home')), context({ demandLeft: demandLeft({ Home: 0 }) }));
-    expect(wholesale.shipSales).toBe(28 * 1);
-    expect(wholesale.demandSold).toEqual({});
+    const deal = scoreLine(big(card(EXPORT_DEAL, 'Home')), context({ demandLeft: demandLeft({ Home: 0 }) }));
+    expect(deal.shipSales).toBe(28 * 1.5);
+    expect(deal.demandSold).toEqual({});
   });
 
   it('Price Gun halves what a Truck may take of Demand', () => {

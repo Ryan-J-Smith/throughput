@@ -55,7 +55,7 @@ export function cardEffect(card: Card): string {
       const cap = shipCap(card);
       const at = def.marginMul === 1 ? '' : def.marginMul === 0.5 ? ' at half Margin' : ` at Margin ×${formatAmount(def.marginMul)}`;
       const amount = cap === 'all' ? 'all Units' : cap === 'demand' ? "up to its Category's Demand" : `up to ${cap} Units`;
-      return `${STAGE_LABEL.ship}: sell ${amount}${at}${cap === 'all' ? ' (ignores Demand and cap cuts)' : ''}`;
+      return `${STAGE_LABEL.ship}: sell ${amount}${at}${cap === 'all' ? ' (ignores Demand; leaves none for a later Ship)' : ''}`;
     }
   }
 }
