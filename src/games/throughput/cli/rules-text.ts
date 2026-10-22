@@ -92,7 +92,7 @@ A SHIFT
   1. Load: put hand cards into empty Line slots (${c.startSlots} slots to start, up to ${c.maxSlots}).
   2. Run: a Batch starts at 0 Units and Margin $${c.baseMargin} and moves left to right through the
      slots (see HOW A SALE IS PRICED).
-  3. Leftover Units clear at $${c.overstockValue} each.
+  3. Leftover Units clear at $${c.overstockValue} each, and that counts toward Sales.
   4. Dispatch: Make and Ship cards are discarded. Designs stay in their slots.
   5. If Sales have reached the target, the round clears now. Otherwise draw back up to ${c.handSize}.
   Retool (${c.retoolsPerRound} per round): discard 1–${c.retoolMax} hand cards and draw as many into their places.
