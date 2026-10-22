@@ -1,6 +1,7 @@
-import { BOSSES, BOUTIQUE, CONTRACTS, STARTER_CARDS } from '../content';
+import { BOSSES, BOUTIQUE, CONTRACTS, FIXTURES, STARTER_CARDS } from '../content';
 import type { ThroughputConfig } from '../content';
 import { CATEGORIES } from '../model';
+import { designOnlyMod } from '../rules';
 
 /** Line Shift needs more than its one-line text to play well, so the rules spell it out. */
 const LINE_SHIFT_RULES = `Line Shift: Shift 1 runs on your layout. From Shift 2 on, all Fixtures move one slot right before
@@ -43,6 +44,11 @@ export function rulesText(config: ThroughputConfig): string {
   const pips = `${c.hotPips} buzz pip${c.hotPips === 1 ? '' : 's'}`;
   const typeName = { design: 'Design', make: 'Make', ship: 'Ship' } as const;
   const opener = c.openingHandTypes.map((t) => `one ${typeName[t]}`).join(' and ');
+  const designMods = FIXTURES.filter(designOnlyMod).map((f) => f.name);
+  const designOpener =
+    c.designOpener && !c.openingHandTypes.includes('design') && designMods.length > 0
+      ? `\n  ${wrap(`It also holds a Design while a Mod that works only on Designs (${designMods.join(', ')}) is on the Line, outside a welded slot.`, '  ')}`
+      : '';
   const restockTimes = c.restocksPerRound === 1 ? 'Once per round' : `${c.restocksPerRound} times per round`;
   const draws =
     c.restocksPerRound > 0
@@ -68,7 +74,7 @@ CARDS
   Starter deck (${STARTER_CARDS.length * CATEGORIES.length}): per Category 1 Sketch (Design +$2), 2 Workshops (Make +6 Units),
   1 Truck (Ship up to its Category's Demand).
   Each round starts with an empty Line, the whole deck shuffled and a hand of ${c.handSize}.${opener === '' ? '' : `
-  The opening hand always holds at least ${opener} (if your deck has them).`}
+  The opening hand always holds at least ${opener} (if your deck has them).${designOpener}`}
 ${draws}
   Tip: "deck" shows exactly what is left to draw this round.
 

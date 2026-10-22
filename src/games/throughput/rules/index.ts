@@ -3,5 +3,5 @@ export type { LineSlot, ShiftContext, ShiftResult, SlotTrace, Trends } from './s
 export { advanceTrends, initialTrends, trendSchedule } from './market';
 export { ThroughputShop } from './throughput-shop';
 export type { Offer } from './throughput-shop';
-export { ThroughputRun, assignBosses, unusedShiftPay } from './throughput-run';
+export { ThroughputRun, assignBosses, designOnlyMod, unusedShiftPay } from './throughput-run';
 export type { BuyTarget, FixtureMove, LineCard, LineState, Phase, Placement, QuarterInfo, RoundRecord } from './throughput-run';
