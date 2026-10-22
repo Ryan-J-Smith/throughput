@@ -102,6 +102,8 @@ export function scoreLine(line: readonly LineSlot[], ctx: ShiftContext, options:
   const sale = new SaleState(ctx);
   const chain: (Card | null)[] = [];
   const steps: SlotTrace[] = [];
+  // The last slot whose card can sell: a Make after it adds Units that no Ship reaches.
+  const lastShip = line.map((slot, i) => !(boss?.isWelded(i) ?? false) && slot.fixture?.def.kind !== 'station' && slot.card?.def.stage === 'ship').lastIndexOf(true);
 
   line.forEach((slot, i) => {
     const welded = boss?.isWelded(i) ?? false;
@@ -118,6 +120,7 @@ export function scoreLine(line: readonly LineSlot[], ctx: ShiftContext, options:
         resolveCard(card, fixture, batch, sale);
         fixture?.def.effect.afterResolve(card, batch);
       }
+      if (card.def.stage === 'make' && lastShip >= 0 && i > lastShip) batch.note(NO_SHIP_AFTER);
     }
     chain.push(card);
     const idle = fixture !== null && card !== null && !fixture.def.effect.appliesTo(card);
@@ -159,6 +162,9 @@ export function scoreLine(line: readonly LineSlot[], ctx: ShiftContext, options:
     demandGrowth: demandGrowth(sale, ctx),
   };
 }
+
+/** The trace note on a Make with no Ship after it (when the Line has one before it). */
+export const NO_SHIP_AFTER = 'Units reach no Ship';
 
 /** Trend and Demand effects collected while a Shift's Ship cards sell. */
 class SaleState {

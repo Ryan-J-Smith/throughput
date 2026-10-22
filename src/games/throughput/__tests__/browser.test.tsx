@@ -7,6 +7,7 @@ import type { BayState } from '../browser';
 import { CATEGORIES, cardEffect, cardName, growthText } from '../model';
 import type { Category, Stage } from '../model';
 import { ThroughputRun, scoreLine } from '../rules';
+import type { LineSlot } from '../rules';
 import { MemoryStore } from '../../../ui/storage';
 import { boss, card, context, easyConfig, fixture, quotaCapRun, shopWithFixture, slot } from './fixtures';
 
@@ -310,10 +311,10 @@ describe('THROUGHPUT browser screen', () => {
     const sketch = card(SKETCH, 'Home', { growth: 2 });
     const workshop = card(WORKSHOP, 'Food', { growth: 3 });
     expect(growthText(sketch)).toBe('R&D +$2');
-    expect(growthText(workshop)).toBe('Automated +3 Units');
+    expect(growthText(workshop)).toBe('+3 grown on Automation');
     expect(growthText(card(WORKSHOP, 'Food'))).toBe('');
-    expect(cardView(workshop).tags).toContain('Automated +3 Units');
-    expect(cardText(workshop)).toBe('Workshop-F · Make: +9 Units (Automated +3 Units)');
+    expect(cardView(workshop).tags).toContain('+3 grown on Automation');
+    expect(cardText(workshop)).toBe('Workshop-F · Make: +9 Units (+3 grown on Automation)');
     expect(grownText([sketch, workshop, workshop, workshop])).toBe('Sketch-H +$1, Workshop-F +3 Units');
   });
 
@@ -321,6 +322,18 @@ describe('THROUGHPUT browser screen', () => {
     const rebrand = card(REBRAND, 'Home');
     expect(cardView(rebrand).valueLabel).toBe('-$2');
     expect(cardEffect(rebrand)).toBe('Design: -$2 Margin, then Margin ×2');
+  });
+
+  it('a Make after the last Ship says its Units reach no Ship, and why on hover', () => {
+    const line = [slot(null, card(WORKSHOP, 'Home')), slot(null, card(TRUCK, 'Home')), slot(fixture('automation'), card(WORKSHOP, 'Food'))];
+    const result = scoreLine(line, context());
+    expect(result.steps[0]?.events).not.toContain('Units reach no Ship');
+    expect(result.steps[2]?.events).toContain('Units reach no Ship');
+    expect(result.leftover).toBe(6);
+    const html = renderToStaticMarkup(<TraceReceipt result={result} heading="If you run now" salesBefore={0} target={100} />);
+    expect(html).toContain(`<abbr title="No Ship comes after this slot, so this Make&#x27;s Units don&#x27;t sell: they clear as leftovers at the end of the Shift.">Units reach no Ship</abbr>`);
+    // A Line with no Ship at all has its own note, so its Makes don't repeat it.
+    expect(scoreLine([line[0] as LineSlot], context()).steps[0]?.events).not.toContain('Units reach no Ship');
   });
 
   it('a repeat Rebrand on the receipt explains its smaller × on hover', () => {

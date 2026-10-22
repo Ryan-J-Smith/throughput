@@ -4,6 +4,7 @@ import { SHOP_CARDS } from '../content';
 import type { ThroughputConfig } from '../content';
 import { CATEGORIES, cardEffect, designAdd, formatAmount, growthText, makeUnits, repeatRule, shipCap } from '../model';
 import type { BoardBoss, Card, CardDef, Category, Fixture, FixtureDef, Stage, TrendStage } from '../model';
+import { NO_SHIP_AFTER } from '../rules';
 import type { Offer, ShiftResult, ThroughputRun } from '../rules';
 import { CATEGORY_ICON, cardArt, contractArt, fixtureArt } from './art';
 
@@ -296,6 +297,7 @@ export function overkillHelp(config: ThroughputConfig): string {
 /** A hover explanation for a receipt event that names a rule rather than a card or Fixture; undefined otherwise. */
 export function eventHelp(event: string): string | undefined {
   if (event.startsWith('Handoff')) return 'Handoff: a card right after another card of the same Category adds +$1 Margin.';
+  if (event === NO_SHIP_AFTER) return "No Ship comes after this slot, so this Make's Units don't sell: they clear as leftovers at the end of the Shift.";
   // A repeat Design names itself, e.g. "2nd Rebrand Margin ×1.5".
   const repeat = /^\d+(?:st|nd|rd|th) (.+) Margin ×/.exec(event)?.[1];
   const def = repeat === undefined ? undefined : SHOP_CARDS.find((d) => d.name === repeat);
