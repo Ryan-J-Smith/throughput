@@ -460,10 +460,10 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
                 type="button"
                 className="btn btn--play"
                 onClick={runShift}
-                title={`${preview.overCap > 0 ? `Makes $${preview.total + preview.overCap}; the Shift cap counts $${preview.total}. ` : ''}Keys: ${KEYS_HINT}`}
+                title={`${preview.capped ? `Sales stop at the $${preview.total} Shift cap; Units past it don't sell. ` : ''}Keys: ${KEYS_HINT}`}
               >
                 Run Shift {run.shift}: ${preview.total}
-                {preview.overCap > 0 && ' (capped)'}
+                {preview.capped && ' (capped)'}
               </button>
             </div>
           </section>

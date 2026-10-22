@@ -12,8 +12,9 @@ import {
   TRUCK,
   WORKSHOP,
 } from '../content';
+import type { Category } from '../model';
 import { ThroughputRun, scoreLine } from '../rules';
-import { boss, card, context, easyConfig, fixture, quotaCapRun, slot } from './fixtures';
+import { boss, card, context, demandLeft, easyConfig, fixture, quotaCapRun, slot, trends } from './fixtures';
 
 // Content wave 1 (completion plan): 12 shop cards, 24 Fixtures, 8 Contracts, 8 Board bosses (9 with playtest-2's Quota Cap).
 
@@ -137,17 +138,38 @@ describe('wave-1 Board bosses', () => {
     expect(short.phase).toBe('lost');
   });
 
-  it('Quota Cap counts a Shift up to the cap and loses the rest; a Shift that costs money still costs it all', () => {
-    const line = [slot(null, make2()), slot(null, card(TRUCK, 'Apparel'))];
-    const made = scoreLine(line, context()).total;
-    expect(made).toBeGreaterThan(5);
-    expect(scoreLine(line, context({ boss: boss('quota-cap'), shiftCap: 5 }))).toMatchObject({ total: 5, overCap: made - 5 });
-    expect(scoreLine(line, context({ boss: boss('quota-cap'), shiftCap: made }))).toMatchObject({ total: made, overCap: 0 });
-    expect(scoreLine(line, context())).toMatchObject({ overCap: 0 });
+  it("Quota Cap stops a Shift's sales at the cap: Units past it stay unsold and use no Demand, Hot boost or sell-out growth", () => {
+    // 6 Hot Apparel Units, and exactly 6 Apparel Demand left: uncapped, the first Truck sells them all out.
+    const market = { trends: trends({ Apparel: 'hot' }), demandLeft: demandLeft({ Apparel: 6 }) };
+    const line = [slot(null, make2()), slot(null, card(TRUCK, 'Apparel')), slot(null, card(TRUCK, 'Apparel'))];
+    const free = scoreLine(line, context(market));
+    expect(free).toMatchObject({ capped: false, overCap: 0, hotPipUsed: true, demandSold: { Apparel: 6 }, soldOut: ['Apparel'], leftover: 0 });
+    const price = free.shipSales / 6;
+    expect(free.demandGrowth.Apparel).toBeGreaterThan(0);
 
+    // Capped at $10: the Truck sells only the Units it takes to reach $10, the rest stay in the Batch.
+    const capped = scoreLine(line, context({ ...market, boss: boss('quota-cap'), shiftCap: 10 }));
+    const units = Math.ceil(10 / price);
+    expect(capped).toMatchObject({ total: 10, capped: true, overCap: Math.floor(units * price) - 10, hotPipUsed: true, demandSold: { Apparel: units }, soldOut: [], leftover: 6 - units });
+    expect(capped.demandGrowth).toEqual({});
+    // The second Truck sells nothing, and the leftovers clear for nothing.
+    expect(capped.steps[2]?.events).toContain(`Ship sells nothing: Sales already reached the $10 Shift cap (${6 - units} Units unsold)`);
+    expect(capped.overstockSales).toBe(0);
+    expect(capped.steps[1]?.events.at(-1)).toMatch(new RegExp(`^Ship sells ${units} × \\$${price} = \\$${Math.floor(units * price)}.*, reaching the \\$10 Shift cap; ${6 - units} Units unsold`));
+
+    // A cap the Shift never reaches changes nothing; a cap of $0 sells nothing and spends no Hot boost.
+    expect(scoreLine(line, context({ ...market, boss: boss('quota-cap'), shiftCap: free.total }))).toMatchObject({ total: free.total, capped: false, demandSold: { Apparel: 6 } });
+    expect(scoreLine(line, context({ ...market, boss: boss('quota-cap'), shiftCap: 0 }))).toMatchObject({ total: 0, capped: true, hotPipUsed: false, demandSold: {} });
+
+    // A Shift that costs money (JIT Auditor's leftovers) still costs it all.
     const overstock = scoreLine([slot(null, make2())], context({ boss: boss('jit-auditor'), shiftCap: 5 }));
     expect(overstock.total).toBeLessThan(0);
-    expect(overstock.overCap).toBe(0);
+    expect(overstock).toMatchObject({ capped: false, overCap: 0 });
+  });
+
+  it('under Quota Cap the leftovers clear only up to the cap', () => {
+    const capped = scoreLine([slot(null, make2())], context({ boss: boss('quota-cap'), shiftCap: 4 }));
+    expect(capped).toMatchObject({ leftover: 6, overstockSales: 4, total: 4, capped: true });
   });
 
   it('under Quota Cap a Shift counts at most 60% of the target, so no single Shift clears the round', () => {
@@ -155,10 +177,12 @@ describe('wave-1 Board bosses', () => {
     expect(run.shiftCap).toBe(3);
     expect(new ThroughputRun(1, easyConfig()).shiftCap).toBeNull();
     const preview = run.preview();
-    expect(preview.total + preview.overCap).toBeGreaterThanOrEqual(5);
-    expect(preview).toMatchObject({ total: 3 });
+    expect(preview).toMatchObject({ total: 3, capped: true });
+    const before = { ...run.demandLeft };
     run.runShift();
     expect(run.sales).toBe(3);
+    // Only the Units that sold before the cap used Demand.
+    for (const [category, sold] of Object.entries(preview.demandSold)) expect(run.demandLeft[category as Category]).toBe(before[category as Category] - sold);
     expect(run.phase).toBe('shift');
   });
 });

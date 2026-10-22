@@ -314,21 +314,23 @@ describe('Fixture replace text', () => {
 });
 
 describe('Quota Cap text', () => {
-  it('the trace says what a capped Shift made and what it lost', () => {
+  it("the trace says where a capped Shift's sales stopped", () => {
     const line = [slot(null, card(WORKSHOP, 'Home')), slot(null, card(TRUCK, 'Home'))];
     const made = scoreLine(line, context()).total;
     const capped = traceLines(scoreLine(line, context({ boss: boss('quota-cap'), shiftCap: 5 })));
-    expect(capped.at(-1)).toMatch(new RegExp(`Shift total \\$5 \\(made \\$${made}, capped at \\$5: \\$${made - 5} lost\\)\\.$`));
+    expect(capped.at(-1)).toMatch(/Shift total \$5 \(its sales stopped at the \$5 Shift cap; Units past it didn't sell\)\.$/);
+    expect(capped.join('\n')).toMatch(/Ship sells \d+ × \$[\d.]+ = \$\d+.*, reaching the \$5 Shift cap; \d+ Units unsold/);
+    expect(capped.at(-1)).toMatch(/Leftover: \d+ Units cleared for \$0 \(Sales had reached the Shift cap\)\./);
     expect(traceLines(scoreLine(line, context())).at(-1)).toMatch(new RegExp(`Shift total \\$${made}\\.$`));
   });
 
-  it('the Board line gives the cap in dollars, and run says what the Shift counts', () => {
+  it('the Board line gives the cap in dollars, and run says the Shift stops at it', () => {
     const run = quotaCapRun();
-    const made = run.preview().total + run.preview().overCap;
     expect(formatView(run, { game: 'throughput', seed: run.seed, actionsTaken: 0 })).toContain(
-      'BOARD REVIEW: Quota Cap: No single Shift counts more than 60% of the target. Sales past that are lost. This round: at most $3 a Shift.',
+      `BOARD REVIEW: Quota Cap: ${boss('quota-cap').text} This round: at most $3 a Shift.`,
     );
-    expect(legalActions(run)).toContain(`run — run Shift 1 of ${run.shiftsThisRound} (makes $3, capped from $${made}; round reaches $3 of $5)`);
+    expect(boss('quota-cap').text).toContain("past that, Units don't sell, so they use no Demand or Hot boost");
+    expect(legalActions(run)).toContain(`run — run Shift 1 of ${run.shiftsThisRound} (makes $3, stopped at the Shift cap; round reaches $3 of $5)`);
   });
 });
 

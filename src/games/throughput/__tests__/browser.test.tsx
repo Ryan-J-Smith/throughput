@@ -98,16 +98,18 @@ describe('THROUGHPUT browser screen', () => {
     );
   });
 
-  it('under Quota Cap the receipt takes off what is over the cap, and the HUD gives the cap in dollars', () => {
+  it("under Quota Cap the receipt says the Shift's sales stop at the cap, and the HUD gives the cap in dollars", () => {
     const run = quotaCapRun();
     const preview = run.preview();
-    expect(preview.overCap).toBeGreaterThan(0);
+    expect(preview.capped).toBe(true);
     const html = renderToStaticMarkup(<TraceReceipt result={preview} heading="If you run now" salesBefore={0} target={5} />);
     expect(html).toContain(
-      `<li class="tp-receipt__line tp-receipt__line--capped"><span class="tp-receipt__slot"></span><span class="tp-receipt__what">Shift cap $3<small>$${preview.overCap} over the cap doesn&#x27;t count</small></span><span class="tp-receipt__batch"></span><span class="tp-receipt__amount">-$${preview.overCap}</span></li>`,
+      `<li class="tp-receipt__line tp-receipt__line--capped"><span class="tp-receipt__slot"></span><span class="tp-receipt__what">Shift cap $3 reached<small>Sales stop here: later Units don&#x27;t sell or use Demand</small></span><span class="tp-receipt__batch"></span><span class="tp-receipt__amount">${preview.overCap > 0 ? `-$${preview.overCap}` : ''}</span></li>`,
     );
     expect(html).toContain('Round $3 of $5: $2 to go');
-    expect(renderToStaticMarkup(<TpHud run={run} />)).toContain('Sales past that are lost. This round: at most $3 a Shift.</span>');
+    expect(renderToStaticMarkup(<TpHud run={run} />)).toContain(`${boss('quota-cap').text.replace(/'/g, '&#x27;')} This round: at most $3 a Shift.</span>`);
+    // Uncapped, no cap line.
+    expect(renderToStaticMarkup(<TraceReceipt result={scoreLine([slot(null, card(WORKSHOP, 'Home'))], context())} heading="Shift" salesBefore={0} target={10} />)).not.toContain('tp-receipt__line--capped');
   });
 
   it('a receipt can carry a note under its slots, such as what a Shift with no Ship still earns', () => {

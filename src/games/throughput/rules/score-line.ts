@@ -63,7 +63,12 @@ export type ShiftResult = {
   readonly storedAfter: number;
   /** What the Shift counts toward round Sales: Ship sales plus overstock, up to the Shift cap. */
   readonly total: number;
-  /** What the Shift made past the Shift cap, which doesn't count (Quota Cap); 0 otherwise. */
+  /**
+   * True if the Shift's Sales reached the Shift cap (Quota Cap): from there its sales stopped, so
+   * Units past the cap didn't sell, used no Demand or Hot boost, and leftovers cleared for nothing.
+   */
+  readonly capped: boolean;
+  /** What a sale stopped at the cap made past it (part of its last Unit), which doesn't count; 0 otherwise. */
   readonly overCap: number;
   /** Designs that grew (R&D Lab), one entry per +$1. */
   readonly grown: readonly Card[];
@@ -92,6 +97,7 @@ export function scoreLine(line: readonly LineSlot[], ctx: ShiftContext, options:
     boardReview: boss !== null,
     shift: ctx.shift,
     tracing: options.trace ?? true,
+    ...(ctx.shiftCap === null ? {} : { salesCap: ctx.shiftCap }),
   });
   const sale = new SaleState(ctx);
   const chain: (Card | null)[] = [];
@@ -131,9 +137,10 @@ export function scoreLine(line: readonly LineSlot[], ctx: ShiftContext, options:
 
   const leftover = batch.units;
   const unitValue = boss?.overstockValue(config.overstockValue) ?? config.overstockValue;
-  const overstockSales = leftover * unitValue;
-  const made = batch.sales + overstockSales;
-  const total = ctx.shiftCap === null ? made : Math.min(made, ctx.shiftCap);
+  // Leftovers clear like any sale: past the Shift cap they count for nothing.
+  const overstockMade = leftover * unitValue;
+  const room = Math.max(0, batch.salesCap - batch.sales);
+  const overstockSales = Math.min(overstockMade, room);
   return {
     steps,
     shipSales: batch.sales,
@@ -141,8 +148,9 @@ export function scoreLine(line: readonly LineSlot[], ctx: ShiftContext, options:
     stockedUnits: batch.stocked,
     overstockSales,
     storedAfter: batch.stored,
-    total,
-    overCap: made - total,
+    total: batch.sales + overstockSales,
+    capped: batch.capReached || overstockMade > room,
+    overCap: batch.overCap,
     grown: batch.grown,
     hotPipUsed: sale.hotUsed,
     demandSold: Object.fromEntries(sale.demandSold),
@@ -216,15 +224,16 @@ function ship(card: Card, marginMul: number, fixture: Fixture | null, batch: Bat
   const usesDemand = base !== 'all';
   const left = usesDemand ? Math.max(0, sale.ctx.demandLeft[category] - sale.demandSoldOf(category)) : Infinity;
   const cap = base === 'all' ? batch.units : Math.floor((base === 'demand' ? left : base) * batch.capMul);
-  const sold = Math.min(batch.units, cap, left);
-  const hot = stage === 'hot' && sale.ctx.hotPipsLeft > 0 && sold > 0;
+  const wanted = Math.min(batch.units, cap, left);
+  const hotReady = stage === 'hot' && sale.ctx.hotPipsLeft > 0 && wanted > 0;
   const flagship = fixture?.def.effect.saleMultiplier(card, fixture, batch) ?? 1;
   const premium = 1 + config.grant.premiumStep * grant.premium;
-  const price = batch.margin * marginMul * (hot ? config.hotMultiplier : 1) * flagship * premium;
-  const revenue = Math.floor(sold * price);
+  const price = batch.margin * marginMul * (hotReady ? config.hotMultiplier : 1) * flagship * premium;
+  // Under a Shift cap the sale stops at the cap; the Units it doesn't reach stay in the Batch.
+  const { units: sold, revenue } = batch.sell(wanted, price);
+  const hot = hotReady && sold > 0;
 
   batch.units -= sold;
-  batch.sales += revenue;
   if (hot) sale.hotUsed = true;
   if (usesDemand && sold > 0) {
     sale.demandSold.set(category, sale.demandSoldOf(category) + sold);
@@ -232,6 +241,10 @@ function ship(card: Card, marginMul: number, fixture: Fixture | null, batch: Bat
   }
   if (stage === 'emerging' && sold > 0) sale.emergingSold.add(category);
   if (!batch.tracing) return;
+  if (sold === 0 && wanted > 0) {
+    batch.note(`Ship sells nothing: Sales already reached the $${batch.salesCap} Shift cap (${wanted} Units unsold)`);
+    return;
+  }
 
   const notes: string[] = [];
   if (typeof base === 'number' && cap !== base) notes.push(`cap ${base}→${cap}`);
@@ -242,7 +255,9 @@ function ship(card: Card, marginMul: number, fixture: Fixture | null, batch: Bat
   if (hot) notes.push(`Hot ×${formatAmount(config.hotMultiplier)}`);
   if (flagship !== 1 && fixture !== null) notes.push(`${fixture.def.name} ×${formatAmount(flagship)}`);
   if (premium !== 1) notes.push(`Premium ×${formatAmount(premium)}`);
-  batch.note(`Ship sells ${sold} × $${formatAmount(price)} = $${revenue}${notes.length > 0 ? ` (${notes.join(', ')})` : ''}`);
+  const made = Math.floor(sold * price);
+  const stopped = sold < wanted ? `${made > revenue ? ` ($${revenue} counts)` : ''}, reaching the $${batch.salesCap} Shift cap; ${wanted - sold} Units unsold` : '';
+  batch.note(`Ship sells ${sold} × $${formatAmount(price)} = $${made}${stopped}${notes.length > 0 ? ` (${notes.join(', ')})` : ''}`);
 }
 
 function slotLabel(fixture: Fixture | null, card: Card | null, welded: boolean, idle: boolean): string {

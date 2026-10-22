@@ -10,6 +10,12 @@ export class Batch {
   /** Multiplier on every later Ship cap (Price Gun). */
   capMul = 1;
   sales = 0;
+  /** The most this Shift's Sales may reach (Quota Cap); Infinity when there is no cap. */
+  readonly salesCap: number;
+  /** True once a sale stopped at the Shift cap. */
+  capReached = false;
+  /** What a sale stopped at the cap made past it (the part of its last Unit over the cap), which doesn't count. */
+  overCap = 0;
   /** Warehouse stock: sold in a Board Review, added to by a Make card on a Warehouse. */
   stored: number;
   /** Units copied into stock this Shift. */
@@ -32,8 +38,10 @@ export class Batch {
     readonly boardReview: boolean;
     readonly shift: number;
     readonly tracing: boolean;
+    readonly salesCap?: number;
   }) {
     this.margin = init.baseMargin;
+    this.salesCap = init.salesCap ?? Number.POSITIVE_INFINITY;
     this.stored = init.stored;
     this.warehouseOpen = init.warehouseOpen;
     this.boardReview = init.boardReview;
@@ -64,6 +72,26 @@ export class Batch {
   mulCaps(factor: number, source: string): void {
     this.capMul *= factor;
     if (this.tracing) this.note(`${source} later Ship caps ×${formatAmount(factor)}`);
+  }
+
+  /**
+   * Sells `units` at `price` each and adds what counts to Sales. Under a Shift cap the sale stops
+   * once Sales reach it: only as many Units sell as it takes to get there (the last may count for
+   * less than its price), and the rest don't sell at all, so they use no Demand. Returns the Units
+   * that sold and the Sales they counted.
+   */
+  sell(units: number, price: number): { readonly units: number; readonly revenue: number } {
+    const full = Math.floor(units * price);
+    const room = Math.max(0, this.salesCap - this.sales);
+    if (full <= room) {
+      this.sales += full;
+      return { units, revenue: full };
+    }
+    this.capReached = true;
+    const sold = price > 0 ? Math.min(units, Math.ceil(room / price)) : 0;
+    this.overCap += Math.floor(sold * price) - room;
+    this.sales += room;
+    return { units: sold, revenue: room };
   }
 
   /** Permanent growth: `points` of +$1 on a Design, or of +1 Unit on a Make. */

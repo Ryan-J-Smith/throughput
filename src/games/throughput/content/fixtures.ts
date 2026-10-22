@@ -99,10 +99,15 @@ class Warehouse extends FixtureEffect {
     }
     if (batch.boardReview && batch.stored > 0) {
       const price = Math.max(0, batch.margin) * WAREHOUSE_BOARD_MUL;
-      const revenue = Math.floor(batch.stored * price);
-      batch.sales += revenue;
-      batch.note(`Warehouse sells ${batch.stored} stored × $${formatAmount(price)} = $${revenue}`);
-      batch.stored = 0;
+      // A Shift cap (Quota Cap) stops this sale like any other; unsold stock stays stored.
+      const { units, revenue } = batch.sell(batch.stored, price);
+      const unsold = batch.stored - units;
+      batch.note(
+        unsold === 0
+          ? `Warehouse sells ${units} stored × $${formatAmount(price)} = $${revenue}`
+          : `Warehouse sells ${units} stored × $${formatAmount(price)}, $${revenue} up to the $${batch.salesCap} Shift cap; ${unsold} stay in stock`,
+      );
+      batch.stored = unsold;
     }
   }
 

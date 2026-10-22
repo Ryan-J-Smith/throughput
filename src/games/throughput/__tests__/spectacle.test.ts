@@ -38,12 +38,12 @@ describe('THROUGHPUT belt spectacle beats', () => {
     expect([leftover, total]).toEqual([result.leftover, result.total]);
   });
 
-  it('carries sales past a Quota Cap to the finale', () => {
+  it("tells the finale when a Quota Cap stopped the Shift's sales", () => {
     const line = [slot(null, card(WORKSHOP, 'Home')), slot(null, card(TRUCK, 'Home'))];
-    const made = scoreLine(line, context()).total;
-    const { total, overCap } = shiftBeats(scoreLine(line, context({ boss: boss('quota-cap'), shiftCap: 5 })));
-    expect([total, overCap]).toEqual([5, made - 5]);
-    expect(shiftBeats(scoreLine(line, context())).overCap).toBe(0);
+    const { total, capped, beats } = shiftBeats(scoreLine(line, context({ boss: boss('quota-cap'), shiftCap: 5 })));
+    expect([total, capped]).toEqual([5, true]);
+    expect(beats.at(-1)?.sales).toBe(5);
+    expect(shiftBeats(scoreLine(line, context())).capped).toBe(false);
   });
 
   it('marks a welded slot', () => {
