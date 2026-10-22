@@ -23,6 +23,8 @@ export type ShiftContext = {
   readonly hotPipsLeft: number;
   /** Units in storage before the Shift. */
   readonly stored: number;
+  /** This Shift's number in the round, from 1. */
+  readonly shift: number;
   readonly boss: BoardBoss | null;
 };
 
@@ -51,11 +53,11 @@ export type ShiftResult = {
   readonly shipSales: number;
   /** Units left in the Batch after the last slot. */
   readonly leftover: number;
-  /** Units of the leftover moved into storage. */
-  readonly storedUnits: number;
-  /** Money from (or, under JIT Auditor, cost of) leftover Units that were not stored. */
+  /** Units a Warehouse copied into its stock this Shift. */
+  readonly stockedUnits: number;
+  /** Money from (or, under JIT Auditor, cost of) the leftover Units. */
   readonly overstockSales: number;
-  /** Units in storage after the Shift. */
+  /** Warehouse stock after the Shift. */
   readonly storedAfter: number;
   readonly total: number;
   /** Designs that grew (R&D Lab), one entry per +$1. */
@@ -78,7 +80,14 @@ export type ShiftResult = {
  */
 export function scoreLine(line: readonly LineSlot[], ctx: ShiftContext, options: { readonly trace?: boolean } = {}): ShiftResult {
   const { config, boss } = ctx;
-  const batch = new Batch(config.baseMargin, ctx.stored, boss?.warehouseOpen() ?? true, options.trace ?? true);
+  const batch = new Batch({
+    baseMargin: config.baseMargin,
+    stored: ctx.stored,
+    warehouseOpen: boss?.warehouseOpen() ?? true,
+    boardReview: boss !== null,
+    shift: ctx.shift,
+    tracing: options.trace ?? true,
+  });
   const sale = new SaleState(ctx);
   const chain: (Card | null)[] = [];
   const steps: SlotTrace[] = [];
@@ -116,16 +125,15 @@ export function scoreLine(line: readonly LineSlot[], ctx: ShiftContext, options:
   });
 
   const leftover = batch.units;
-  const storedUnits = batch.storing ? Math.min(leftover, config.warehouseCap) : 0;
   const unitValue = boss?.overstockValue(config.overstockValue) ?? config.overstockValue;
-  const overstockSales = (leftover - storedUnits) * unitValue;
+  const overstockSales = leftover * unitValue;
   return {
     steps,
     shipSales: batch.sales,
     leftover,
-    storedUnits,
+    stockedUnits: batch.stocked,
     overstockSales,
-    storedAfter: batch.storing ? storedUnits : batch.stored,
+    storedAfter: batch.stored,
     total: batch.sales + overstockSales,
     grown: batch.grown,
     hotPipUsed: sale.hotUsed,
@@ -198,7 +206,7 @@ function ship(card: Card, marginMul: number, fixture: Fixture | null, batch: Bat
   const cap = base === 'all' ? batch.units : Math.floor((base === 'demand' ? left : base) * batch.capMul);
   const sold = Math.min(batch.units, cap, left);
   const hot = stage === 'hot' && sale.ctx.hotPipsLeft > 0 && sold > 0;
-  const flagship = fixture?.def.effect.saleMultiplier(card, fixture) ?? 1;
+  const flagship = fixture?.def.effect.saleMultiplier(card, fixture, batch) ?? 1;
   const premium = 1 + config.grant.premiumStep * grant.premium;
   const price = batch.margin * marginMul * (hot ? config.hotMultiplier : 1) * flagship * premium;
   const revenue = Math.floor(sold * price);
@@ -219,7 +227,7 @@ function ship(card: Card, marginMul: number, fixture: Fixture | null, batch: Bat
   if (usesDemand) notes.push(`${category} Demand ${sold === left && sold > 0 ? 'sold out' : `${left - sold} left`}`);
   if (marginMul !== 1) notes.push(`×${formatAmount(marginMul)}`);
   if (hot) notes.push(`Hot ×${formatAmount(config.hotMultiplier)}`);
-  if (flagship !== 1) notes.push(`Flagship ×${formatAmount(flagship)}`);
+  if (flagship !== 1 && fixture !== null) notes.push(`${fixture.def.name} ×${formatAmount(flagship)}`);
   if (premium !== 1) notes.push(`Premium ×${formatAmount(premium)}`);
   batch.note(`Ship sells ${sold} × $${formatAmount(price)} = $${revenue}${notes.length > 0 ? ` (${notes.join(', ')})` : ''}`);
 }

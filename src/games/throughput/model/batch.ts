@@ -10,22 +10,35 @@ export class Batch {
   /** Multiplier on every later Ship cap (Price Gun). */
   capMul = 1;
   sales = 0;
-  /** Units waiting in storage that a Warehouse adds to the Batch. */
+  /** Warehouse stock: sold in a Board Review, added to by a Make card on a Warehouse. */
   stored: number;
+  /** Units copied into stock this Shift. */
+  stocked = 0;
   readonly warehouseOpen: boolean;
-  /** Set once a Warehouse is reached: leftover Units are stored instead of cleared. */
-  storing = false;
-  /** Designs that grew (R&D Lab) this Shift, one entry per growth. */
+  /** True in a Board Review round (the Warehouse sells its stock). */
+  readonly boardReview: boolean;
+  /** This Shift's number in the round, from 1. */
+  readonly shift: number;
+  /** Cards that grew (R&D Lab, Automation) this Shift, one entry per point of growth. */
   readonly grown: Card[] = [];
   /** False when only the numbers matter (bots): events are not recorded. */
   readonly tracing: boolean;
   private events: string[] = [];
 
-  constructor(baseMargin: number, stored: number, warehouseOpen: boolean, tracing = true) {
-    this.margin = baseMargin;
-    this.stored = stored;
-    this.warehouseOpen = warehouseOpen;
-    this.tracing = tracing;
+  constructor(init: {
+    readonly baseMargin: number;
+    readonly stored: number;
+    readonly warehouseOpen: boolean;
+    readonly boardReview: boolean;
+    readonly shift: number;
+    readonly tracing: boolean;
+  }) {
+    this.margin = init.baseMargin;
+    this.stored = init.stored;
+    this.warehouseOpen = init.warehouseOpen;
+    this.boardReview = init.boardReview;
+    this.shift = init.shift;
+    this.tracing = init.tracing;
   }
 
   addMargin(amount: number, source: string): void {
@@ -53,9 +66,10 @@ export class Batch {
     if (this.tracing) this.note(`${source} later Ship caps ×${formatAmount(factor)}`);
   }
 
-  grow(card: Card, source: string): void {
-    this.grown.push(card);
-    if (this.tracing) this.note(`${source}: ${card.def.name} grows +$1`);
+  /** Permanent growth: `points` of +$1 on a Design, or of +1 Unit on a Make. */
+  grow(card: Card, source: string, points = 1): void {
+    for (let i = 0; i < points; i++) this.grown.push(card);
+    if (this.tracing) this.note(`${source}: ${card.def.name} grows ${card.def.stage === 'make' ? `+${points} Units` : `+$${points}`}`);
   }
 
   note(event: string): void {

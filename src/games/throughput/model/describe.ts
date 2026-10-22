@@ -14,9 +14,9 @@ export function designAdd(card: Card): number {
   return card.def.stage === 'design' ? card.def.marginAdd + card.upgrades + card.growth : 0;
 }
 
-/** Units a Make card adds, including Tooling Upgrades. */
+/** Units a Make card adds, including Tooling Upgrades and Automation growth. */
 export function makeUnits(card: Card): number {
-  return card.def.stage === 'make' ? card.def.units + 3 * card.upgrades : 0;
+  return card.def.stage === 'make' ? card.def.units + 3 * card.upgrades + card.growth : 0;
 }
 
 /** A Ship card's capacity before cap cuts, including Tooling Upgrades (numeric caps only). */

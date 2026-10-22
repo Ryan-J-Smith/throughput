@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_CONFIG } from '../content';
 import type { ThroughputConfig } from '../content';
-import { CATEGORIES } from '../model';
-import type { Category, Stage } from '../model';
+import { CATEGORIES, makeUnits } from '../model';
+import type { Card, Category, Stage } from '../model';
 import { ThroughputRun } from '../rules';
 import { easyConfig } from './fixtures';
 
@@ -363,30 +363,32 @@ describe('ThroughputRun: bosses', () => {
     expect(run.whyCannotLoad([{ hand: 0, slot: 0 }])).toBe('Slot 1 is welded shut');
   });
 
-  it('the Warehouse stores leftovers and charges 1C per 10 on entering the shop', () => {
-    const run = new ThroughputRun(1, easyConfig({ startingCapital: 5000, targets: [10, 10, 10] }));
+  it('the Warehouse stocks its Make\'s Units through the Year and sells the stock in the Board Review', () => {
+    const config = easyConfig({ startingCapital: 5000, targets: [10, 10, 10] });
+    let seed = 1;
+    while (new ThroughputRun(seed, config).boardBosses[0]?.id === 'jit-auditor') seed++;
+    const run = new ThroughputRun(seed, config);
     makeAndShip(run);
-    for (let i = 0; i < 300 && run.line[2]?.fixture == null; i++) {
+    for (let i = 0; i < 300 && run.line[0]?.fixture == null; i++) {
       const offer = run.offers.findIndex((o) => o?.kind === 'fixture' && o.def.id === 'warehouse');
-      if (offer >= 0) run.buy(offer, { slot: 2 });
+      if (offer >= 0) run.buy(offer, { slot: 0 });
       else run.reroll();
     }
-    expect(run.line[2]?.fixture?.def.id).toBe('warehouse');
+    expect(run.line[0]?.fixture?.def.id).toBe('warehouse');
     run.continueToNextRound();
     run.load([{ hand: handIndex(run, 'make'), slot: 0 }]);
-    run.runShift();
-    const stored = run.stored;
-    expect(stored).toBeGreaterThan(0);
-    const cash = run.wallet.cash;
-    // Make and Ship ahead of the Warehouse, which then puts the released Units back in storage.
-    run.load([{ hand: handIndex(run, 'make'), slot: 0 }]);
-    run.load([{ hand: handIndex(run, 'ship'), slot: 1 }]);
+    const units = makeUnits(run.line[0]?.card?.card as Card);
+    run.load([{ hand: handIndex(run, 'ship'), slot: 4 }]);
     run.runShift();
     expect(run.phase).toBe('shop');
-    expect(run.stored).toBe(stored);
-    const fee = Math.ceil(run.stored / 10);
-    expect(run.storageNotice).toBe(`Paid ${fee}C storage for ${run.stored} stored Units`);
-    expect(run.wallet.cash).toBe(cash + (run.lastPayout ?? []).reduce((sum, l) => sum + l.amount, 0) - fee);
+    expect(run.stored).toBe(units);
+    expect(run.storageNotice).toBe(`Warehouse: ${units} Units in stock for the next Board Review`);
+    run.continueToNextRound();
+    expect(run.quarter.isBoard).toBe(true);
+    // An empty Line: the Batch reaches the Warehouse at the base Margin, and the stock sells at ×2.
+    const result = run.runShift();
+    expect(result.total).toBe(units * DEFAULT_CONFIG.baseMargin * 2);
+    expect(run.stored).toBe(0);
   });
 });
 

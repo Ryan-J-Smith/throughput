@@ -73,7 +73,7 @@ A SHIFT
   1. Load: put hand cards into empty Line slots (${c.startSlots} slots to start, up to ${c.maxSlots}).
   2. Run: a Batch starts at 0 Units and Margin $${c.baseMargin} and moves left to right through the
      slots (see HOW A SALE IS PRICED).
-  3. Leftover Units clear at $${c.overstockValue} each (or go into a Warehouse).
+  3. Leftover Units clear at $${c.overstockValue} each.
   4. Dispatch: Make and Ship cards are discarded. Designs stay in their slots.
   5. If Sales have reached the target, the round clears now. Otherwise draw back up to ${c.handSize}.
   Retool (${c.retoolsPerRound} per round): discard 1–${c.retoolMax} hand cards and draw as many into their places.
@@ -144,9 +144,9 @@ FIXTURES
     Overtime Crew and Automation: Makes; Showroom and Flagship Store: Ships). The trace marks a Mod
     "idle" when its card is the wrong type.
   - A Station fills the slot itself: no card goes there, and it breaks Handoffs.
-  - Warehouse (Station): when the Batch reaches it, stored Units join the Batch, and that Shift's
-    leftover Units are stored (up to ${c.warehouseCap}) instead of cleared. On entering the shop you pay 1C per
-    ${c.storagePerCapital} stored Units (rounded up), or lose them.
+  - Warehouse (Mod): a Make card on it also copies its Units into stock, which builds up across
+    rounds. In a Board Review, when the Batch reaches it, the whole stock sells at the Batch's Margin
+    there ×2, ignoring Demand.
 
 BOARD REVIEWS (bosses)
   The last round of each Year has a boss rule. A run meets ${Math.min(years, BOSSES.length)} of these ${BOSSES.length}, drawn at random; the next

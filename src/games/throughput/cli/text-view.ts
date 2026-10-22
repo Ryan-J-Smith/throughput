@@ -67,8 +67,8 @@ export function traceLines(result: ShiftResult, indent = '  '): string[] {
     return `${indent}${step.slot}. ${step.label}: ${events}Units ${step.units}, Margin $${formatAmount(step.margin)}, Sales $${step.sales}`;
   });
   const leftover: string[] = [];
-  if (result.storedUnits > 0) leftover.push(`${result.storedUnits} Units stored`);
-  const cleared = result.leftover - result.storedUnits;
+  if (result.stockedUnits > 0) leftover.push(`${result.stockedUnits} Units copied into Warehouse stock`);
+  const cleared = result.leftover;
   if (cleared > 0) leftover.push(`${cleared} Units cleared for ${result.overstockSales < 0 ? '-' : ''}$${Math.abs(result.overstockSales)}`);
   lines.push(`${indent}Leftover: ${leftover.length > 0 ? leftover.join(', ') : 'none'}. Shift total $${result.total}.`);
   return lines;
@@ -418,5 +418,5 @@ export function stateData(run: ThroughputRun, context: ViewContext): Record<stri
 }
 
 function previewData(result: ShiftResult) {
-  return { steps: result.steps, leftover: result.leftover, storedUnits: result.storedUnits, overstockSales: result.overstockSales, total: result.total };
+  return { steps: result.steps, leftover: result.leftover, stockedUnits: result.stockedUnits, overstockSales: result.overstockSales, total: result.total };
 }

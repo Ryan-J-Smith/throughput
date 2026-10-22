@@ -1,4 +1,4 @@
-import { FixtureEffect, shipCap } from '../model';
+import { FixtureEffect, formatAmount, makeUnits, shipCap } from '../model';
 import type { Batch, Card, Fixture, FixtureDef, SlotContext } from '../model';
 
 class QualityLab extends FixtureEffect {
@@ -41,9 +41,16 @@ class RndLab extends FixtureEffect {
   }
 }
 
+/** Units a Make on Automation gains for good each time it resolves. */
+export const AUTOMATION_GROWTH = 3;
+
 class Automation extends FixtureEffect {
   override keepsOnLine(card: Card): boolean {
     return card.def.stage === 'make';
+  }
+
+  override afterResolve(card: Card, batch: Batch): void {
+    if (card.def.stage === 'make') batch.grow(card, 'Automation', AUTOMATION_GROWTH);
   }
 
   override appliesTo(card: Card): boolean {
@@ -74,15 +81,37 @@ class AssemblyLine extends FixtureEffect {
   }
 }
 
+/** Margin multiplier on an Express Lane sale in a round's first Shift. */
+export const EXPRESS_LANE_MUL = 3;
+
+/** The Warehouse's Board Review sale: stock × the Batch's Margin here × this. */
+export const WAREHOUSE_BOARD_MUL = 2;
+
+/**
+ * Stockpiles all Year (a Make card here also copies its Units into stock) and sells the stock,
+ * ignoring Demand, at the Batch's Margin ×2 here in a Board Review.
+ */
 class Warehouse extends FixtureEffect {
   override onSlot(batch: Batch): void {
     if (!batch.warehouseOpen) {
       batch.note('Warehouse closed');
       return;
     }
-    if (batch.stored > 0) batch.addUnits(batch.stored, 'Warehouse releases');
-    batch.stored = 0;
-    batch.storing = true;
+    if (batch.boardReview && batch.stored > 0) {
+      const price = Math.max(0, batch.margin) * WAREHOUSE_BOARD_MUL;
+      const revenue = Math.floor(batch.stored * price);
+      batch.sales += revenue;
+      batch.note(`Warehouse sells ${batch.stored} stored × $${formatAmount(price)} = $${revenue}`);
+      batch.stored = 0;
+    }
+  }
+
+  override afterResolve(card: Card, batch: Batch): void {
+    if (card.def.stage !== 'make' || !batch.warehouseOpen) return;
+    const units = makeUnits(card);
+    batch.stored += units;
+    batch.stocked += units;
+    batch.note(`Warehouse stocks a copy: +${units} Units`);
   }
 }
 
@@ -174,8 +203,8 @@ class LuxuryCounter extends FixtureEffect {
 }
 
 class ExpressLane extends FixtureEffect {
-  override keepsOnLine(card: Card): boolean {
-    return card.def.stage === 'ship';
+  override saleMultiplier(card: Card, _fixture: Fixture, batch?: Batch): number {
+    return card.def.stage === 'ship' && batch?.shift === 1 ? EXPRESS_LANE_MUL : 1;
   }
 
   override appliesTo(card: Card): boolean {
@@ -286,7 +315,7 @@ export const FIXTURES: readonly FixtureDef[] = [
     short: 'Design grows +$1',
     effect: new RndLab(),
   },
-  { id: 'automation', name: 'Automation', kind: 'mod', rarity: 'uncommon', price: 5, text: 'A Make card here is not dispatched.', short: 'Make stays on Line', effect: new Automation() },
+  { id: 'automation', name: 'Automation', kind: 'mod', rarity: 'uncommon', price: 5, text: 'A Make card here stays on the Line and gains +3 Units for good each Shift.', short: 'Make stays, grows +3', effect: new Automation() },
   {
     id: 'brand-manager',
     name: 'Brand Manager',
@@ -311,11 +340,11 @@ export const FIXTURES: readonly FixtureDef[] = [
   {
     id: 'warehouse',
     name: 'Warehouse',
-    kind: 'station',
+    kind: 'mod',
     rarity: 'uncommon',
     price: 5,
-    text: 'Station. Releases stored Units; stores leftovers (max 40). Each shop: pay 1C per 10 stored or lose them.',
-    short: 'Stores leftovers (max 40)',
+    text: 'A Make card here also copies its Units into stock. Board Reviews: the stock sells here at Margin ×2.',
+    short: 'Stock sells at Boards',
     effect: new Warehouse(),
   },
   {
@@ -338,7 +367,7 @@ export const FIXTURES: readonly FixtureDef[] = [
     short: 'Ship cap ≤8: ×2',
     effect: new LuxuryCounter(),
   },
-  { id: 'express-lane', name: 'Express Lane', kind: 'mod', rarity: 'uncommon', price: 6, text: 'A Ship card here is not dispatched.', short: 'Ship stays on Line', effect: new ExpressLane() },
+  { id: 'express-lane', name: 'Express Lane', kind: 'mod', rarity: 'uncommon', price: 6, text: 'A Ship card here sells at Margin ×3 in the first Shift of each round.', short: 'Ship ×3, Shift 1', effect: new ExpressLane() },
   {
     id: 'lean-cell',
     name: 'Lean Cell',
