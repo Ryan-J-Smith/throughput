@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { GrantPicker, HowToPlay, LineView, ThroughputBrowserGame, ThroughputScreen, TpHud, TraceReceipt, cardView, demandBossCut, demandViews, lineNotice, plateText } from '../browser';
+import { GrantPicker, HowToPlay, LineView, Shelf, ThroughputBrowserGame, ThroughputScreen, TpHud, TraceReceipt, cardView, demandBossCut, demandViews, lineNotice, plateText } from '../browser';
 import { DEFAULT_CONFIG, REBRAND, SKETCH, TRUCK, WORKSHOP } from '../content';
 import type { BayState } from '../browser';
 import { CATEGORIES, cardEffect } from '../model';
@@ -113,6 +113,20 @@ describe('THROUGHPUT browser screen', () => {
     run.continueToNextRound();
     run.load([{ hand: run.hand.findIndex((c) => c.def.stage !== 'design'), slot: 0 }]);
     expect(renderLine(run)).toContain('<span class="tp-bay__idle" title="Idle for this card">Idle</span>');
+  });
+
+  it('shop offers say what kind they are and whether you can afford them', () => {
+    const run = new ThroughputRun(1, easyConfig());
+    run.load([
+      { hand: handIndex(run, 'make'), slot: 0 },
+      { hand: handIndex(run, 'ship'), slot: 1 },
+    ]);
+    run.runShift();
+    const shelf = () => renderToStaticMarkup(<Shelf run={run} pending={null} onBuy={() => {}} onReroll={() => {}} onContinue={() => {}} />);
+    const items = () => [...shelf().matchAll(/<div class="shop__item ?" data-kind="(\w+)" data-afford="(yes|no)"/g)].map((m) => [m[1], m[2]]);
+    expect(items()).toEqual(run.offers.flatMap((o) => (o === null ? [] : [[o.kind, run.wallet.canAfford(o.price) ? 'yes' : 'no']])));
+    run.wallet.spend(run.wallet.cash);
+    expect(items().map(([, afford]) => afford)).toEqual(run.offers.flatMap((o) => (o === null ? [] : [o.price > 0 ? 'no' : 'yes'])));
   });
 
   it('the screen carries the Year (and Board rounds) for per-Year backdrops', () => {
