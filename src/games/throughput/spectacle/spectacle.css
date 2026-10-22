@@ -535,8 +535,8 @@
     align-self: start;
   }
 
-  /* The replay covers the top of the hand, so its cards step aside rather than show cut off. */
-  .screen--tp-shift[data-replay] .tp-hand .hand__cards {
+  /* The replay covers the top of the hand, so its hint and cards step aside rather than show cut off. */
+  .screen--tp-shift[data-replay] .tp-hand :is(.tp-hint, .hand__cards) {
     opacity: 0;
   }
 

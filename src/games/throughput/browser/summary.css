@@ -122,6 +122,12 @@
   position: relative;
 }
 
+/* Every tile stands as tall as its row, so the stage chips line up along the row's foot. */
+.tp-summary__cards > li > .card-wrap,
+.tp-summary__cards > li > .card-wrap > .card {
+  height: 100%;
+}
+
 .tp-summary__count {
   position: absolute;
   top: -6px;

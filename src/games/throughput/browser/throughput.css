@@ -893,6 +893,21 @@ body:has(.screen--tp-shop[data-year])::before {
     padding-inline: 14px;
   }
 
+  /* A Board round's strip, Fixture plates and a parked card's Scrap all fit 1366×900 with a
+     slimmer strip and the gutter's padding under the screen. */
+  .app:has(.screen--tp-shift) {
+    padding-bottom: 14px;
+  }
+
+  .screen--tp-shift .hud__boss {
+    padding-block: 5px 6px;
+  }
+
+  .screen--tp-shift .hud__boss-art {
+    width: 32px;
+    height: 32px;
+  }
+
   .screen.screen--tp-shift {
     grid-template-columns: 280px minmax(0, 1fr) 284px;
     grid-template-areas:
@@ -1213,9 +1228,20 @@ body:has(.screen--tp-shop[data-year])::before {
 
 /* The price: a plain brass tab, no glow. Out of reach, it and the offer dim (Buy still explains). */
 .tp-shop .price-tag {
+  top: -19px;
   border-color: rgb(0 0 0 / 0.25);
   background: #efc35c;
   box-shadow: 0 4px 10px rgb(0 0 0 / 0.45);
+}
+
+/* The tab hangs above the card's corner, so the band's label ("Fixture · Station") keeps one line;
+   the plinth names the rarity, so the band's gem gives it the room. */
+.tp-shop .shop__item .card__dept {
+  white-space: nowrap;
+}
+
+.tp-shop .shop__item [class*='card--rarity-'] .card__band::after {
+  display: none;
 }
 
 .tp-shop .shop__item > .card-wrap {
