@@ -169,6 +169,30 @@ describe('ThroughputRun: Ship refill', () => {
     expect(swapped(off, on).cameIn.map((c) => c.def.stage)).toEqual(['ship']);
   });
 
+  it('a Ship whose Category has no Demand left counts as no Ship', () => {
+    // Saturated Categories get no Demand here, so their Ships can't sell.
+    const dry = (shipRefill: boolean) => easyConfig({ targets: [10_000, 10_000, 10_000], shipRefill, demand: { ...DEFAULT_CONFIG.demand, saturatedMul: 0 } });
+    const sells = (run: ThroughputRun, card: Card) => card.def.stage === 'ship' && run.demandLeft[card.category] > 0;
+    /** Retools away the Ships in hand that can sell, leaving any that can't. */
+    const retoolSellers = (run: ThroughputRun) => run.retool(run.hand.flatMap((c, i) => (sells(run, c) ? [i] : [])).slice(0, 3));
+    const stranded = (seed: number) => {
+      const run = new ThroughputRun(seed, dry(false));
+      if (!run.hand.some((c) => sells(run, c))) return false;
+      retoolSellers(run);
+      return ships(run.hand) > 0 && !run.hand.some((c) => sells(run, c)) && run.drawPile.some((c) => sells(run, c));
+    };
+    let seed = 1;
+    while (seed < 500 && !stranded(seed)) seed++;
+    if (seed >= 500) throw new Error('no stranded Retool in 500 seeds');
+    const off = new ThroughputRun(seed, dry(false));
+    const on = new ThroughputRun(seed, dry(true));
+    retoolSellers(off);
+    retoolSellers(on);
+    expect(off.hand.some((c) => sells(off, c))).toBe(false);
+    expect(on.hand.filter((c) => sells(on, c))).toHaveLength(1);
+    expect(swapped(off, on).cameIn.filter((c) => sells(on, c))).toHaveLength(1);
+  });
+
   it('a Ship already on the Line means no swap', () => {
     // Load one Ship, then Retool the rest away: the hand may hold none, but the Line can sell.
     const play = (run: ThroughputRun) => {
@@ -280,6 +304,33 @@ describe('ThroughputRun: a Shift', () => {
     const moved = fixed.hand.filter((c) => !uids(plain.hand).includes(c.uid));
     expect(moved.length).toBeGreaterThan(0);
     expect(moved.every((c) => uids(plain.drawPile).includes(c.uid) && c.def.stage !== 'design')).toBe(true);
+  });
+
+  it("the opening hand holds a Ship of the round's Hot Category, swapped in from the draw pile, while there is a Hot pip", () => {
+    const config = (hotOpener: boolean, hotPips = DEFAULT_CONFIG.hotPips) => easyConfig({ hotOpener, hotPips });
+    const hotShips = (run: ThroughputRun, cards: readonly Card[]) => cards.filter((c) => c.def.stage === 'ship' && run.trendsNow[c.category] === 'hot');
+    const missing = (seed: number) => {
+      const run = new ThroughputRun(seed, config(false));
+      return hotShips(run, run.hand).length === 0 && hotShips(run, run.drawPile).length > 0;
+    };
+    let seed = 1;
+    while (!missing(seed)) seed++;
+    const plain = new ThroughputRun(seed, config(false));
+    const fixed = new ThroughputRun(seed, config(true));
+    expect(hotShips(fixed, fixed.hand)).toHaveLength(1);
+    expect(fixed.hand).toHaveLength(7);
+    expect(fixed.drawPile).toHaveLength(DRAW);
+    expect(fixed.hand.some((c) => c.def.stage === 'make')).toBe(true);
+    // One card swapped: the Hot Ship came from the draw pile, and the card it replaced went there.
+    const uids = (cards: readonly { uid: number }[]) => cards.map((c) => c.uid);
+    const cameIn = fixed.hand.filter((c) => !uids(plain.hand).includes(c.uid));
+    const wentOut = plain.hand.filter((c) => !uids(fixed.hand).includes(c.uid));
+    expect(cameIn).toEqual(hotShips(fixed, fixed.hand));
+    expect(uids(plain.drawPile)).toContain(cameIn[0]?.uid);
+    expect(wentOut).toHaveLength(1);
+    expect(uids(fixed.drawPile)).toContain(wentOut[0]?.uid);
+    // Without a Hot pip a Hot Ship sells at the normal price, so nothing is swapped.
+    expect(uids(new ThroughputRun(seed, config(true, 0)).hand)).toEqual(uids(plain.hand));
   });
 
   it('a Design-only Mod on the Line adds a Design to the opening hand', () => {

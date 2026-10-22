@@ -46,8 +46,9 @@ export function rulesText(config: ThroughputConfig): string {
   const opener = c.openingHandTypes.map((t) => `one ${typeName[t]}`).join(' and ');
   const designMods = FIXTURES.filter(designOnlyMod).map((f) => f.name);
   const shipRefill = c.shipRefill
-    ? `\n  ${wrap('After each later Shift\'s refill or a Retool, if neither your hand nor the Line has a Ship, the next Ship in the draw pile swaps in for one of the cards just drawn.', '  ')}`
+    ? `\n  ${wrap('After each later Shift\'s refill or a Retool, if neither your hand nor the Line has a Ship that can sell (its Category has Demand left), the next such Ship in the draw pile swaps in for one of the cards just drawn.', '  ')}`
     : '';
+  const hotOpener = c.hotOpener ? `\n  ${wrap(`${opener === '' ? 'The opening hand holds' : 'It also holds'} a Ship of this round's Hot Category, if your deck has one.`, '  ')}` : '';
   const designOpener =
     c.designOpener && !c.openingHandTypes.includes('design') && designMods.length > 0
       ? `\n  ${wrap(`It also holds a Design while a Mod that works only on Designs (${designMods.join(', ')}) is on the Line, outside a welded slot.`, '  ')}`
@@ -77,7 +78,7 @@ CARDS
   Starter deck (${STARTER_CARDS.length * CATEGORIES.length}): per Category 1 Sketch (Design +$2), 2 Workshops (Make +6 Units),
   1 Truck (Ship up to its Category's Demand).
   Each round starts with an empty Line, the whole deck shuffled and a hand of ${c.handSize}.${opener === '' ? '' : `
-  The opening hand always holds at least ${opener} (if your deck has them).${designOpener}`}${shipRefill}
+  The opening hand always holds at least ${opener} (if your deck has them).${designOpener}`}${hotOpener}${shipRefill}
 ${draws}
   Tip: "deck" shows exactly what is left to draw this round.
 

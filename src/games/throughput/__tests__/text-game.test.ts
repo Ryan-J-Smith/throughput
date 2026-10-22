@@ -399,7 +399,10 @@ describe('rules and shop text', () => {
     expect(text).toContain('The opening hand always holds at least one Make and one Ship');
     expect(text).toContain('It also holds a Design while a Mod that works only on Designs (Quality Lab, Design Studio, R&D');
     expect(rulesText({ ...DEFAULT_CONFIG, designOpener: false })).not.toContain('It also holds a Design');
-    expect(text).toContain("After each later Shift's refill or a Retool, if neither your hand nor the Line has a Ship, the");
+    expect(text).toContain("It also holds a Ship of this round's Hot Category, if your deck has one.");
+    expect(rulesText({ ...DEFAULT_CONFIG, hotOpener: false })).not.toContain('Hot Category, if your deck');
+    expect(rulesText({ ...DEFAULT_CONFIG, openingHandTypes: [] })).toContain("The opening hand holds a Ship of this round's Hot Category");
+    expect(text).toContain("After each later Shift's refill or a Retool, if neither your hand nor the Line has a Ship that can\n  sell (its Category has Demand left), the next such Ship");
     expect(rulesText({ ...DEFAULT_CONFIG, shipRefill: false })).not.toContain("later Shift's refill");
     expect(text).toContain("1 Truck (Ship up to its Category's Demand)");
     expect(text).toContain('Restock: Once per round, when you would draw from an empty draw pile');
