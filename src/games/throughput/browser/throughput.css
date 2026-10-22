@@ -476,6 +476,25 @@ body:has(.screen--tp-shop[data-year])::before {
   transform: translateY(-50%);
 }
 
+/*
+ * Once any bay holds a Fixture, every plate on the Line takes a full Fixture plate's height (number,
+ * name, two lines of rule), so the cards under them line up across the bays. A Line with no Fixture
+ * keeps its slim slots.
+ */
+@media (min-width: 641px) {
+  .screen--tp-shift .tp-line__bays:has(.tp-bay__plate[data-accent]) .tp-bay__plate {
+    height: calc(33px + 1.15 * var(--text-sm) + 2.6 * var(--text-xs));
+  }
+
+  .screen--tp-shop .tp-line__bays:has(.tp-bay__plate[data-accent]) .tp-bay__plate {
+    height: calc(35px + 1.15 * var(--text-md) + 2.6 * var(--text-xs));
+  }
+
+  .tp-line__bays:has(.tp-bay__plate[data-accent]) .tp-bay__plate:not([data-accent]) {
+    justify-content: center;
+  }
+}
+
 /* A Mod under a card it never acts on: the plate dims, its name is struck through, and a tag says why. */
 .tp-bay__plate.is-idle {
   border-style: dashed;
