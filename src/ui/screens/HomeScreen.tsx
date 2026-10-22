@@ -48,7 +48,6 @@ export function HomeScreen({ featured, others, savedRun, onNewRun, onContinue, o
     <main className="screen home" data-screen="home" data-accent={featured.accent}>
       <div className="home__art" data-art="title" aria-hidden="true" />
       <header className="home__header">
-        <p className="home__brand">Shelf Life</p>
         <h1 className="home__title">{featured.title}</h1>
         <p className="home__tagline">{featured.tagline}</p>
       </header>

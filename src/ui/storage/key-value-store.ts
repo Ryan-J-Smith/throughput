@@ -15,7 +15,7 @@ export abstract class KeyValueStore {
 export class BrowserStore extends KeyValueStore {
   private readonly prefix: string;
 
-  constructor(prefix = 'shelf-life.') {
+  constructor(prefix = 'throughput.') {
     super();
     this.prefix = prefix;
   }

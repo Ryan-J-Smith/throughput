@@ -1,6 +1,10 @@
-# stratgame
+# Throughput
 
-A Balatro-inspired deckbuilder about running a consumer goods business.
+A Balatro-inspired roguelike deckbuilder about running a factory: load Designs, Makes and Ships
+into the Line's bays, ride the trends, beat each quarter's sales target, and build your Line in the
+shop between rounds.
+
+**Play it:** https://ryan-j-smith.github.io/throughput/
 
 Browser-only static site (Vite + React + TypeScript), deployed to GitHub Pages. All game logic is
 deterministic from a seed, so runs can be replayed, simulated headlessly, and played from a text CLI.

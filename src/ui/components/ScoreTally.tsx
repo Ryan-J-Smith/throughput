@@ -92,7 +92,7 @@ export function ScoreTally({ tally, speed, onComplete, onSpeedChange }: ScoreTal
       <div className="receipt">
         {bigHit && <div className="receipt__flash" key={`flash-${revealed}`} aria-hidden="true" />}
         <div className="receipt__head">
-          <span className="receipt__store">Shelf Life Co.</span>
+          <span className="receipt__store">Throughput Co.</span>
           <span className="receipt__kind">Sales receipt</span>
         </div>
 

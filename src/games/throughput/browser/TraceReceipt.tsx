@@ -28,7 +28,7 @@ export function TraceReceipt({ result, heading, salesBefore, target, overkillPay
     <section className="tp-receipt" aria-label={heading}>
       <div className="receipt">
         <header className="receipt__head">
-          <span className="receipt__store">Shelf Life Co.</span>
+          <span className="receipt__store">Throughput Co.</span>
           <span className="receipt__kind">{heading}</span>
         </header>
         <div className="tp-receipt__line tp-receipt__cols">

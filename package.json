@@ -1,5 +1,5 @@
 {
-  "name": "stratgame",
+  "name": "throughput",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -26,5 +26,6 @@
     "vite": "5.4.21",
     "vite-node": "2.1.9",
     "vitest": "2.1.9"
-  }
+  },
+  "license": "MIT"
 }

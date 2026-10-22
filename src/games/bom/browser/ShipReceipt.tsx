@@ -45,7 +45,7 @@ export function ShipReceipt({ quote, heading, revenueBefore, target, sellOutGrow
     <section className="bom-receipt" aria-label={heading}>
       <div className="receipt">
         <header className="receipt__head">
-          <span className="receipt__store">Shelf Life Co.</span>
+          <span className="receipt__store">Throughput Co.</span>
           <span className="receipt__kind">{heading}</span>
         </header>
         <ol className="bom-receipt__lines">
