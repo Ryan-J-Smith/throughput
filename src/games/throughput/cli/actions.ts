@@ -16,7 +16,9 @@ export type ThroughputAction =
   | { readonly verb: 'buy'; readonly offer: number; readonly target: number | null; readonly grant?: GrantChoice }
   | { readonly verb: 'sell'; readonly what: 'fixture' | 'card'; readonly index: number }
   | { readonly verb: 'move'; readonly from: number; readonly to: number }
-  | { readonly verb: 'run' | 'reroll' | 'continue' | 'rules' | 'deck' };
+  | { readonly verb: 'run' | 'reroll' | 'continue' | 'rules' | 'deck' }
+  /** After winning: play on past the last planned round (endless). */
+  | { readonly verb: 'keep going' };
 
 export type ParsedAction = { readonly ok: true; readonly action: ThroughputAction } | { readonly ok: false; readonly reason: string };
 
@@ -67,6 +69,8 @@ export function parseAction(text: string): ParsedAction {
       }
       return { ok: true, action: { verb, what, index } };
     }
+    case 'keep':
+      return args.length === 1 && args[0] === 'going' ? { ok: true, action: { verb: 'keep going' } } : fail('did you mean "keep going"?');
     case 'move': {
       const [from, to, ...rest] = args.map(number);
       if (from == null || to == null || rest.length > 0) return fail('move needs two slot numbers, e.g. "move 1 4"');

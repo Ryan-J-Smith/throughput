@@ -146,6 +146,27 @@ describe('THROUGHPUT browser autosave', () => {
     expect(fresh?.ok === true && fresh.autosave.save).toMatchObject({ seed: 999, actions: [] });
   });
 
+  it('keeps a won run saved: Continue offers to keep going, and keeping going replays', () => {
+    // The first seed (from 50) that the greedy bot wins.
+    let store = new MemoryStore();
+    let played = playAndRecord(50, 1000, store);
+    for (let seed = 51; seed < 300 && played.phase !== 'won'; seed++) {
+      store = new MemoryStore();
+      played = playAndRecord(seed, 1000, store);
+    }
+    expect(played.phase).toBe('won');
+    expect(new ThroughputBrowserGame().savedRun(store)).toMatch(/^Won the run: keep going into Year \d+$/);
+    const html = renderToStaticMarkup(<ThroughputScreen seed={999} onQuit={() => {}} store={store} resume={true} />);
+    expect(html).toContain('data-action="keep-going"');
+
+    const restored = RunAutosave.restore(store);
+    if (restored?.ok !== true) throw new Error('the won run did not restore');
+    restored.run.keepGoing();
+    restored.autosave.record({ verb: 'keep going' });
+    const kept = RunAutosave.restore(store);
+    expect(kept?.ok === true && kept.run).toMatchObject({ phase: 'shop', endless: true, round: played.rounds });
+  });
+
   it('starts a new run with a notice when the save cannot be restored', () => {
     const store = new MemoryStore();
     store.set('throughput.run', JSON.stringify({ version: 1, game: 'throughput', seed: 1, actions: ['buy 9'] }));

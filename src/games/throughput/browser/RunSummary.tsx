@@ -18,12 +18,14 @@ export type RunSummaryViewProps = {
   run: ThroughputRun;
   onNewRun: () => void;
   onQuit: () => void;
+  /** After a win: play on past the last planned round (endless). Omitted when the run can't. */
+  onKeepGoing?: () => void;
   /** Defaults to the browser clipboard. */
   copy?: CopyText;
 };
 
 /** The end of a run: total sales as the headline, the best Shift, the build it ended with, and the seed. */
-export function RunSummaryView({ run, onNewRun, onQuit, copy = clipboardCopy }: RunSummaryViewProps) {
+export function RunSummaryView({ run, onNewRun, onQuit, onKeepGoing, copy = clipboardCopy }: RunSummaryViewProps) {
   const summary = runSummary(run);
   const [copied, setCopied] = useState<'idle' | 'copied' | 'failed'>('idle');
   const [countFrom] = useState(() => (prefersReducedMotion() ? summary.totalSales : 0));
@@ -39,7 +41,7 @@ export function RunSummaryView({ run, onNewRun, onQuit, copy = clipboardCopy }: 
   };
 
   return (
-    <main className="screen tp-summary" data-screen="run-summary" data-outcome={summary.won ? 'won' : 'lost'} data-year={run.quarter.year}>
+    <main className="screen tp-summary" data-screen="run-summary" data-outcome={summary.won ? 'won' : 'lost'} data-year={run.quarter.year} data-endless={summary.endless || undefined}>
       <div className="tp-summary__art" data-art={summary.won ? 'end-win' : 'end-loss'} aria-hidden="true" />
       <header className="tp-summary__header">
         <h1 className="tp-summary__title">{summary.won ? 'Victory' : 'Run over'}</h1>
@@ -75,9 +77,8 @@ export function RunSummaryView({ run, onNewRun, onQuit, copy = clipboardCopy }: 
         <div className="tp-summary__stat" data-stat="rounds">
           <dt>Rounds cleared</dt>
           <dd>
-            <span className="tp-summary__stat-value">
-              {summary.roundsCleared} of {summary.rounds}
-            </span>
+            <span className="tp-summary__stat-value">{summary.endless ? summary.roundsCleared : `${summary.roundsCleared} of ${summary.rounds}`}</span>
+            {summary.endless && summary.wonAtRound !== null && <span className="tp-summary__stat-note">won at round {summary.wonAtRound}</span>}
           </dd>
         </div>
         <div className="tp-summary__stat" data-stat="capital">
@@ -132,6 +133,11 @@ export function RunSummaryView({ run, onNewRun, onQuit, copy = clipboardCopy }: 
         <button type="button" className="btn btn--play btn--large" onClick={onNewRun}>
           New run
         </button>
+        {onKeepGoing !== undefined && (
+          <button type="button" className="btn btn--large" data-action="keep-going" onClick={onKeepGoing}>
+            Keep going
+          </button>
+        )}
         <button type="button" className="btn btn--large" onClick={onQuit}>
           Menu
         </button>

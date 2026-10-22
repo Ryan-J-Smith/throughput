@@ -158,6 +158,8 @@ export type DemandView = {
   readonly wouldEarn: number;
   /** Running the current Line would sell it out. */
   readonly sellsOut: boolean;
+  /** The last planned round: growth counts only if the run keeps going past it. */
+  readonly ifKeepGoing: boolean;
   readonly scale: number;
   readonly premium: number;
 };
@@ -165,14 +167,14 @@ export type DemandView = {
 /** Demand per Category for the Market: this round's during a Shift (with `preview`'s use), next round's in the shop. */
 export function demandViews(run: ThroughputRun, preview: ShiftResult | null): DemandView[] {
   const next = run.round + 1;
-  const lastRound = run.round >= run.rounds;
+  const lastRound = run.round >= run.lastPlannedRound;
   const bossCut = demandBossCut(run, run.phase === 'shift' ? run.round : next);
   return CATEGORIES.map((category) => {
     const { scale, premium } = run.grants[category];
     if (run.phase !== 'shift') {
-      const full = next <= run.rounds ? run.demandIn(next, category) : run.demand[category];
+      const full = next <= run.lastPlannedRound ? run.demandIn(next, category) : run.demand[category];
       const halved = run.trends[next - 1]?.[category] === 'saturated';
-      return { category, left: full, full, using: 0, halved, bossCut, earned: 0, wouldEarn: 0, sellsOut: false, scale, premium };
+      return { category, left: full, full, using: 0, halved, bossCut, earned: 0, wouldEarn: 0, sellsOut: false, ifKeepGoing: false, scale, premium };
     }
     return {
       category,
@@ -181,10 +183,11 @@ export function demandViews(run: ThroughputRun, preview: ShiftResult | null): De
       using: preview?.demandSold[category] ?? 0,
       halved: run.trendsNow[category] === 'saturated',
       bossCut,
-      // Growth counts from next round, so the last round shows none.
-      earned: lastRound ? 0 : run.demandEarned[category],
-      wouldEarn: lastRound ? 0 : (preview?.demandGrowth[category] ?? 0),
+      // Growth counts from next round: in the last planned round, only if the run keeps going.
+      earned: run.demandEarned[category],
+      wouldEarn: preview?.demandGrowth[category] ?? 0,
       sellsOut: preview?.soldOut.includes(category) ?? false,
+      ifKeepGoing: lastRound,
       scale,
       premium,
     };
@@ -193,7 +196,7 @@ export function demandViews(run: ThroughputRun, preview: ShiftResult | null): De
 
 /** "Recession ×0.5" when `round`'s Board boss cuts Demand, else null. */
 export function demandBossCut(run: ThroughputRun, round: number): string | null {
-  const boss = round <= run.rounds ? run.bossOf(round) : null;
+  const boss = round <= run.lastPlannedRound ? run.bossOf(round) : null;
   const mul = boss?.demandMul() ?? 1;
   return boss == null || mul === 1 ? null : `${boss.name} ×${formatAmount(mul)}`;
 }
@@ -201,6 +204,10 @@ export function demandBossCut(run: ThroughputRun, round: number): string | null 
 /** What the end-of-run screen shows. */
 export type RunSummary = {
   readonly won: boolean;
+  /** The run kept going past its win (endless), so it ended at a missed target after the win. */
+  readonly endless: boolean;
+  /** The round that won the run, or null if it wasn't won. */
+  readonly wonAtRound: number | null;
   /** Sales across every round played, including the last. */
   readonly totalSales: number;
   readonly roundsCleared: number;
@@ -248,9 +255,13 @@ export function runSummary(run: ThroughputRun): RunSummary {
       ? ''
       : won
         ? `Cleared all ${run.rounds} rounds, through the ${quarterName(run, last.round)}.`
-        : `Missed the ${quarterName(run, last.round)} target by ${money(last.target - last.sales)}.`;
+        : run.endless
+          ? `Won the run, then missed the ${quarterName(run, last.round)} target by ${money(last.target - last.sales)}.`
+          : `Missed the ${quarterName(run, last.round)} target by ${money(last.target - last.sales)}.`;
   return {
     won,
+    endless: run.endless,
+    wonAtRound: run.wonAtRound,
     totalSales: run.history.reduce((sum, r) => sum + r.sales, 0),
     roundsCleared: run.history.filter((r) => r.won).length,
     rounds: run.rounds,

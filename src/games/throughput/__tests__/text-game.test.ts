@@ -31,6 +31,55 @@ function play(game: ThroughputTextGame, seed: number, actions: readonly string[]
   return actions.reduce((save, text) => ok(game.take(save, text)).save, game.newSave(seed));
 }
 
+/** Wins a 3-round, 1-Year run of `game` from `seed` (each round: a Make and a Ship, then run), stopping at the win. */
+function winRun(game: ThroughputTextGame, seed: number): SaveFile {
+  let save = game.newSave(seed);
+  for (let round = 1; round <= 3; round++) {
+    const hand = handOf(game, save);
+    save = ok(game.take(save, `load ${numberOf(hand, 'make')}:1 ${numberOf(hand, 'ship')}:2`)).save;
+    save = ok(game.take(save, 'run')).save;
+    if (round < 3) save = ok(game.take(save, 'continue')).save;
+  }
+  return save;
+}
+
+describe('endless: keep going after the win', () => {
+  const config = easyConfig({ roundsPerYear: 3, targets: [5, 5, 5] });
+  const game = new ThroughputTextGame(config);
+
+  it('a won run offers "keep going", which opens the shop before round 4 and is saved and replayed', () => {
+    const won = winRun(game, 1);
+    const view = game.show(won);
+    expect(view.state).toMatchObject({ phase: 'won', endless: false, wonAtRound: 3 });
+    const target = new ThroughputRun(1, config).targetFor(4);
+    expect(view.legalActions).toContain(
+      `keep going — play on past the win: a shop, then Y2 Q1 (round 4, target $${target}); targets climb ×${config.endlessGrowth} a round and the run ends at the first missed target`,
+    );
+    const kept = ok(game.take(won, 'keep going'));
+    expect(kept.save.actions.at(-1)).toBe('keep going');
+    expect(kept.log[0]).toMatch(/^You keep going past the win\. After this shop comes Y2 Q1 \(target \$\d+\)/);
+    expect(kept.view.state).toMatchObject({ phase: 'shop', endless: true, wonAtRound: 3 });
+    expect(kept.view.text).toContain('Shop after Y1 Board (round 3; endless, won at round 3)');
+    expect(kept.view.legalActions).toContain(`continue — start Y2 Q1 (round 4, target $${target})`);
+    expect(kept.view.text).toContain('Market (next round and the 3 after):\n      Y2 Q1: ');
+    // The save replays to the same place.
+    expect(game.show(kept.save).text).toBe(kept.view.text);
+    expect(ok(game.take(kept.save, 'continue')).view.text).toContain(`Y2 Q1 (round 4; endless, won at round 3) · Shift 1 of 4 · Sales $0 of $${target} target`);
+  });
+
+  it('"keep going" is refused before the win, and a loss after it says how far the run got', () => {
+    expect(game.take(game.newSave(1), 'keep going')).toMatchObject({ ok: false, reason: 'Only after winning the run' });
+    const big = new ThroughputTextGame(easyConfig({ roundsPerYear: 3, targets: [5, 5, 5], endlessGrowth: 1000 }));
+    let save = ok(big.take(ok(big.take(winRun(big, 1), 'keep going')).save, 'continue')).save;
+    for (let shift = 1; shift <= 4; shift++) save = ok(big.take(save, 'run')).save;
+    const lost = big.show(save);
+    expect(lost.state).toMatchObject({ phase: 'lost', endless: true });
+    expect(lost.text).toContain('RUN OVER: Y2 Q1 (round 4; endless, won at round 3) ended with Sales $0 of $');
+    expect(lost.text).toContain(', after winning at round 3 (Y1 Board) and reaching Y2 Q1.');
+    expect(lost.legalActions).not.toContain(expect.stringMatching(/^keep going/));
+  });
+});
+
 describe('parseAction / formatAction', () => {
   it.each([
     ['load 3:1 5:4', 'load 3:1 5:4'],
@@ -47,15 +96,19 @@ describe('parseAction / formatAction', () => {
     ['move 1 4', 'move 1 4'],
     ['run', 'run'],
     ['continue', 'continue'],
+    ['Keep  Going', 'keep going'],
   ])('%s → %s', (text, canonical) => {
     const parsed = parseAction(text);
     if (!parsed.ok) throw new Error(parsed.reason);
     expect(formatAction(parsed.action)).toBe(canonical);
   });
 
-  it.each(['load', 'load 3-1', 'load 0:1', 'retool', 'buy', 'buy x', 'buy 5 home', 'buy 5 toys scale', 'buy 5 home scale 2', 'sell 2', 'move 1', 'run now', 'dance'])('rejects "%s"', (text) => {
-    expect(parseAction(text).ok).toBe(false);
-  });
+  it.each(['load', 'load 3-1', 'load 0:1', 'retool', 'buy', 'buy x', 'buy 5 home', 'buy 5 toys scale', 'buy 5 home scale 2', 'sell 2', 'move 1', 'run now', 'dance', 'keep', 'keep on'])(
+    'rejects "%s"',
+    (text) => {
+      expect(parseAction(text).ok).toBe(false);
+    },
+  );
 });
 
 describe('ThroughputTextGame', () => {
@@ -401,6 +454,7 @@ describe('content wave 1 text', () => {
     expect(flat).toContain(`A run meets 4 of these ${BOSSES.length}, drawn at random`);
     for (const boss of BOSSES.filter((b) => b.id !== 'line-shift')) expect(flat).toContain(`${boss.name}: ${boss.text}`);
     expect(flat).toContain('Line Shift: before every Shift, Shift 1 included, all Fixtures move one slot right');
+    expect(flat).toContain(`After the win you can keep going (endless): the shop, then Year 5 and on. Targets keep climbing ×${DEFAULT_CONFIG.endlessGrowth} a round (rounded to $10)`);
     for (const contract of CONTRACTS) expect(flat).toContain(`- ${contract.name}${contract.targetsCard ? ' (pick a deck card)' : ''}: ${contract.text}`);
     expect(flat).toContain(`by ${Math.round(DEFAULT_CONFIG.demand.sellOutRate * 100)}% of its full Demand (before Saturated or Recession halving; at least +${DEFAULT_CONFIG.demand.sellOutGrowth}) when a Shift sells the last of it`);
     expect(flat).toContain('A sell-all Ship (Export Deal) ignores Demand and doesn\'t use it up.');

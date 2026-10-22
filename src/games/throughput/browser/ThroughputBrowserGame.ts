@@ -23,7 +23,9 @@ export class ThroughputBrowserGame extends BrowserGame {
   override savedRun(store: KeyValueStore): string | null {
     const restored = RunAutosave.restore(store);
     if (restored?.ok !== true) return null;
-    const { phase } = restored.run;
-    return phase === 'shift' || phase === 'shop' ? runProgressLabel(restored.run) : null;
+    const run = restored.run;
+    // A won run can still keep going (endless).
+    if (run.phase === 'won') return `Won the run: keep going into Year ${run.quarterOf(run.round + 1).year}`;
+    return run.phase === 'shift' || run.phase === 'shop' ? runProgressLabel(run) : null;
   }
 }

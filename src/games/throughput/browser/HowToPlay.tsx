@@ -14,7 +14,7 @@ export function HowToPlay({ config = DEFAULT_CONFIG }: HowToPlayProps) {
       <ol className="tp-howto__steps">
         <li data-step="target">
           <strong>Hit the target.</strong> Every quarter sets a Sales target, and you get up to {c.shiftsPerRound} Shifts to reach it. Miss it and the run ends. Clear the Board Review that closes Year{' '}
-          {years} to win.
+          {years} to win, then keep going if you like: targets keep climbing until you miss one.
         </li>
         <li data-step="load">
           <strong>Load the Line.</strong> Tap a card in your hand, then a bay; or drag it onto a bay, or double-click it to fill the first empty bay. Each Shift a Batch moves through the bays from left to right: Designs raise the Margin, Makes add Units, and

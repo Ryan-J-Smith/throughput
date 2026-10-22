@@ -35,7 +35,7 @@ export function TpHud({ run, reveal = null, pending = null }: TpHudProps) {
   const inShop = run.phase === 'shop';
   const round = inShop ? run.round + 1 : run.round;
   const quarter = run.quarterOf(round);
-  const target = run.config.targets[round - 1] ?? 0;
+  const target = run.targetFor(round);
   const revealing = reveal !== null && !inShop;
   const sales = inShop ? 0 : revealing ? reveal.to : run.sales;
   // Only a reveal counts; anything else (a new round, an applied Run) shows at once.
@@ -50,7 +50,7 @@ export function TpHud({ run, reveal = null, pending = null }: TpHudProps) {
 
   return (
     <header className="hud tp-hud">
-      <div className="hud__stat hud__stat--round" aria-label={`Round ${round} of ${run.rounds}`}>
+      <div className="hud__stat hud__stat--round" aria-label={run.endless ? `Round ${round}, endless (won at round ${run.wonAtRound ?? run.rounds})` : `Round ${round} of ${run.rounds}`}>
         <span className={`hud__quarter ${quarter.isBoard ? 'tp-hud__board' : ''}`}>{quarter.isBoard ? 'Board' : `Q${quarter.quarter}`}</span>
         <span className="hud__year">Year {quarter.year}</span>
       </div>

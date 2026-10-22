@@ -1,19 +1,20 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { Rng } from '../../../engine/rng';
-import { LineView, RunSummaryView, plateText, runSummary } from '../browser';
+import { LineView, MarketBoard, RunSummaryView, TpHud, money, plateText, runSummary } from '../browser';
 import type { ThroughputConfig } from '../content';
 import { ThroughputRun } from '../rules';
 import { GreedyBot } from '../sim';
 import { easyConfig } from './fixtures';
 
-/** Plays a whole run with GreedyBot. */
-function playOut(seed: number, config?: ThroughputConfig): ThroughputRun {
+/** Plays a whole run with GreedyBot; with `keepGoing`, plays on past a win until a target is missed. */
+function playOut(seed: number, config?: ThroughputConfig, keepGoing = false): ThroughputRun {
   const run = new ThroughputRun(seed, config);
   const bot = new GreedyBot();
   bot.beginRun(run, new Rng(seed).fork('bot'));
-  while (run.phase === 'shift' || run.phase === 'shop') {
-    if (run.phase === 'shift') {
+  while (run.phase === 'shift' || run.phase === 'shop' || (keepGoing && run.canKeepGoing)) {
+    if (run.phase === 'won') run.keepGoing();
+    else if (run.phase === 'shift') {
       const d = bot.shiftTurn(run);
       if (d.kind === 'load') run.load(d.placements);
       else if (d.kind === 'retool') run.retool(d.hand);
@@ -116,6 +117,44 @@ describe('THROUGHPUT run summary', () => {
     expect(html).toContain(`Your deck (${run.deck.length} cards)`);
     const stacked = summary.deck.find((s) => s.count > 1);
     if (stacked !== undefined) expect(html).toContain(`<span class="tp-summary__count">×${stacked.count}</span>`);
+  });
+});
+
+describe('THROUGHPUT endless (keep going)', () => {
+  const props = { onNewRun: () => {}, onQuit: () => {}, copy: async () => {} };
+
+  it("a won run's summary offers Keep going only when given the handler", () => {
+    const run = playOut(5, easyConfig());
+    expect(run.canKeepGoing).toBe(true);
+    const keep = '<button type="button" class="btn btn--large" data-action="keep-going">Keep going</button>';
+    expect(renderToStaticMarkup(<RunSummaryView run={run} {...props} />)).not.toContain('data-action="keep-going"');
+    expect(renderToStaticMarkup(<RunSummaryView run={run} {...props} onKeepGoing={() => {}} />)).toContain(keep);
+  });
+
+  it('past the win, the HUD and Market carry on into the next Year, with the endless target', () => {
+    const run = playOut(5, easyConfig());
+    run.keepGoing();
+    expect(run).toMatchObject({ phase: 'shop', endless: true, wonAtRound: 3 });
+    const hud = renderToStaticMarkup(<TpHud run={run} />);
+    expect(hud).toContain('aria-label="Round 4, endless (won at round 3)"');
+    expect(hud).toContain(`$${run.targetFor(4)}<span class="hud__target"> target</span>`);
+    const market = renderToStaticMarkup(<MarketBoard run={run} />);
+    ['Y2 Q1', 'Y2 Q2', 'Y2 Board', 'Y3 Q1'].forEach((quarter, col) => expect(market).toContain(`data-col="${col}">${quarter}`));
+    expect(market).toContain(`<strong>Y2 Board</strong> ${run.bossOf(6)?.name}`);
+  });
+
+  it('a loss after keeping going says the run was won first, and where it ended', () => {
+    const run = playOut(5, easyConfig({ endlessGrowth: 1000 }), true);
+    expect(run).toMatchObject({ phase: 'lost', endless: true, wonAtRound: 3 });
+    const last = run.history[run.history.length - 1];
+    if (last === undefined) throw new Error('no rounds');
+    expect(last.round).toBe(4);
+    const summary = runSummary(run);
+    expect(summary).toMatchObject({ won: false, endless: true, wonAtRound: 3, roundsCleared: 3 });
+    expect(summary.outcome).toBe(`Won the run, then missed the Year 2 Q1 target by ${money(last.target - last.sales)}.`);
+    const html = renderToStaticMarkup(<RunSummaryView run={run} {...props} />);
+    expect(html).toContain('data-outcome="lost" data-year="2" data-endless="true"');
+    expect(html).toContain('<span class="tp-summary__stat-value">3</span><span class="tp-summary__stat-note">won at round 3</span>');
   });
 });
 

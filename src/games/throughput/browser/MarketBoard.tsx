@@ -19,7 +19,7 @@ export type MarketBoardProps = {
 /** Trend board: this quarter and the next three, Demand per Category, and the Board Reviews ahead. */
 export function MarketBoard({ run, preview = null }: MarketBoardProps) {
   const first = run.phase === 'shop' ? run.round + 1 : run.round;
-  const quarters = Array.from({ length: 4 }, (_, i) => first + i).filter((r) => r <= run.rounds);
+  const quarters = Array.from({ length: 4 }, (_, i) => first + i).filter((r) => r <= run.lastPlannedRound);
   const label = (round: number) => {
     const q = run.quarterOf(round);
     return `Y${q.year} ${q.isBoard ? 'Board' : `Q${q.quarter}`}`;
@@ -97,16 +97,17 @@ function DemandBars({ views, inShop, premiumStep }: { views: readonly DemandView
         {views.map((v) => {
           const pct = (n: number) => (v.full > 0 ? Math.max(0, Math.min(100, (100 * n) / v.full)) : 0);
           const using = Math.min(v.using, v.left);
+          const nextRound = v.ifKeepGoing ? 'next round if you keep going' : 'next round';
           const cues = [
             v.halved ? 'Saturated: halved' : '',
             v.bossCut ?? '',
             v.scale > 0 ? `Scale ${v.scale}` : '',
             v.premium > 0 ? `sells +${Math.round(100 * premiumStep * v.premium)}% (Premium)` : '',
-            v.earned > 0 ? `Demand grows +${v.earned} next round` : '',
+            v.earned > 0 ? `Demand grows +${v.earned} ${nextRound}` : '',
             v.sellsOut
-              ? `this Shift sells it out${v.wouldEarn > 0 ? `, growing Demand +${v.wouldEarn} next round` : ''}`
+              ? `this Shift sells it out${v.wouldEarn > 0 ? `, growing Demand +${v.wouldEarn} ${nextRound}` : ''}`
               : v.wouldEarn > 0
-                ? `this Shift grows Demand +${v.wouldEarn} next round`
+                ? `this Shift grows Demand +${v.wouldEarn} ${nextRound}`
                 : '',
           ].filter(Boolean);
           return (
