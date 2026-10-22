@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Card, useTickingNumber } from '../../../ui/components';
-import { prefersReducedMotion } from '../../../ui/motion';
+import { prefersReducedMotion, speedScale } from '../../../ui/motion';
 import type { ThroughputRun } from '../rules';
 import { money, runSummary } from './present';
 import './summary.css';
@@ -26,7 +26,8 @@ export function RunSummaryView({ run, onNewRun, onQuit, copy = clipboardCopy }: 
   const summary = runSummary(run);
   const [copied, setCopied] = useState<'idle' | 'copied' | 'failed'>('idle');
   const [countFrom] = useState(() => (prefersReducedMotion() ? summary.totalSales : 0));
-  const total = useTickingNumber(summary.totalSales, 1200, countFrom);
+  const [countMs] = useState(() => 1200 * speedScale());
+  const total = useTickingNumber(summary.totalSales, countMs, countFrom);
   const fixtures = summary.line.filter((f) => f !== null).length;
 
   const copySeed = () => {

@@ -7,31 +7,34 @@ export type TipId = (typeof TIP_IDS)[number];
 
 const KEY = 'throughput.tips';
 
-/** Which tips the player has seen through, kept in the store so each shows once. */
+/**
+ * Which tips the player has seen through, kept in the store so each shows once. It reads the
+ * store every time, so a reset from Settings reaches a game already on screen.
+ */
 export class TipMemory {
   private readonly store: KeyValueStore;
-  private readonly done_: Set<TipId>;
 
   constructor(store: KeyValueStore) {
     this.store = store;
-    this.done_ = new Set(readDone(store.get(KEY)));
   }
 
   get done(): ReadonlySet<TipId> {
-    return this.done_;
+    return new Set(readDone(this.store.get(KEY)));
   }
 
   /** True once every tip is done (or the player turned tips off). */
   get allDone(): boolean {
-    return TIP_IDS.every((id) => this.done_.has(id));
+    const done = this.done;
+    return TIP_IDS.every((id) => done.has(id));
   }
 
   /** Marks tips done; returns true if that changed anything. */
   finish(...ids: readonly TipId[]): boolean {
-    const before = this.done_.size;
-    for (const id of ids) this.done_.add(id);
-    if (this.done_.size === before) return false;
-    this.store.set(KEY, JSON.stringify([...this.done_]));
+    const done = new Set(this.done);
+    const before = done.size;
+    for (const id of ids) done.add(id);
+    if (done.size === before) return false;
+    this.store.set(KEY, JSON.stringify([...done]));
     return true;
   }
 
@@ -42,7 +45,6 @@ export class TipMemory {
 
   /** Shows the tips again from the start. */
   reset(): void {
-    this.done_.clear();
     this.store.remove(KEY);
   }
 }

@@ -1,11 +1,23 @@
+import { ANIMATION_SPEEDS, SPEED_SCALE } from '../settings';
+
 // Imperative motion helpers for moments CSS alone can't express (moving between containers).
 // All of them do nothing when the player prefers reduced motion or the DOM lacks the Web
 // Animations API, so callers never need to check.
 
 export type Box = { readonly left: number; readonly top: number; readonly width: number; readonly height: number };
 
+/** True if the player turned on Reduce motion in Settings or the device asks for reduced motion. */
 export function prefersReducedMotion(): boolean {
-  return typeof window === 'undefined' || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+  if (typeof window === 'undefined') return true;
+  if (document.documentElement.dataset.motion === 'reduced') return true;
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+}
+
+/** The Settings animation speed as a duration multiplier (1 when unset). */
+export function speedScale(): number {
+  if (typeof document === 'undefined') return 1;
+  const speed = ANIMATION_SPEEDS.find((s) => s === document.documentElement.dataset.speed);
+  return speed === undefined ? 1 : SPEED_SCALE[speed];
 }
 
 /** A motion duration token from theme/tokens.css (e.g. "--dur-slow"), in milliseconds. */

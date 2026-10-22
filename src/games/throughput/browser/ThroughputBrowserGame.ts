@@ -3,6 +3,7 @@ import type { KeyValueStore } from '../../../ui/storage';
 import { HowToPlay } from './HowToPlay';
 import { runProgressLabel } from './present';
 import { RunAutosave } from './run-autosave';
+import { TipMemory } from './tips';
 import { ThroughputScreen } from './ThroughputScreen';
 
 export class ThroughputBrowserGame extends BrowserGame {
@@ -12,6 +13,12 @@ export class ThroughputBrowserGame extends BrowserGame {
   override readonly accent = 'blue';
   readonly Screen = ThroughputScreen;
   override readonly HowToPlay = HowToPlay;
+
+  override readonly hasTips = true;
+
+  override resetTips(store: KeyValueStore): void {
+    new TipMemory(store).reset();
+  }
 
   override savedRun(store: KeyValueStore): string | null {
     const restored = RunAutosave.restore(store);

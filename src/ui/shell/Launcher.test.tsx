@@ -78,6 +78,11 @@ describe('title', () => {
     expect(renderToStaticMarkup(<Launcher games={games} nextSeed={() => 7} store={store} showDevGames />)).toContain('Dev: Game c');
   });
 
+  it('offers Settings on the title and in a game', () => {
+    const html = renderToStaticMarkup(<Launcher games={[new FakeGame('a')]} nextSeed={() => 7} store={new MemoryStore()} />);
+    expect(html).toContain('class="btn home__settings"');
+  });
+
   it('registers THROUGHPUT as the headline, Bill of Materials as a prototype and the demo as dev-only', () => {
     // The Art gallery is registered on the dev server only (tests run as dev).
     expect(BROWSER_GAMES.map((g) => `${g.id}:${g.listing}`)).toEqual(['throughput:featured', 'bom:prototype', 'demo:dev', 'art-gallery:dev']);

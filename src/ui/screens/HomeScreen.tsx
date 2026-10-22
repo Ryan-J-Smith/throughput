@@ -14,6 +14,8 @@ export type HomeScreenProps = {
   onNewRun: (seed: number | null) => void;
   onContinue: () => void;
   onPlay: (game: BrowserGame) => void;
+  /** Opens Settings; no button if omitted. */
+  onSettings?: () => void;
 };
 
 /** What's open under the main buttons. */
@@ -27,7 +29,7 @@ export function parseSeed(text: string): number | string {
 }
 
 /** The title: the featured game's name and run buttons, with the other games below. */
-export function HomeScreen({ featured, others, savedRun, onNewRun, onContinue, onPlay }: HomeScreenProps) {
+export function HomeScreen({ featured, others, savedRun, onNewRun, onContinue, onPlay, onSettings }: HomeScreenProps) {
   const [panel, setPanel] = useState<Panel>('none');
   const [seedText, setSeedText] = useState('');
   const [seedError, setSeedError] = useState<string | null>(null);
@@ -73,6 +75,11 @@ export function HomeScreen({ featured, others, savedRun, onNewRun, onContinue, o
           {HowToPlay !== null && (
             <button type="button" className="btn home__how-toggle" aria-expanded={panel === 'how'} aria-controls={`${ids}-panel`} onClick={() => toggle('how')}>
               How to play
+            </button>
+          )}
+          {onSettings !== undefined && (
+            <button type="button" className="btn home__settings" onClick={onSettings}>
+              Settings
             </button>
           )}
         </div>

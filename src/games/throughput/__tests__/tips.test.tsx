@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { MemoryStore } from '../../../ui/storage';
-import { ThroughputScreen, TipMemory, currentTip, tipText } from '../browser';
+import { ThroughputBrowserGame, ThroughputScreen, TipMemory, currentTip, tipText } from '../browser';
 import { ThroughputRun } from '../rules';
 import { easyConfig } from './fixtures';
 
@@ -44,6 +44,15 @@ describe('THROUGHPUT first-run tips', () => {
 
     store.set('throughput.tips', '{not json');
     expect(new TipMemory(store).done.size).toBe(0);
+  });
+
+  it('a reset from Settings reaches a TipMemory already in use, and the game can do it', () => {
+    const store = new MemoryStore();
+    const onScreen = new TipMemory(store);
+    onScreen.finishAll();
+    expect(new ThroughputBrowserGame().hasTips).toBe(true);
+    new ThroughputBrowserGame().resetTips(store);
+    expect(onScreen.done.size).toBe(0);
   });
 
   it('the screen shows the load tip on a first run and nothing once tips are off', () => {

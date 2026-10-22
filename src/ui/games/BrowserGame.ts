@@ -40,4 +40,10 @@ export abstract class BrowserGame {
   savedRun(_store: KeyValueStore): string | null {
     return null;
   }
+
+  /** True if the game has first-run tips that `resetTips` can bring back. */
+  readonly hasTips: boolean = false;
+
+  /** Shows the game's first-run tips again. */
+  resetTips(_store: KeyValueStore): void {}
 }
