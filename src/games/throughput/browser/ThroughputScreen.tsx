@@ -23,6 +23,7 @@ import { TipMemory, currentTip, tipText } from './tips';
 import type { TipId } from './tips';
 import { DeckDrawer, GrantPicker, PayoutSlip, RulesSheet, Shelf } from './ShopParts';
 import { TpHud } from './TpHud';
+import type { SalesReveal } from './TpHud';
 import { TraceReceipt } from './TraceReceipt';
 import { ShiftReplay, replayTiming } from '../spectacle';
 import type { ReplayTiming } from '../spectacle';
@@ -67,6 +68,8 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
   const [lastShift, setLastShift] = useState<ShiftRecord | null>(null);
   const [tips] = useState(() => new TipMemory(store));
   const [replay, setReplay] = useState<Replay | null>(null);
+  /** The HUD counting Sales up from the replay's finale until the Run is applied. */
+  const [reveal, setReveal] = useState<SalesReveal | null>(null);
   const toastId = useRef(0);
   const replayKey = useRef(0);
   /** A Run is replaying and not yet applied; guards against applying it twice. */
@@ -103,6 +106,7 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
     setToasts([]);
     replaying.current = false;
     setReplay(null);
+    setReveal(null);
   };
 
   if (run.phase === 'won' || run.phase === 'lost') return <RunSummaryView run={run} onNewRun={newRun} onQuit={onQuit} />;
@@ -169,6 +173,7 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
     if (!replaying.current) return;
     replaying.current = false;
     setReplay(null);
+    setReveal(null);
     applyRun();
   };
 
@@ -247,7 +252,7 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
       onClickCapture={replay !== null ? tapDuringReplay : undefined}
     >
       <ToastStack toasts={toasts} onDismiss={dismiss} />
-      <TpHud run={run} />
+      <TpHud run={run} reveal={reveal} />
       {!inShift && <PayoutSlip run={run} />}
       <MarketBoard run={run} preview={preview} />
       <LineView run={run} bayState={bayState} onBay={inShift ? tapBayInShift : tapBayInShop} onScrap={inShift ? (s) => attempt(run.whyCannotScrap([s]), { verb: 'scrap', slots: [s] }, () => run.scrap([s])) : undefined} bayLabel={bayLabel} />
@@ -258,7 +263,10 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
           shift={replay.shift}
           baseMargin={run.config.baseMargin}
           onBeat={(beat) => playBeat(sound, beat, replay.timing.stepMs)}
-          onFinale={() => playFinale(sound, replay.outcome, durationToken('--dur-med', 240))}
+          onFinale={() => {
+            playFinale(sound, replay.outcome, durationToken('--dur-med', 240));
+            setReveal({ from: run.sales, to: Math.max(0, run.sales + replay.result.total) });
+          }}
           onDone={finishReplay}
         />
       )}

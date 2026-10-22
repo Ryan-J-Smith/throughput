@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { GrantPicker, HowToPlay, LineView, ThroughputBrowserGame, ThroughputScreen, TraceReceipt, demandBossCut, demandViews, lineNotice, plateText } from '../browser';
+import { GrantPicker, HowToPlay, LineView, ThroughputBrowserGame, ThroughputScreen, TpHud, TraceReceipt, demandBossCut, demandViews, lineNotice, plateText } from '../browser';
 import { DEFAULT_CONFIG, SKETCH, TRUCK, WORKSHOP } from '../content';
 import type { BayState } from '../browser';
 import { CATEGORIES } from '../model';
@@ -113,6 +113,24 @@ describe('THROUGHPUT browser screen', () => {
     run.continueToNextRound();
     run.load([{ hand: run.hand.findIndex((c) => c.def.stage !== 'design'), slot: 0 }]);
     expect(renderLine(run)).toContain('<span class="tp-bay__idle" title="Idle for this card">Idle</span>');
+  });
+
+  it('the HUD reveal lands a Shift\'s Sales before the Run applies, flagging a hit on the target', () => {
+    const run = new ThroughputRun(1, easyConfig({ targets: [100, 100, 100] }));
+    const score = (html: string) => /<div class="hud__stat hud__stat--score"[^>]*>/.exec(html)?.[0] ?? '';
+
+    const plain = renderToStaticMarkup(<TpHud run={run} />);
+    expect(score(plain)).toBe('<div class="hud__stat hud__stat--score">');
+
+    const short = renderToStaticMarkup(<TpHud run={run} reveal={{ from: 0, to: 40 }} />);
+    expect(score(short)).toBe('<div class="hud__stat hud__stat--score" data-reveal="done">');
+    expect(short).toContain('$40<span class="hud__target"> of $100 target</span>');
+    expect(short).toContain('aria-valuenow="40"');
+
+    const hit = renderToStaticMarkup(<TpHud run={run} reveal={{ from: 0, to: 140 }} />);
+    expect(score(hit)).toBe('<div class="hud__stat hud__stat--score" data-reveal="done" data-hit="true">');
+    expect(hit).toContain('aria-valuenow="100"');
+    expect(hit).toContain('style="width:100%"');
   });
 
   it('a plate shows the short gist (or the rule) and keeps what the Fixture does now', () => {
