@@ -102,17 +102,31 @@ describe('wave-1 Board bosses', () => {
     expect(scoreLine(line, context()).steps[0]?.margin).toBe(4.5);
   });
 
-  it('Recession halves Demand in its round; Short Week has 3 Shifts', () => {
-    const config = easyConfig({ roundsPerYear: 1, targets: [10_000, 10_000] });
-    const find = (id: string) => {
-      for (let seed = 1; seed < 400; seed++) if (new ThroughputRun(seed, config).boardBosses[0]?.id === id) return new ThroughputRun(seed, config);
+  it('Recession waits for Year 3 and halves Demand in its round; Short Week has 3 Shifts', () => {
+    const config = easyConfig({ roundsPerYear: 1, targets: [0, 0, 10_000, 10_000] });
+    const find = (id: string, year: number) => {
+      for (let seed = 1; seed < 400; seed++) if (new ThroughputRun(seed, config).boardBosses[year - 1]?.id === id) return new ThroughputRun(seed, config);
       throw new Error(`no ${id}`);
     };
-    const recession = find('recession');
+    for (let seed = 1; seed < 100; seed++) {
+      const early = new ThroughputRun(seed, config).boardBosses.slice(0, 2).map((b) => b.id);
+      expect(early).not.toContain('recession');
+      expect(early).not.toContain('ethics-review');
+    }
+    const recession = find('recession', 3);
+    for (let round = 1; round < 3; round++) {
+      recession.runShift();
+      recession.continueToNextRound();
+    }
+    expect(recession.round).toBe(3);
     for (const c of Object.keys(recession.demand) as (keyof typeof recession.demand)[]) {
       expect(recession.demandLeft[c]).toBe(Math.floor(recession.demand[c] * (recession.trendsNow[c] === 'saturated' ? 0.5 : 1) * 0.5));
     }
-    const short = find('short-week');
+    const short = find('short-week', 3);
+    for (let round = 1; round < 3; round++) {
+      short.runShift();
+      short.continueToNextRound();
+    }
     expect(short.shiftsThisRound).toBe(3);
     for (let i = 0; i < 3; i++) short.runShift();
     expect(short.phase).toBe('lost');
@@ -178,7 +192,7 @@ describe('wave-1 Contracts', () => {
     expect(run.sellCard(clone)).toBe(Math.floor(bought.def.price * run.config.sellRate));
   });
 
-  it('Ad Campaign, Training Program and Treasury Bond add a pip, a Retool and 1C a round for good', () => {
+  it('Ad Campaign, Training and Treasury Bond add a pip, a Retool and 1C a round for good', () => {
     const run = shopWith('campaign');
     run.buy(4);
     expect(run.perks).toEqual({ hotPips: 1, retools: 0, coupon: 0 });
@@ -187,7 +201,7 @@ describe('wave-1 Contracts', () => {
       run.buy(4);
     }
     expect(run.perks).toEqual({ hotPips: 1, retools: 1, coupon: 1 });
-    // Training Program is once a run: the shop stops offering it.
+    // Training is once a run: the shop stops offering it.
     for (let i = 0; i < 30; i++) {
       expect(run.offers[4]?.kind === 'contract' && run.offers[4].def.effect).not.toBe('training');
       run.reroll();
