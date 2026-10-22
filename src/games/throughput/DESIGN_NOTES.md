@@ -636,3 +636,28 @@ Numbers below are 500 seeds unless marked (win % for greedy / mass-market / rnd-
    - One Truck per Category (16 cards, was 20). On the same seeds, bots with one Truck beat two clearly: 7.8 / 8.8 /
      14.4 / 4.4 vs 4.6 / 3.8 / 9.0 / 2.6.
    - Training Program is once per run: the shop stops offering it once bought.
+
+## Card-text budget (asst-c's fixed card template)
+
+The template has fixed zones. A shop card holds about 75 characters in 3 rules lines, and a hand card about 40 in 2.
+Past that, it steps the type down and then clamps, with the full text in a tooltip. Rules are unchanged; only words
+moved. Every text still passes the 20-word test.
+
+- **Titles:** Contract Manufacturer → **Outsourcer** (the title line holds about 16 characters). Subscription Box →
+  **Subscriptions**, and Training Program → **Training**. Before, both fit only stepped down. Ids are unchanged, so
+  saves and sims are unaffected.
+- **Shop texts, from 79–116 characters to 63–73:**
+  - Warehouse: "A Make here also stocks its Units, sold here on Boards at Margin ×2."
+  - Tooling Upgrade: "Upgrade a deck card: Design +$1, Make +3 Units, or capped Ship +5 cap."
+  - R&D Grant: "Category: Scale +10 Demand, +3 Units at its Ships; or Premium +25% price." The long form stays in the rules
+    text.
+  - Flagship Store: "… +0.15 per round since bought."
+  - Patent Office: "… Margin ×(1 + 0.1 per $1 of its R&D growth)."
+  - Price Gun: "Later Ship caps halve (a Truck: half the Demand left)."
+- **Hand texts, now 32–40 characters:**
+  - Wholesale Club: "Ship all Units at half Margin, no Demand".
+  - Export Deal: "Ship all Units, Margin ×0.75, no Demand".
+  - Marketplace: "Ship up to Demand at Margin ×1.5".
+  - Rebrand: "-$2 Margin, ×2 (a 2nd Rebrand: ×1.5)".
+  - "Ships all Units" already says that cap cuts can't bite, so "(ignores … cap cuts)" went.
+- **Left long, since they weren't flagged:** Superstore (100 characters), Cross-Dock (77) and Showroom (78).

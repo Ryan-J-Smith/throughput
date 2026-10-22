@@ -38,7 +38,7 @@ export const WHOLESALE_CLUB: CardDef = {
   price: 4,
   cap: 'all',
   marginMul: 0.5,
-  text: 'Ship all Units at half Margin (ignores Demand and cap cuts)',
+  text: 'Ship all Units at half Margin, no Demand',
 };
 
 export const PROTOTYPE: CardDef = { id: 'prototype', name: 'Prototype', stage: 'design', price: 3, marginAdd: 3, marginMul: 1, text: '+$3 Margin' };
@@ -50,12 +50,12 @@ export const REBRAND: CardDef = {
   marginAdd: -2,
   marginMul: 2,
   repeatMul: 1.5,
-  text: '-$2 Margin, then Margin ×2 (×1.5 if a Rebrand already ran this Shift)',
+  text: '-$2 Margin, ×2 (a 2nd Rebrand: ×1.5)',
 };
 export const PRINTER_3D: CardDef = { id: '3d-printer', name: '3D Printer', stage: 'make', price: 3, units: 4, marginAdd: 2, text: '+4 Units, +$2 Margin' };
 export const CONTRACT_MANUFACTURER: CardDef = {
   id: 'contract-manufacturer',
-  name: 'Contract Manufacturer',
+  name: 'Outsourcer',
   stage: 'make',
   price: 6,
   units: 20,
@@ -78,11 +78,11 @@ export const MARKETPLACE: CardDef = {
   price: 5,
   cap: 'demand',
   marginMul: 1.5,
-  text: 'Ship up to Demand at Margin ×1.5 (this sale only)',
+  text: 'Ship up to Demand at Margin ×1.5',
 };
 export const SUBSCRIPTION_BOX: CardDef = {
   id: 'subscription-box',
-  name: 'Subscription Box',
+  name: 'Subscriptions',
   stage: 'ship',
   price: 4,
   cap: 12,
@@ -96,7 +96,7 @@ export const EXPORT_DEAL: CardDef = {
   price: 5,
   cap: 'all',
   marginMul: 0.75,
-  text: 'Ship all Units at Margin ×0.75 (ignores Demand and cap cuts)',
+  text: 'Ship all Units, Margin ×0.75, no Demand',
 };
 
 /** Per Category: 1 Sketch, 2 Workshops, 2 Trucks (20 cards over 4 Categories). */

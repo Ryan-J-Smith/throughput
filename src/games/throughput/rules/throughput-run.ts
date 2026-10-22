@@ -102,7 +102,7 @@ export class ThroughputRun {
   private readonly roundDemand_: Record<Category, number>;
   private readonly demandAtStart_: Record<Category, number>;
   private readonly grants_: Record<Category, { scale: number; premium: number }>;
-  /** Run-long bonuses from Ad Campaign, Training Program and Treasury Bond. */
+  /** Run-long bonuses from Ad Campaign, Training and Treasury Bond. */
   private readonly perks_ = { hotPips: 0, retools: 0, coupon: 0 };
   private readonly history_: RoundRecord[] = [];
   private phase_: Phase = 'shift';
@@ -253,7 +253,7 @@ export class ThroughputRun {
     return this.config.hotPips + this.perks_.hotPips;
   }
 
-  /** Retools per round, with Training Programs. */
+  /** Retools per round, with Training. */
   get retoolsPerRound(): number {
     return this.config.retoolsPerRound + this.perks_.retools;
   }
@@ -879,7 +879,7 @@ export class ThroughputRun {
   /** Why the shop can't offer (or sell) a Contract now: a full Line can't expand, and Training is once a run. */
   private whyContractUnavailable(contract: ContractDef): string | null {
     if (contract.effect === 'expand' && this.slots_.length >= this.config.maxSlots) return `The Line is already at ${this.config.maxSlots} slots`;
-    if (contract.effect === 'training' && this.perks_.retools > 0) return 'Training Program is once a run';
+    if (contract.effect === 'training' && this.perks_.retools > 0) return `${contract.name} is once a run`;
     return null;
   }
 

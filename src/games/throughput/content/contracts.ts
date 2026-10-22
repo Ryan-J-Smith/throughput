@@ -8,7 +8,7 @@ export const CONTRACTS: readonly ContractDef[] = [
     effect: 'tooling',
     targetsCard: true,
     targetsCategory: false,
-    text: 'Permanently improve one deck card: Design +$1, Make +3 Units, or a Boutique-style Ship +5 cap.',
+    text: 'Upgrade a deck card: Design +$1, Make +3 Units, or capped Ship +5 cap.',
   },
   { id: 'downsizing', name: 'Downsizing', price: 4, effect: 'downsize', targetsCard: true, targetsCategory: false, text: 'Remove one card from your deck.' },
   {
@@ -18,7 +18,7 @@ export const CONTRACTS: readonly ContractDef[] = [
     effect: 'grant',
     targetsCard: false,
     targetsCategory: true,
-    text: 'Pick a Category. Scale: Demand +10 for good; its Ships each add +3 Units before selling. Premium: sales +25% price.',
+    text: 'Category: Scale +10 Demand, +3 Units at its Ships; or Premium +25% price.',
   },
   {
     id: 'floor-expansion',
@@ -50,7 +50,7 @@ export const CONTRACTS: readonly ContractDef[] = [
   },
   {
     id: 'training-program',
-    name: 'Training Program',
+    name: 'Training',
     price: 4,
     effect: 'training',
     targetsCard: false,
