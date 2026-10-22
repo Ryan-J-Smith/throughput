@@ -425,16 +425,28 @@ describe('THROUGHPUT browser screen', () => {
     run.runShift();
     const fixture = run.buy(0, { slot: 0 });
     // The shop's warning is the general Board notice; the Line itself says nothing until the round.
-    expect(nextBoardNotice(run)?.text).toBe('Y1 Board Review · Line Shift: Fixtures drift right');
+    expect(nextBoardNotice(run)?.text).toBe('Y1 Board Review · Line Shift: Fixtures drift every Shift');
     expect(lineNotice(run)).toBeNull();
     run.continueToNextRound();
-    expect(lineNotice(run)).toBe('Line Shift: from Shift 2, your Fixtures move one bay right before each Shift. Tap a parked card to take it back to your hand.');
+    // The drift starts before Shift 1.
+    const recall = 'Cards stay put. Tap a parked card to take it back to your hand.';
+    expect(lineNotice(run)).toBe(`Line Shift moved your Fixtures before this Shift: ${fixture.def.name} 1→2. ${recall}`);
+    expect(renderLine(run)).toContain('moved from bay 1');
     run.load([{ hand: handIndex(run, run.hand.some((c) => c.def.stage === 'design') ? 'design' : 'make'), slot: 2 }]);
     run.runShift();
-    expect(lineNotice(run)).toBe(`Line Shift moved your Fixtures before this Shift: ${fixture.def.name} 1→2. Cards stay put. Tap a parked card to take it back to your hand.`);
+    expect(lineNotice(run)).toBe(`Line Shift moved your Fixtures before this Shift: ${fixture.def.name} 2→3. ${recall}`);
     const html = renderLine(run);
     expect(html).toContain('class="tp-line__notice"');
-    expect(html).toContain('moved from bay 1');
+    expect(html).toContain('moved from bay 2');
+    // With no Fixture to move, the notice still says what the Board does.
+    const bare = new ThroughputRun(seed, config);
+    bare.load([
+      { hand: handIndex(bare, 'make'), slot: 0 },
+      { hand: handIndex(bare, 'ship'), slot: 1 },
+    ]);
+    bare.runShift();
+    bare.continueToNextRound();
+    expect(lineNotice(bare)).toBe('Line Shift: your Fixtures move one bay right before every Shift. Tap a parked card to take it back to your hand.');
   });
 
   it('registers as a browser game', () => {

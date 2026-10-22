@@ -5,11 +5,11 @@ import { CATEGORIES, formatAmount, repeatRule } from '../model';
 import { designOnlyMod } from '../rules';
 
 /** Line Shift needs more than its one-line text to play well, so the rules spell it out. */
-const LINE_SHIFT_RULES = `Line Shift: Shift 1 runs on your layout. From Shift 2 on, all Fixtures move one slot right before
-    each Shift (the last wraps to slot 1). Cards on the Line do NOT move, so parked Designs end up
-    over other Fixtures, and one that lands on a Station sits idle; but this round you may unload
-    parked cards back to your hand and load them again. The state lists each move. Your shop
-    layout comes back after the round.`;
+const LINE_SHIFT_RULES = `Line Shift: before every Shift, Shift 1 included, all Fixtures move one slot right (the last wraps
+    to slot 1), so even Shift 1 runs one slot off your layout. Cards on the Line do NOT move, so
+    parked Designs end up over other Fixtures, and one that lands on a Station sits idle; but this
+    round you may unload parked cards back to your hand and load them again. The state lists each
+    move. Your shop layout comes back after the round.`;
 
 /** `text` wrapped to about 100 columns, continuation lines indented by `indent`. */
 function wrap(text: string, indent: string): string {

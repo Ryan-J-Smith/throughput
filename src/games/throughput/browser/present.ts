@@ -95,15 +95,15 @@ export function plateText(fixture: Fixture): string {
 
 /**
  * What a boss is doing to the Line's Fixtures this round, for a notice above the bays: the moves
- * before this Shift, or that they start next Shift. (The shop warns about next round's boss with
- * nextBoardNotice instead.)
+ * before this Shift, or (with nothing to move) that it moves them. (The shop warns about next
+ * round's boss with nextBoardNotice instead.)
  */
 export function lineNotice(run: ThroughputRun): string | null {
   const recall = 'Tap a parked card to take it back to your hand.';
   if (run.phase !== 'shift') return null;
   const boss = run.boss;
   if (boss === null || !boss.movesFixtures()) return null;
-  if (run.fixtureMoves.length === 0) return `${boss.name}: from Shift 2, your Fixtures move one bay right before each Shift. ${boss.recallsParked() ? recall : ''}`.trim();
+  if (run.fixtureMoves.length === 0) return `${boss.name}: your Fixtures move one bay right before every Shift. ${boss.recallsParked() ? recall : ''}`.trim();
   const moves = run.fixtureMoves.map((m) => `${m.fixture.def.name} ${m.from + 1}→${m.to + 1}`).join(', ');
   return `${boss.name} moved your Fixtures before this Shift: ${moves}. Cards stay put. ${boss.recallsParked() ? recall : ''}`.trim();
 }

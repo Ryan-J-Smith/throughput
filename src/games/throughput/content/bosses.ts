@@ -9,14 +9,15 @@ const BITING_WEIGHT = 3;
 class LineShift extends BoardBoss {
   readonly id = 'line-shift';
   readonly name = 'Line Shift';
-  readonly short = 'Fixtures drift right';
+  readonly short = 'Fixtures drift every Shift';
   readonly text =
-    'From Shift 2 on, all Fixtures move one slot right before each Shift (the last wraps to slot 1). Cards stay put, but you may unload parked cards back to your hand. Your layout comes back after the round.';
+    'Before every Shift, Shift 1 included, all Fixtures move one slot right (the last wraps to slot 1). Cards stay put, but you may unload parked cards back to your hand. Your layout comes back after the round.';
   readonly pressures = 'R&D Compounder and Skimmer: parked Designs drift off their Mods';
 
-  // Shift 1 runs on the player's layout; the drift starts at Shift 2 (approved rework, see DESIGN_NOTES).
-  override shiftFixtures<T>(fixtures: readonly T[], shift: number): T[] {
-    if (shift < 2 || fixtures.length === 0) return [...fixtures];
+  // The drift starts before Shift 1, so the layout you built never runs as is (user-approved after
+  // playtest 3; it was from Shift 2 before, see DESIGN_NOTES).
+  override shiftFixtures<T>(fixtures: readonly T[], _shift: number): T[] {
+    if (fixtures.length === 0) return [...fixtures];
     return [fixtures[fixtures.length - 1] as T, ...fixtures.slice(0, -1)];
   }
 

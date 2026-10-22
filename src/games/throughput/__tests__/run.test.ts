@@ -635,20 +635,22 @@ describe('ThroughputRun: endless', () => {
 describe('ThroughputRun: bosses', () => {
   const config = easyConfig({ roundsPerYear: 2, targets: [10, 10, 10, 10], startingCapital: 100 });
 
-  it('Line Shift leaves Shift 1 on your layout, moves Fixtures right from Shift 2, and restores the layout after the round', () => {
+  it('Line Shift moves Fixtures right before every Shift, Shift 1 included, and restores the layout after the round', () => {
     const run = new ThroughputRun(seedWithFirstBoss('line-shift'), { ...config, targets: [10, 10_000, 10, 10] });
     makeAndShip(run);
     const fixture = run.buy(0, { slot: 0 });
     run.continueToNextRound();
     expect(run.boss?.id).toBe('line-shift');
-    const owned = run.line[0]?.fixture;
+    // Shift 1 already runs one slot off the layout.
+    const owned = run.line[1]?.fixture;
     expect(owned?.def).toBe(fixture.def);
-    expect(run.fixtureMoves).toEqual([]);
-    run.runShift();
-    expect(run.line[1]?.fixture).toBe(owned);
+    expect(run.line[0]?.fixture).toBeNull();
     expect(run.fixtureMoves).toEqual([{ fixture: owned, from: 0, to: 1 }]);
     run.runShift();
+    expect(run.line[2]?.fixture).toBe(owned);
     expect(run.fixtureMoves).toEqual([{ fixture: owned, from: 1, to: 2 }]);
+    run.runShift();
+    expect(run.fixtureMoves).toEqual([{ fixture: owned, from: 2, to: 3 }]);
     for (let i = 0; i < 2; i++) run.runShift();
     expect(run.phase).toBe('lost');
     expect(run.line[0]?.fixture?.def).toBe(fixture.def);

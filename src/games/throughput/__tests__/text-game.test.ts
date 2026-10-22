@@ -127,7 +127,7 @@ describe('ThroughputTextGame', () => {
     expect(view).toMatch(/2\. no Fixture \| Workshop-\w · .* \[loaded this Shift; used up this Shift\]/);
   });
 
-  it('Line Shift: the shop shows the Shift 1 and Shift 2 layouts, the log and state list each move, and parked cards can be unloaded', () => {
+  it('Line Shift: the shop shows where Fixtures move for Shift 1 and Shift 2, the log and state list each move, and parked cards can be unloaded', () => {
     const config = easyConfig({ roundsPerYear: 2, targets: [10, 10_000, 10, 10], startingCapital: 100 });
     const shiftGame = new ThroughputTextGame(config);
     const toShop = (seed: number) => {
@@ -142,16 +142,16 @@ describe('ThroughputTextGame', () => {
     const shop = toShop(seed);
     const name = (shiftGame.show(shop).state as { line: { fixture: { name: string } | null }[] }).line[0]?.fixture?.name ?? '';
     expect(shiftGame.show(shop).text).toContain(
-      `Line Shift next round: Shift 1 runs on 1. ${name} · 2. - · 3. - · 4. - · 5. -; before Shift 2 they move to 1. - · 2. ${name} · 3. - · 4. - · 5. -.`,
+      `Line Shift next round: before Shift 1 your Fixtures move to 1. - · 2. ${name} · 3. - · 4. - · 5. -; before Shift 2, to 1. - · 2. - · 3. ${name} · 4. - · 5. -.`,
     );
     const next = ok(shiftGame.take(shop, 'continue'));
-    expect(next.log).toEqual([expect.stringMatching(/ begins: target \$10000\.$/)]);
+    expect(next.log).toEqual([expect.stringMatching(/ begins: target \$10000\.$/), `Line Shift: Fixtures moved before Shift 1: ${name} 1→2.`]);
     const shift1 = handOf(shiftGame, next.save);
     const loaded = ok(shiftGame.take(next.save, `load ${numberOf(shift1, 'make')}:3`));
     const ran = ok(shiftGame.take(loaded.save, 'run'));
-    expect(ran.log).toContain(`Line Shift: Fixtures moved before Shift 2: ${name} 1→2.`);
-    expect(ran.view.text).toContain(`Line Shift moved your Fixtures before this Shift: ${name} 1→2.`);
-    expect(ran.view.state).toMatchObject({ fixtureMoves: [{ fixture: name, from: 1, to: 2 }] });
+    expect(ran.log).toContain(`Line Shift: Fixtures moved before Shift 2: ${name} 2→3.`);
+    expect(ran.view.text).toContain(`Line Shift moved your Fixtures before this Shift: ${name} 2→3.`);
+    expect(ran.view.state).toMatchObject({ fixtureMoves: [{ fixture: name, from: 2, to: 3 }] });
     // A Design parked in Shift 1 can come back to hand in a Line Shift round.
     const design = shift1.find((c) => c.stage === 'design');
     if (design === undefined) throw new Error('no Design in the Line Shift opening hand');
@@ -400,7 +400,7 @@ describe('content wave 1 text', () => {
     const flat = text.replace(/\s+/g, ' ');
     expect(flat).toContain(`A run meets 4 of these ${BOSSES.length}, drawn at random`);
     for (const boss of BOSSES.filter((b) => b.id !== 'line-shift')) expect(flat).toContain(`${boss.name}: ${boss.text}`);
-    expect(flat).toContain('Line Shift: Shift 1 runs on your layout.');
+    expect(flat).toContain('Line Shift: before every Shift, Shift 1 included, all Fixtures move one slot right');
     for (const contract of CONTRACTS) expect(flat).toContain(`- ${contract.name}${contract.targetsCard ? ' (pick a deck card)' : ''}: ${contract.text}`);
     expect(flat).toContain(`by ${Math.round(DEFAULT_CONFIG.demand.sellOutRate * 100)}% of its full Demand (before Saturated or Recession halving; at least +${DEFAULT_CONFIG.demand.sellOutGrowth}) when a Shift sells the last of it`);
     expect(flat).toContain('A sell-all Ship (Export Deal) ignores Demand and doesn\'t use it up.');
@@ -448,7 +448,7 @@ describe('rules and shop text', () => {
     expect(text).toContain('In every Shift of a Board Review, when the Batch\n    reaches the Warehouse (even with no card there), the whole stock sells');
     expect(text).toContain('A Rebrand that has already resolved this Shift (another copy, or the same card under Robot Arm)\n       gives ×1.5 instead of ×2.');
     expect(text).toContain('Revenue is rounded down once per sale');
-    expect(text).toContain('Line Shift: Shift 1 runs on your layout. From Shift 2 on');
+    expect(text).toContain('Line Shift: before every Shift, Shift 1 included, all Fixtures move one slot right (the last wraps\n    to slot 1), so even Shift 1 runs one slot off your layout.');
     expect(text).toContain('The opening hand always holds at least one Make and one Ship');
     expect(text).toContain('It also holds a Design while a Mod that works only on Designs (Quality Lab, Design Studio, R&D');
     expect(rulesText({ ...DEFAULT_CONFIG, designOpener: false })).not.toContain('It also holds a Design');

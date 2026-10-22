@@ -329,7 +329,7 @@ export function formatView(run: ThroughputRun, context: ViewContext): string {
   return lines.join('\n');
 }
 
-/** In the shop before a Board whose boss moves Fixtures: the layout for Shift 1 and for the first move. */
+/** In the shop before a Board whose boss moves Fixtures: where they will be for Shift 1 and Shift 2. */
 function nextBoardLayout(run: ThroughputRun): string[] {
   const boss = run.bossOf(run.round + 1);
   if (boss === null || !boss.movesFixtures()) return [];
@@ -337,7 +337,8 @@ function nextBoardLayout(run: ThroughputRun): string[] {
   const layout = (fixtures: readonly (Fixture | null)[]) => fixtures.map((f, i) => `${i + 1}. ${f?.def.name ?? '-'}`).join(' · ');
   const first = boss.shiftFixtures(before, 1);
   const second = boss.shiftFixtures(first, 2);
-  return [`${boss.name} next round: Shift 1 runs on ${layout(first)}; before Shift 2 they move to ${layout(second)}.`];
+  const shift1 = first.every((f, i) => f === before[i]) ? `Shift 1 runs on your layout` : `before Shift 1 your Fixtures move to ${layout(first)}`;
+  return [`${boss.name} next round: ${shift1}; before Shift 2, to ${layout(second)}.`];
 }
 
 function marketLines(run: ThroughputRun): string[] {
