@@ -22,10 +22,13 @@ export function saleIntensity(amount: number): number {
 /** Where in a beat a sale's "+$" pop peaks (spectacle.css tp-pop), as a share of the step. */
 const SALE_AT_STEP = 0.4;
 
-/** One slot of the replay: a roll (softer past an empty or welded slot), then a ding if its Ship sold. */
-export function playBeat(sound: SoundPlayer, beat: Beat, stepMs: number): void {
+/**
+ * One slot of the replay: a roll (softer past an empty or welded slot), then a ding if its Ship
+ * sold, `salesBefore` steps higher for the Shift's earlier sales so a run of sales climbs.
+ */
+export function playBeat(sound: SoundPlayer, beat: Beat, stepMs: number, salesBefore = 0): void {
   sound.play('slot', { intensity: beat.kind === 'card' || beat.kind === 'fixture' ? 1 : 0.4 });
-  if (beat.earned > 0) sound.play('sale', { delayMs: stepMs * SALE_AT_STEP, intensity: saleIntensity(beat.earned) });
+  if (beat.earned > 0) sound.play('sale', { delayMs: stepMs * SALE_AT_STEP, intensity: saleIntensity(beat.earned), ...(salesBefore > 0 ? { step: salesBefore } : {}) });
 }
 
 /** The replay's finale: a chord if the Shift hit the target, a thud if it missed it, timed to the total landing. */

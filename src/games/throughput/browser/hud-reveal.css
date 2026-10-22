@@ -1,7 +1,8 @@
 /*
- * The HUD's Sales as a Shift's total lands (TpHud `reveal`): the number glows while it counts up
- * and the bar fills with it; reaching the target flashes the bar and pops the number.
- * Hooks: .hud__stat--score[data-reveal="counting"|"done"] and [data-hit].
+ * The HUD's Sales as a Shift replays (TpHud `reveal`): each sale counts the number up and fills the
+ * bar into the pending ghost, with its "+$" popping beside Sales (bigger for a big sale, which the
+ * replay holds on for a hit-stop); reaching the target flashes the bar and pops the number.
+ * Hooks: .hud__stat--score[data-reveal="counting"|"done"], [data-hit], .tp-hud__sale[data-big].
  */
 
 .tp-hud .hud__stat--score[data-reveal='counting'] .hud__value {
@@ -10,9 +11,54 @@
     0 0 2px rgb(255 255 255 / 0.6);
 }
 
-.tp-hud .hud__stat--score[data-reveal] .hud__bar-fill {
+.tp-hud .hud__stat--score[data-reveal] .hud__bar-fill,
+.tp-hud .hud__stat--score[data-reveal] .tp-hud__bar-pending {
   /* The count drives the width every frame; any transition would only trail behind it. */
   transition: none;
+}
+
+.tp-hud__sale {
+  display: inline-block;
+  margin-left: 0.6em;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--cash);
+  white-space: nowrap;
+  transform-origin: left center;
+  animation: tp-hud-sale var(--dur-slow) var(--ease-spring) both;
+}
+
+.tp-hud__sale[data-big] {
+  font-size: var(--text-md);
+  text-shadow: 0 0 14px color-mix(in srgb, var(--cash) 70%, transparent);
+  animation: tp-hud-sale-big calc(var(--dur-slow) * 1.25) var(--ease-spring) both;
+}
+
+@keyframes tp-hud-sale {
+  from {
+    opacity: 0;
+    transform: translateY(0.35em) scale(0.7);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes tp-hud-sale-big {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.7);
+  }
+  55% {
+    transform: scale(1.35);
+  }
 }
 
 .tp-hud .hud__stat--score[data-hit] .hud__value {

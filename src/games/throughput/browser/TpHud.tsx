@@ -7,14 +7,23 @@ import './art-slots.css';
 import './hud-reveal.css';
 import './hud-pending.css';
 
-/** Round Sales before and after a Shift whose total is landing, shown before the Run is applied. */
-export type SalesReveal = { readonly from: number; readonly to: number };
+/** One sale banked during a reveal: its "+$" flashes beside Sales, bigger for a big one. */
+export type RevealSale = { readonly key: number; readonly amount: number; readonly big: boolean };
+
+/**
+ * Round Sales before and after a Shift (or a sale of one) lands, shown before the Run is applied.
+ * `ms` is how long the count takes, already scaled to the speed setting (default: a full reveal).
+ */
+export type SalesReveal = { readonly from: number; readonly to: number; readonly ms?: number; readonly sale?: RevealSale };
 
 export type TpHudProps = {
   run: ThroughputRun;
   /** Count Sales up from `from` to `to` (the bar fills with it and flashes at the target). */
   reveal?: SalesReveal | null;
-  /** What running the loaded Line now would add to Sales (the preview's total), shown apart from the banked Sales. */
+  /**
+   * What running the loaded Line now would add to Sales (the preview's total), shown apart from the
+   * banked Sales; during a reveal, what the Shift has still to bank (the bar's ghost only).
+   */
   pending?: number | null;
 };
 
@@ -30,10 +39,13 @@ export function TpHud({ run, reveal = null, pending = null }: TpHudProps) {
   const revealing = reveal !== null && !inShop;
   const sales = inShop ? 0 : revealing ? reveal.to : run.sales;
   // Only a reveal counts; anything else (a new round, an applied Run) shows at once.
-  const shown = useTickingNumber(sales, revealing && !prefersReducedMotion() ? REVEAL_MS * speedScale() : 0);
+  const shown = useTickingNumber(sales, revealing && !prefersReducedMotion() ? (reveal.ms ?? REVEAL_MS * speedScale()) : 0);
   const progress = target > 0 ? Math.min(1, shown / target) : 0;
-  const pendingNow = inShop || revealing || pending === null || pending === 0 ? null : pending;
-  const ghost = pendingNow !== null && pendingNow > 0 && target > 0 ? Math.min(1, (sales + pendingNow) / target) - progress : 0;
+  const pendingNow = inShop || pending === null || pending === 0 ? null : pending;
+  // The ghost runs from the fill to what the Shift will have made; during a reveal that includes a sale still counting up.
+  const ghostTo = sales + (pendingNow !== null && pendingNow > 0 ? pendingNow : 0);
+  const ghost = target > 0 && (revealing || ghostTo > sales) ? Math.max(0, Math.min(1, ghostTo / target) - progress) : 0;
+  const sale = revealing ? reveal.sale : undefined;
   const boss = run.phase === 'shift' ? run.boss : null;
 
   return (
@@ -51,7 +63,12 @@ export function TpHud({ run, reveal = null, pending = null }: TpHudProps) {
         <span className="hud__value">
           {inShop ? `$${target}` : `$${shown}`}
           <span className="hud__target">{inShop ? ' target' : ` of $${target} target`}</span>
-          {pendingNow !== null && (
+          {sale !== undefined && (
+            <span key={sale.key} className="tp-hud__sale" data-big={sale.big || undefined}>
+              +${sale.amount}
+            </span>
+          )}
+          {pendingNow !== null && !revealing && (
             <span className="tp-hud__pending" data-sign={pendingNow > 0 ? 'up' : 'down'} title="Not banked yet: what this Shift adds to Sales if you run it now">
               {pendingNow > 0 ? '+' : '−'}${Math.abs(pendingNow)} if you run
             </span>

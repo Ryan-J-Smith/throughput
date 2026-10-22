@@ -212,4 +212,27 @@ describe('sound tuning', () => {
     expect(saleHz(1)).toBeGreaterThan(saleHz(0.5));
     expect(saleHz(1)).toBeCloseTo(523.25 * 2 ** (21 / 12));
   });
+
+  it('each step climbs one note of the pentatonic scale, up to a top note', () => {
+    expect(saleHz(0, 0)).toBe(saleHz(0));
+    expect(saleHz(0, -3)).toBe(saleHz(0));
+    expect(saleHz(0, 1)).toBeCloseTo(523.25 * 2 ** (2 / 12));
+    expect(saleHz(0, 3)).toBeCloseTo(523.25 * 2 ** (7 / 12));
+    expect(saleHz(0, 5)).toBeCloseTo(523.25 * 2);
+    expect(saleHz(0.5, 2)).toBeGreaterThan(saleHz(0.5, 1));
+    // The top note (two octaves and a sixth up) is as high as a run of sales climbs.
+    expect(saleHz(1, 5)).toBeCloseTo(523.25 * 2 ** (33 / 12));
+    expect(saleHz(0, 40)).toBe(saleHz(1, 5));
+  });
+
+  it('a sale cue sounds at its step up the scale', () => {
+    const { player, context } = setup();
+    player.configure(true, 0.4);
+    player.unlock();
+    player.play('sale', { intensity: 0 });
+    player.play('sale', { intensity: 0, step: 3 });
+    const [first, , , second] = context.sources;
+    expect(first?.frequency.value).toBeCloseTo(saleHz(0));
+    expect(second?.frequency.value).toBeCloseTo(saleHz(0, 3));
+  });
 });

@@ -40,6 +40,18 @@ describe('THROUGHPUT Shift sound', () => {
     ]);
   });
 
+  it('each sale in a Shift dings a step higher than the one before', () => {
+    const player = new RecordingPlayer();
+    const sale = shiftBeats(shift()).beats[1];
+    if (sale === undefined) throw new Error('no sale beat');
+    playBeat(player, sale, 500, 0);
+    playBeat(player, sale, 500, 2);
+    expect(player.played.filter(([cue]) => cue === 'sale')).toEqual([
+      ['sale', { delayMs: 200, intensity: saleIntensity(sale.earned) }],
+      ['sale', { delayMs: 200, intensity: saleIntensity(sale.earned), step: 2 }],
+    ]);
+  });
+
   it('the finale sounds a chord on a hit and a thud on a miss, as the total lands', () => {
     const player = new RecordingPlayer();
     playFinale(player, 'none', 240);
