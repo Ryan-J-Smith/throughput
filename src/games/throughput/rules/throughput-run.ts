@@ -91,6 +91,9 @@ export function unusedShiftPay(config: ThroughputConfig, year: number): number {
   return table[Math.min(year, table.length) - 1] ?? 0;
 }
 
+/** Rounds past the current one the Market shows, kept covered by the trend schedule in endless. */
+const MARKET_LOOKAHEAD = 3;
+
 /**
  * A THROUGHPUT run: 12 rounds of up to 4 Shifts each, with a shop between rounds. A game-specific
  * state machine rather than engine Run, because a round is "load cards into Line slots, then run
@@ -103,9 +106,12 @@ export class ThroughputRun {
   readonly config: ThroughputConfig;
   readonly seed: number;
   readonly wallet: Wallet;
-  /** Market trends for every round, fixed at the start. */
-  readonly trends: readonly Trends[];
-  /** One boss per Year's Board Review, in Year order. */
+  /** Market trends per round, fixed by the seed; endless extends the schedule ahead of play. */
+  private trends_: Trends[];
+  private readonly marketRng: Rng;
+  /** The seeded boss order `assignBosses` draws from; endless Years extend the same draw. */
+  private readonly bossOrder: readonly BoardBoss[];
+  /** One boss per planned Year's Board Review, in Year order (endless Years: `bossOf`). */
   readonly boardBosses: readonly BoardBoss[];
   private readonly deckRng: Rng;
   private readonly shop_: ThroughputShop;
@@ -146,6 +152,8 @@ export class ThroughputRun {
   private restocked_ = 0;
   private lastPayout_: readonly PayoutLine[] | null = null;
   private storageNotice_: string | null = null;
+  private endless_ = false;
+  private wonAtRound_: number | null = null;
   private nextUid = 1;
 
   constructor(seed: number, config: ThroughputConfig = DEFAULT_CONFIG) {
@@ -153,9 +161,11 @@ export class ThroughputRun {
     this.seed = seed;
     const rng = new Rng(seed);
     this.deckRng = rng.fork('deck');
-    this.trends = trendSchedule(config.targets.length, rng.fork('market'));
+    this.marketRng = rng.fork('market');
+    this.trends_ = trendSchedule(config.targets.length, this.marketRng);
     const years = Math.ceil(config.targets.length / config.roundsPerYear);
-    this.boardBosses = assignBosses(rng.fork('bosses').shuffle(BOSSES), years);
+    this.bossOrder = rng.fork('bosses').shuffle(BOSSES);
+    this.boardBosses = assignBosses(this.bossOrder, years);
     this.shop_ = new ThroughputShop(config, rng.fork('shop'));
     this.wallet = new Wallet(config.startingCapital);
     this.demand_ = Object.fromEntries(CATEGORIES.map((c) => [c, config.demand.start])) as Record<Category, number>;
@@ -180,8 +190,37 @@ export class ThroughputRun {
     return this.round_;
   }
 
+  /** Rounds to win the run (the configured targets). */
   get rounds(): number {
     return this.config.targets.length;
+  }
+
+  /** The last round the run can reach: `rounds`, or no limit once it keeps going past the win. */
+  get lastPlannedRound(): number {
+    return this.endless_ ? Number.POSITIVE_INFINITY : this.rounds;
+  }
+
+  /** Market trends per round (index round - 1); in endless they extend a Year past the current round. */
+  get trends(): readonly Trends[] {
+    return this.trends_;
+  }
+
+  /** True once the player chose to keep going after winning. */
+  get endless(): boolean {
+    return this.endless_;
+  }
+
+  /** The round that won the run (the last Board Review), or null if it hasn't been won. */
+  get wonAtRound(): number | null {
+    return this.wonAtRound_;
+  }
+
+  /** Any round's Sales target: the configured curve, then ×`endlessGrowth` a round past it (rounded to 10). */
+  targetFor(round: number): number {
+    const targets = this.config.targets;
+    if (round <= targets.length) return targets[round - 1] ?? 0;
+    const last = targets[targets.length - 1] ?? 0;
+    return Math.round((last * this.config.endlessGrowth ** (round - targets.length)) / 10) * 10;
   }
 
   get quarter(): QuarterInfo {
@@ -189,7 +228,7 @@ export class ThroughputRun {
   }
 
   get target(): number {
-    return this.config.targets[this.round_ - 1] ?? 0;
+    return this.targetFor(this.round_);
   }
 
   /** The Shift being loaded (1-based). */
@@ -368,7 +407,10 @@ export class ThroughputRun {
 
   bossOf(round: number): BoardBoss | null {
     const info = this.quarterOf(round);
-    return info.isBoard ? (this.boardBosses[info.year - 1] ?? null) : null;
+    if (!info.isBoard) return null;
+    // The draw is prefix-stable, so a longer draw agrees with the planned Years.
+    const bosses = info.year <= this.boardBosses.length ? this.boardBosses : assignBosses(this.bossOrder, info.year);
+    return bosses[info.year - 1] ?? null;
   }
 
   /** The next `count` Board Reviews from the current round on (bosses are telegraphed a Year ahead). */
@@ -376,7 +418,8 @@ export class ThroughputRun {
     const out: { round: number; year: number; boss: BoardBoss }[] = [];
     // In the shop the current round is the one just cleared, so look from the next.
     const from = this.phase_ === 'shop' ? this.round_ + 1 : this.round_;
-    for (let round = from; round <= this.rounds && out.length < count; round++) {
+    const last = Math.min(this.lastPlannedRound, from + count * this.config.roundsPerYear);
+    for (let round = from; round <= last && out.length < count; round++) {
       const boss = this.bossOf(round);
       if (boss !== null) out.push({ round, year: this.quarterOf(round).year, boss });
     }
@@ -669,7 +712,32 @@ export class ThroughputRun {
   continueToNextRound(): void {
     this.assert(this.whyCannotContinue());
     this.round_++;
+    if (this.endless_) this.extendTrends(this.round_ + MARKET_LOOKAHEAD);
     this.startRound();
+  }
+
+  whyCannotKeepGoing(): string | null {
+    return this.phase_ === 'won' ? null : 'Only after winning the run';
+  }
+
+  get canKeepGoing(): boolean {
+    return this.whyCannotKeepGoing() === null;
+  }
+
+  /**
+   * Endless: after the win, carry on into the shop before round `rounds + 1`. Targets keep climbing
+   * (`targetFor`), a Board Review still ends every Year, and losing ends the run as usual.
+   */
+  keepGoing(): void {
+    this.assert(this.whyCannotKeepGoing());
+    this.endless_ = true;
+    this.extendTrends(this.round_ + 1 + MARKET_LOOKAHEAD);
+    this.enterShop();
+  }
+
+  /** Lengthens the trend schedule to cover `round`; earlier rounds don't change (each round forks its own stream). */
+  private extendTrends(round: number): void {
+    if (round > this.trends_.length) this.trends_ = trendSchedule(round, this.marketRng);
   }
 
   // ---- round flow ----
@@ -802,7 +870,8 @@ export class ThroughputRun {
     this.lastPayout_ = payout.lines;
     for (const slot of this.slots_) if (slot.fixture !== null) slot.fixture.roundsOwned++;
     this.endRound(true);
-    if (this.round_ >= this.rounds) {
+    if (!this.endless_ && this.round_ >= this.rounds) {
+      this.wonAtRound_ = this.round_;
       this.phase_ = 'won';
       return;
     }

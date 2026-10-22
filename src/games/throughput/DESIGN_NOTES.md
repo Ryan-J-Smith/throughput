@@ -696,3 +696,38 @@ over 500 seeds per bot.
   - 2.8% when the player kept a spare Ship;
   - 9.8% when they played every Ship.
 - That is under the ~15% per-Shift bar, but about one run in three meets it.
+
+## Endless (draft)
+
+Winning the Year-4 Board ends the run as a win, as before. The win screen can now offer **Keep going**.
+
+**Rules** (in the rules layer; the CLI verb and the UI are asst-a's):
+- `keepGoing()` works only when the run is won (`whyCannotKeepGoing`). It opens the shop before round 13. The run
+  keeps everything: deck, Line, Capital, Demand, grants and perks. `wonAtRound` stays 12.
+- **Targets** past the table grow ×`endlessGrowth` (1.3) a round, rounded to 10: 7540 / 9800 / 12740 (Board) /
+  16570 / 21530 / 28000 (Board). That is about 2.2× a Year, a little gentler than R9 → R12 (2.8×). Every engine
+  item is additive or slowly compounding, so the exponential wins in the end. Endless is a "how far" test with a
+  wall, not a second run.
+- **Years and Boards:** every 3rd round is still a Board. `bossOf` continues the same seeded `assignBosses` draw.
+  It is prefix-stable, so Years 1–4 match `boardBosses`, and the pool starts over once every boss has come.
+- **Market:** the trend schedule extends 3 rounds ahead of play. Each round forks its own stream, so rounds already
+  scheduled never change, and seeds and saves replay the same.
+- **Economy:** unchanged. Unused-Shift pay holds at the last Year's entry (1C), and Boards pay none.
+- **Losing** a round ends the run as usual. The record is "won at 12, reached round N".
+- **API:** `endless`, `wonAtRound`, `lastPlannedRound` (∞ in endless), `targetFor(round)`, `canKeepGoing`,
+  `whyCannotKeepGoing`, `keepGoing()`. Views that gate on `round <= run.rounds` should use `lastPlannedRound`.
+
+**Bot reach** after a win (1000 seeds per bot). Most bot wins finish R12 at 1.12–1.18× the target:
+
+| Bot | Wins | Median rounds cleared | p90 | Max |
+|---|---|---|---|---|
+| greedy | 58 | 13 | 14 | 18 |
+| mass-market | 75 | 14 | 17 | 20 |
+| rnd-compounder | 94 | 13 | 14 | 17 |
+| trend-surfer | 21 | 13 | 14 | 16 |
+
+- The usual wall is the Year-5 Board (round 15).
+- Skilled play ran 1.4–1.8× the target in R7–R12 (playtest 2), so it should last about a Year longer.
+- Revisit `endlessGrowth` after LLM playtest round 3.
+
+**Not included:** endless-only modifiers, a score multiplier, a leaderboard. None of them were requested.

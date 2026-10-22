@@ -398,6 +398,54 @@ describe('ThroughputRun: payout and shop', () => {
     const run = new ThroughputRun(1, easyConfig({ targets: [10] }));
     makeAndShip(run);
     expect(run.phase).toBe('won');
+    expect(run.wonAtRound).toBe(1);
+  });
+});
+
+describe('ThroughputRun: endless', () => {
+  it('extends the target curve ×endlessGrowth a round past the last target, rounded to 10', () => {
+    const run = new ThroughputRun(1);
+    const last = DEFAULT_CONFIG.targets.at(-1) as number;
+    expect(run.targetFor(12)).toBe(last);
+    expect(run.targetFor(13)).toBe(Math.round((last * DEFAULT_CONFIG.endlessGrowth) / 10) * 10);
+    expect(run.targetFor(14)).toBe(Math.round((last * DEFAULT_CONFIG.endlessGrowth ** 2) / 10) * 10);
+  });
+
+  it('keeps going after the win: next Year\'s shop, rising targets, a Board every Year, and a normal loss', () => {
+    const config = easyConfig({ targets: [5, 5, 5], startingCapital: 50 });
+    const run = new ThroughputRun(1, config);
+    expect(run.whyCannotKeepGoing()).toBe('Only after winning the run');
+    for (let round = 1; round <= 3; round++) {
+      makeAndShip(run);
+      if (round < 3) run.continueToNextRound();
+    }
+    expect([run.phase, run.wonAtRound, run.canKeepGoing, run.lastPlannedRound]).toEqual(['won', 3, true, 3]);
+
+    run.keepGoing();
+    expect([run.phase, run.endless, run.lastPlannedRound]).toEqual(['shop', true, Number.POSITIVE_INFINITY]);
+    run.continueToNextRound();
+    expect(run.quarter).toEqual({ round: 4, year: 2, quarter: 1, isBoard: false });
+    expect(run.upcomingBoards(1)).toEqual([{ round: 6, year: 2, boss: run.bossOf(6) }]);
+    expect(run.target).toBe(run.targetFor(4));
+    expect(run.trends.length).toBeGreaterThanOrEqual(7);
+    expect(run.trendsNow).toEqual(run.trends[3]);
+    expect(run.bossOf(6)).not.toBeNull();
+
+    // An empty Line sells nothing: missing a round past the win ends the run, which keeps its win.
+    for (let shift = 0; shift < 4 && run.phase === 'shift'; shift++) run.runShift();
+    expect([run.phase, run.history.at(-1)?.round, run.wonAtRound]).toEqual(['lost', 4, 3]);
+  });
+
+  it('extends trends without changing the rounds already scheduled', () => {
+    const config = easyConfig({ targets: [5, 5, 5], startingCapital: 50 });
+    const run = new ThroughputRun(2, config);
+    const before = [...run.trends];
+    for (let round = 1; round <= 3; round++) {
+      makeAndShip(run);
+      if (round < 3) run.continueToNextRound();
+    }
+    run.keepGoing();
+    expect(run.trends.slice(0, 3)).toEqual(before);
   });
 });
 

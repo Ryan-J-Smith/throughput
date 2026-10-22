@@ -6,6 +6,8 @@ export type ThroughputConfig = {
   readonly targets: readonly number[];
   /** Rounds per Year; the last of each Year is a Board Review. */
   readonly roundsPerYear: number;
+  /** Endless (after the win): each round's target is the last configured target × this per round past it. */
+  readonly endlessGrowth: number;
   readonly shiftsPerRound: number;
   readonly retoolsPerRound: number;
   /** Most cards one Retool may discard. */
@@ -70,6 +72,7 @@ export const DEFAULT_CONFIG: ThroughputConfig = {
   // calibrated to LLM play (Sonnet's Shift-1 output), not to the bots, which now win 1–3%.
   targets: [130, 200, 270, 360, 470, 600, 950, 1400, 2050, 3000, 4300, 5800],
   roundsPerYear: 3,
+  endlessGrowth: 1.3,
   shiftsPerRound: 4,
   retoolsPerRound: 2,
   retoolMax: 3,
