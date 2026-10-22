@@ -289,16 +289,28 @@ export class BomRun {
 
   // ---- shop ----
 
-  whyCannotBuy(slot: number, target?: RndTarget): string | null {
+  /** Problems with buying `slot` that don't depend on an R&D Grant's target (phase, cash, slot limits). */
+  offerProblem(slot: number): string | null {
     if (this.phase_ !== 'shop') return 'The shop is closed';
     const offer = this.shop.offers[slot];
     if (offer == null) return `Nothing for sale in slot ${slot + 1}`;
     if (!this.wallet.canAfford(offer.cost)) return `Not enough cash ($${offer.cost} needed)`;
+    if (offer.kind === 'facility' && this.facilities_.length >= this.config.shop.maxFacilities) {
+      return `Facility slots full (${this.config.shop.maxFacilities})`;
+    }
+    if (offer.kind === 'blueprint' && this.owned.length >= this.config.shop.maxBlueprints) {
+      return `Blueprint slots full (${this.config.shop.maxBlueprints})`;
+    }
+    return null;
+  }
+
+  whyCannotBuy(slot: number, target?: RndTarget): string | null {
+    const problem = this.offerProblem(slot);
+    if (problem !== null) return problem;
+    const offer = this.shop.offers[slot] as BomOffer;
     switch (offer.kind) {
       case 'facility':
-        return this.facilities_.length >= this.config.shop.maxFacilities ? `Facility slots full (${this.config.shop.maxFacilities})` : null;
       case 'blueprint':
-        return this.owned.length >= this.config.shop.maxBlueprints ? `Blueprint slots full (${this.config.shop.maxBlueprints})` : null;
       case 'part':
         return null;
       case 'rnd': {

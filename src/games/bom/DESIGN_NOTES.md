@@ -92,8 +92,13 @@ doc was ambiguous and what the code does, plus deliberate deviations. Keep it cu
   below the hand size (8).
 
 ## CLI
-- **Selections.** Hand positions are `1..8` in the displayed order; Bench parts are `b1, b2, …`.
+- **Selections.** Hand positions are `1..8` in the displayed order: sorted by category (Shell, Chip, Bolt,
+  Paint, then fabricated parts), grade high to low, Premium first. They stay predictable after draws.
+  Bench parts are `b1, b2, …`.
 - **Ship without a product.** `ship` without a product ships the only fitting Product. If several fit,
   it is refused with each option's projected revenue (the "product buttons").
 - **Preview.** `preview <parts>` shows the same options without spending a Build and is not recorded
   in the save.
+- **Logs.** Each Ship prints a receipt: base, each part, each rule, then the formula line. Sell-outs,
+  Overtime entry, draws and round results are also logged.
+- **`continue`.** In Overtime, `continue` means `collect` and is recorded as `collect`.
