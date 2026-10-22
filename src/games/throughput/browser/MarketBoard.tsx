@@ -1,6 +1,8 @@
+import { Icon } from '../../../ui/icons';
 import { CATEGORIES, formatAmount } from '../model';
 import type { TrendStage } from '../model';
 import type { ShiftResult, ThroughputRun } from '../rules';
+import { CATEGORY_ICON } from './art';
 import { CATEGORY_ACCENT, STAGE_NAME, demandViews } from './present';
 import type { DemandView } from './present';
 import './demand.css';
@@ -26,8 +28,8 @@ export function MarketBoard({ run, preview = null }: MarketBoardProps) {
     <section className="tp-market" aria-label="Market">
       <div className="tp-market__grid" style={{ gridTemplateColumns: `auto repeat(${quarters.length}, minmax(0, 1fr))` }}>
         <span className="tp-market__corner">Market</span>
-        {quarters.map((round) => (
-          <span key={round} className={`tp-market__quarter ${round === run.round && run.phase === 'shift' ? 'is-now' : ''}`}>
+        {quarters.map((round, col) => (
+          <span key={round} className={`tp-market__quarter ${round === run.round && run.phase === 'shift' ? 'is-now' : ''}`} data-col={col}>
             {label(round)}
             {round === run.round && run.phase === 'shift' && <em> now</em>}
           </span>
@@ -52,15 +54,16 @@ function MarketRow({ run, stage, quarters }: { run: ThroughputRun; stage: TrendS
   return (
     <>
       <span className={`tp-market__stage tp-market__stage--${stage}`}>{STAGE_NAME[stage]}</span>
-      {quarters.map((round) => {
+      {quarters.map((round, col) => {
         const trends = run.trends[round - 1];
         const holders = trends === undefined ? [] : CATEGORIES.filter((c) => trends[c] === stage);
         const pips = stage === 'hot' && round === run.round && run.phase === 'shift' ? run.hotPipsLeft : null;
         return (
-          <span key={round} className="tp-market__cell">
+          <span key={round} className="tp-market__cell" data-col={col}>
             {holders.map((c) => (
-              <span key={c} className="tp-chip" data-accent={CATEGORY_ACCENT[c]}>
-                {c}
+              <span key={c} className="tp-chip" data-accent={CATEGORY_ACCENT[c]} data-category={c} title={c}>
+                <Icon name={CATEGORY_ICON[c]} className="tp-chip__icon" />
+                <span className="tp-chip__name">{c}</span>
               </span>
             ))}
             {pips !== null && (

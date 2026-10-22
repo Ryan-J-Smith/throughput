@@ -151,6 +151,15 @@ describe('THROUGHPUT Demand in the browser', () => {
     expect(demandViews(run, run.preview()).find((v) => v.category === category)).toMatchObject({ left: 0, full, earned: run.config.demand.sellOutGrowth });
   });
 
+  it('Market chips carry a Category icon and name, and columns are numbered for the layout', () => {
+    const html = renderToStaticMarkup(<ThroughputScreen seed={1} onQuit={() => {}} store={new MemoryStore()} resume={false} />);
+    const chips = html.match(/<span class="tp-chip"[^>]*data-category="[A-Za-z]+"[^>]*title="[A-Za-z]+"><svg class="icon tp-chip__icon"/g) ?? [];
+    expect(chips.length).toBe(16);
+    expect(html).toContain('<span class="tp-chip__name">Apparel</span>');
+    expect(html).toMatch(/class="tp-market__quarter is-now" data-col="0"/);
+    expect(html).toContain('class="tp-market__cell" data-col="3"');
+  });
+
   it('the Market renders a Demand bar per Category with its cues', () => {
     const { run, category } = saturatedSellOut();
     const html = renderToStaticMarkup(<ThroughputScreen seed={run.seed} onQuit={() => {}} store={new MemoryStore()} resume={false} />);
