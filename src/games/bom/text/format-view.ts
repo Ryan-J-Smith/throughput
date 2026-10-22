@@ -50,7 +50,8 @@ export function formatBomView(v: BomView): string {
     lines.push(
       `How a Ship scores: Revenue = min(Units, Demand) × Price × multipliers. Every part adds its grade to Units (Motors and other Sub parts too), ` +
         `except Paint, which adds its grade to Price; Premium parts add +$${PREMIUM_PRICE} Price. Ship and Fab each use 1 Build; Scraps are free. ` +
-        `At most ${v.rules.maxSelection} parts per Ship or Fab, Bench parts included. Revenue above the target is not paid.`,
+        `At most ${v.rules.maxSelection} parts per Ship or Fab, Bench parts included. Revenue above the target isn't paid, but once it's reached ` +
+        `(Overtime) each further Ship pays $1 per ${v.overtime.revenuePerDollar} revenue (max $${v.overtime.cap} a round) and Scraps are locked.`,
     );
   }
   if (r.disruption !== null && inRound) lines.push(`DISRUPTION this round — ${disruptionLine(v, r.disruption)}`);

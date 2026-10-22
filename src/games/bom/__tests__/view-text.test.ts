@@ -126,11 +126,50 @@ describe('BoM clarity logs', () => {
     expect(lastLog([`preview ${parts}`])).toMatch(/clears the target \(\$\d+ over is not paid\)/);
   });
 
-  it('Overtime entry explains what is paid', () => {
-    expect(lastLog([example('ship')])).toMatch(/TARGET REACHED .* Revenue above the target is not paid\. Overtime: .* collect now pays \$3\./);
+  it('Overtime entry explains Ship pay, stocking, collect and the Scrap lock', () => {
+    expect(lastLog([example('ship')])).toMatch(
+      /TARGET REACHED \(\d+\/1\): Overtime\. Ships now pay cash \(\$1 per 0\.25 revenue, max \$5 more this round\); .* collect \$3 for unused Builds\. Scraps are locked/,
+    );
   });
 
   it('fab logs its Build cost', () => {
     expect(lastLog([example('fab')])).toMatch(/^Fabricated Motor \d+ from Chip \d \+ Bolt \d → Bench \(1 Build used, 3 left\)/);
   });
 });
+
+describe('stock and Overtime Ships (approved rule change)', () => {
+  const deck = deckOf(['chip', 4], ['chip', 1], ['bolt', 3], ['bolt', 1], ['shell', 2], ['shell', 1], ['paint', 1], ['paint', 1]);
+  const game = new BomTextGame('bom', () => ({ ...defaultBomConfig(), targets: flatTargets(1), startingDeck: deck }));
+
+  it('BomView.stock names the fab, and `stock` is recorded as that concrete fab', () => {
+    const save = game.newSave(1);
+    const before = game.show(save);
+    const stock = (before.state as BomView).stock;
+    expect(stock).toMatchObject({ product: 'desk-fan', sub: 'motor', output: 'Motor 14' });
+    expect(before.legalActions).toContain(`stock — 1 Build: fab Motor 14 from Chip 4 + Bolt 3 for Desk Fan (same as fab ${stock?.parts})`);
+    const result = game.take(save, 'stock');
+    if (!result.ok) throw new Error(result.reason);
+    expect(result.save.actions).toEqual([`fab ${stock?.parts}`]);
+    expect(result.log[0]).toBe('Fabricated Motor 14 from Chip 4 + Bolt 3 → Bench for Desk Fan (1 Build used, 3 left)');
+  });
+
+  it('refuses `stock` when nothing can be stocked', () => {
+    const benched = new BomTextGame('bom', () => ({ ...defaultBomConfig(), startingBench: () => [makePart('motor', 9, { fabricated: true })] }));
+    const result = benched.take(benched.newSave(1), 'stock');
+    expect(result.ok).toBe(false);
+  });
+
+  it('in Overtime, Ships stay legal and say what they pay; Scrap is gone; the view shows Overtime pay', () => {
+    let save = game.newSave(1);
+    const ship = game.show(save).legalActions.map((a) => /\(e\.g\. (ship .+)\)$/.exec(a)?.[1]).find(Boolean) as string;
+    const result = game.take(save, ship);
+    if (!result.ok) throw new Error(result.reason);
+    save = result.save;
+    const v = result.view.state as BomView;
+    expect(v.phase).toBe('overtime');
+    expect(v.overtime).toEqual({ revenuePerDollar: 0.25, earned: 0, cap: 5 });
+    expect(result.view.legalActions.some((a) => /^ship \S+ <parts…> — 1 Build \(Overtime cash: \$1 per 0\.25 revenue, max \$5 more this round\)/.test(a))).toBe(true);
+    expect(result.view.legalActions.some((a) => a.startsWith('scrap'))).toBe(false);
+  });
+});
+

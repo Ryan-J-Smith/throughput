@@ -85,7 +85,7 @@ describe('StrategyBot', () => {
     if (decision.action === 'ship') expect(decision.parts.some((p) => run.bench.includes(p))).toBe(false);
   });
 
-  it('skips Overtime stocking before a revealed Warehouse Fire', () => {
+  it('before a revealed Warehouse Fire, Ships for cash instead of stocking the Bench', () => {
     const deck = deckOf(['shell', 4], ['chip', 4], ['bolt', 4], ['shell', 3], ['chip', 3], ['bolt', 3], ['shell', 2], ['chip', 2], ['bolt', 2], ['paint', 1]);
     const inBigOvertime = (seed: number): BomRun => {
       const run = runWith({ targets: flatTargets(1), startingDeck: deck }, seed);
@@ -99,7 +99,7 @@ describe('StrategyBot', () => {
     if (fire === undefined || calm === undefined) throw new Error('no seeds');
     const burning = inBigOvertime(fire);
     expect(burning.phase).toBe('overtime');
-    expect(new StrategyBot(ASSEMBLY_CHAIN).buildTurn(burning).action).toBe('collect');
+    expect(new StrategyBot(ASSEMBLY_CHAIN).buildTurn(burning).action).toBe('ship');
     expect(new StrategyBot(ASSEMBLY_CHAIN).buildTurn(inBigOvertime(calm)).action).toBe('fab');
   });
 

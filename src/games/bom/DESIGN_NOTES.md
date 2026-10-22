@@ -20,9 +20,21 @@ doc was ambiguous and what the code does, plus deliberate deviations. Keep it cu
 ## Rules decisions
 
 ### Round
-- **Overtime.** Once revenue reaches the target, Ship locks and the phase becomes Overtime (if any
-  Builds remain). Overtime allows Fabricate and Scrap. `collect` ends it and pays $1 per unused Build.
-  If the last Build is spent fabricating, the round clears automatically.
+- **Overtime.** Once revenue reaches the target, the phase becomes Overtime (if any Builds remain).
+  - **This deviates from the doc.** It is an approved change after playtest round 1, replacing "Ship
+    locks".
+  - **Ships stay legal and pay cash:** $1 per 25% of the target that the Ship earns, capped at $5 a
+    round (config `overtimeShip`). The cash is paid as an "Overtime Ships" line in the round's
+    payout, after interest is computed.
+  - **Fabricate** stays legal.
+  - **Scraps are locked.**
+  - **Ending it:** `collect` ends Overtime and pays $1 per unused Build. If the last Build is spent
+    (Ship or Fabricate), the round clears automatically.
+  - **`stock` shortcut.** `BomRun.stockPlan()` is a read-only query.
+    - **What it fabricates:** for owned Products from most to least valuable (Units × Price), the
+      first Sub part a recipe lacks on the Bench, from the highest-grade hand inputs.
+    - **Trashing:** never.
+    - **Saves:** the CLI's `stock` is recorded as that concrete `fab`.
 - **Payout** on a clear is the market reward (doc: Small $3 / Big $4 / Boss $5; tuned to $5/$6/$8, see
   Tuning), plus $1 per unused Build, plus interest. Interest ($1 per $5, max $5) is computed on the
   cash held *before* this payout.
@@ -313,7 +325,25 @@ After the starter-niches pass:
     adaptive bot would be a better "best player" reference.
   - The impact table pools all bots, so archetype items partly reflect which bots buy them.
 
-## Proposed rule changes (awaiting stratgame-24's decision; not implemented)
+### Approved rule change: Overtime Ships pay cash, Scraps locked (1000 seeds)
+Win rates, with mean margin in rounds 10, 11 and 12:
+
+| Table | bargain-bin | market-maker | assembly-chain | greedy |
+|---|---|---|---|---|
+| Before (old rules, old targets) | 33.6% (+20/+13/−9) | 30.7% (+20/+11/+2) | 18.6% | 23.3% |
+| New rules, old targets | 46.7% (+44/+19/−4) | 40.8% (+63/+52/+22) | 25.0% | 35.6% |
+| New rules, targets +5% (shipped) | 37.6% (+41/+16/−7) | 38.5% (+58/+45/+21) | 19.0% | 32.1% |
+| New rules, targets +10% | 29.4% | 36.1% | 15.6% | 29.6% |
+
+- Margins now include Overtime Ships, so they read higher than before.
+- **Shipped table.** The best tempo and best slow-burn bots are 0.9pp apart, and the best bot wins
+  38.5%. Tempo leads on margin in rounds 1–5, slow-burn leads in rounds 10–12, and targets grow 21.4×.
+- **Bots.** In Overtime they Ship for cash when it pays at least $2 (it costs a Build worth $1 from
+  collect).
+  - Tempo presets Ship first; slow-burn presets stock the Bench first.
+  - Bench WIP is spent only when a revealed Warehouse Fire would burn it.
+
+## Rule changes proposed after playtest round 1 (approved and implemented as described above)
 - **Revenue over target.** All 5 playtesters flagged "under-ship to win". Today about half of all
   Builds come after the target and earn nothing.
   - **Prototype.** The final Ship's overshoot paid as cash, $1 per 25% over (max $3), credited by the

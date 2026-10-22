@@ -3,6 +3,7 @@ import { BLUEPRINTS } from '../content';
 import { OwnedBlueprint, makePart } from '../model';
 import type { BlueprintDef } from '../model';
 import { containsRecipe, matchesExactly } from '../rules';
+import type { BomRun } from '../rules';
 import { clearRound, deckOf, flatTargets, pick, runWith, shipAnything } from './helpers';
 
 const def = (id: string): BlueprintDef => {
@@ -230,6 +231,76 @@ describe('round flow', () => {
     const hand = (seed: number) => runWith({}, seed).hand.map((p) => `${p.category}${p.grade}`);
     expect(hand(5)).toEqual(hand(5));
     expect(hand(5)).not.toEqual(hand(6));
+  });
+});
+
+describe('Overtime (approved change: Ships pay cash, Scraps locked)', () => {
+  // Flatpack (fixture: 12 Units · $2 · Demand 40) with two Bolt 4s reaches 48 ≥ 40 and enters Overtime.
+  const deck = deckOf(['shell', 4], ['shell', 4], ['shell', 4], ['bolt', 4], ['bolt', 4], ['chip', 4], ['chip', 4], ['paint', 1]);
+  const toOvertime = (): BomRun => {
+    const run = runWith({ targets: flatTargets(40), startingDeck: deck });
+    const bolts = run.hand.filter((p) => p.category === 'bolt');
+    expect(run.ship([pick(run, 'shell'), ...bolts], 'flatpack').overtimePay).toBe(0);
+    expect(run.phase).toBe('overtime');
+    return run;
+  };
+
+  it('each Overtime Ship pays $1 per 25% of the target it earns, at most $5 a round', () => {
+    const run = toOvertime();
+    expect(run.overtimePayFor(32)).toBe(3); // 32 / (0.25 × 40)
+    const first = run.ship([pick(run, 'shell'), pick(run, 'chip')], 'gizmo'); // 16 Units × $2
+    expect([first.quote.revenue, first.overtimePay]).toEqual([32, 3]);
+    const second = run.ship([pick(run, 'shell'), pick(run, 'chip')], 'gizmo'); // Demand halved to 15: $30
+    expect([second.quote.revenue, second.overtimePay]).toEqual([30, 2]); // capped at $5 for the round
+    expect(run.overtimeCash).toBe(5);
+    // The cash is paid with the round's payout.
+    expect(run.collect().payout?.lines).toEqual([
+      { source: 'Small market cleared', amount: 5 },
+      { source: 'Unused Builds ×1', amount: 1 },
+      { source: 'Overtime Ships', amount: 5 },
+    ]);
+  });
+
+  it('an Overtime Ship on the last Build clears the round', () => {
+    const fourShips = deckOf(['shell', 4], ['shell', 4], ['shell', 4], ['shell', 4], ['bolt', 4], ['bolt', 4], ['chip', 4], ['chip', 4]);
+    const run = runWith({ targets: flatTargets(40), startingDeck: fourShips, startingBench: () => [makePart('motor', 6, { fabricated: true })] });
+    run.ship([pick(run, 'shell'), ...run.hand.filter((p) => p.category === 'bolt')], 'flatpack');
+    run.ship([pick(run, 'shell'), pick(run, 'chip')], 'gizmo');
+    run.ship([pick(run, 'shell'), pick(run, 'chip')], 'gizmo');
+    const last = run.ship([pick(run, 'motor'), pick(run, 'shell')], 'desk-fan');
+    expect(last.roundEnd?.cleared).toBe(true);
+    expect(run.phase).toBe('shop');
+  });
+
+  it('locks Scraps in Overtime', () => {
+    const run = toOvertime();
+    expect(run.whyCannotScrap([pick(run, 'paint')])).toBe('Scraps are locked in Overtime');
+  });
+
+  it('Overtime cash resets each round', () => {
+    const run = toOvertime();
+    run.ship([pick(run, 'shell'), pick(run, 'chip')], 'gizmo');
+    run.collect();
+    run.leaveShop();
+    expect(run.overtimeCash).toBe(0);
+  });
+});
+
+describe('stockPlan', () => {
+  it('fabricates the Sub part the most valuable Product lacks, from the best hand inputs', () => {
+    const run = runWith({ startingDeck: deckOf(['chip', 4], ['chip', 1], ['bolt', 3], ['bolt', 1], ['shell', 2], ['shell', 1], ['paint', 1], ['paint', 1]) });
+    const plan = run.stockPlan();
+    expect(plan?.product.id).toBe('desk-fan');
+    expect(plan?.sub.id).toBe('motor');
+    expect(plan?.parts.map((p) => `${p.category} ${p.grade}`)).toEqual(['chip 4', 'bolt 3']);
+    expect(plan?.output).toMatchObject({ category: 'motor', grade: 14 });
+  });
+
+  it('is null when the Bench already covers the recipe, or nothing can be made without trashing', () => {
+    const motor = () => [makePart('motor', 10, { fabricated: true })];
+    expect(runWith({ startingBench: motor }).stockPlan()).toBeNull();
+    const full = () => [makePart('board', 6, { fabricated: true }), makePart('frame', 6, { fabricated: true })];
+    expect(runWith({ startingBench: full }).stockPlan()).toBeNull();
   });
 });
 
