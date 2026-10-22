@@ -53,7 +53,8 @@ const MAX_CRATES = 8;
 
 /**
  * The scoring spectacle: the hero robot pushes the Batch along the belt slot by slot, the
- * readouts tick, sales send a truck off, and the leftovers pile up before the total lands.
+ * readouts tick, sales send a truck off, and the leftovers pile up before the total lands (less
+ * anything past a Board's Shift cap, which the finale names).
  * Click or Skip jumps to the finale.
  */
 export function ShiftReplay({ result, shift, baseMargin, onBeat, onFinale, onDone }: ShiftReplayProps) {
@@ -136,6 +137,7 @@ export function ShiftReplay({ result, shift, baseMargin, onBeat, onFinale, onDon
             {data.cleared > 0 && `, ${data.cleared} cleared`}
             {data.overstockSales !== 0 && ` (${data.overstockSales < 0 ? '-' : '+'}$${Math.abs(data.overstockSales)})`}
           </span>
+          {data.overCap > 0 && <span className="tp-replay__capped">{`Quota Cap: -$${data.overCap}`}</span>}
           <span className="tp-replay__total">${data.total}</span>
         </footer>
       )}

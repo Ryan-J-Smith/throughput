@@ -38,6 +38,14 @@ describe('THROUGHPUT belt spectacle beats', () => {
     expect([leftover, total]).toEqual([result.leftover, result.total]);
   });
 
+  it('carries sales past a Quota Cap to the finale', () => {
+    const line = [slot(null, card(WORKSHOP, 'Home')), slot(null, card(TRUCK, 'Home'))];
+    const made = scoreLine(line, context()).total;
+    const { total, overCap } = shiftBeats(scoreLine(line, context({ boss: boss('quota-cap'), shiftCap: 5 })));
+    expect([total, overCap]).toEqual([5, made - 5]);
+    expect(shiftBeats(scoreLine(line, context())).overCap).toBe(0);
+  });
+
   it('marks a welded slot', () => {
     const result = scoreLine([slot(fixture('quality-lab'), card(SKETCH, 'Food')), slot(null, card(WORKSHOP, 'Food'))], context({ boss: boss('supply-shock') }));
     const [welded] = shiftBeats(result, DEFAULT_CONFIG.baseMargin).beats;

@@ -1487,12 +1487,24 @@ body:has(.screen--tp-shop[data-year])::before {
   font-variant-numeric: tabular-nums;
 }
 
-.tp-receipt__line--leftover {
+.tp-receipt__line--leftover,
+.tp-receipt__line--capped {
   margin-top: 2px;
   padding-top: 6px;
   border-top: 1px dashed rgb(255 255 255 / 0.15);
   border-radius: 0;
   background: none;
+}
+
+/* Sales past a Board's Quota Cap: the amount lost reads in the warning red, not as cash. */
+.tp-receipt__line--leftover + .tp-receipt__line--capped {
+  margin-top: 0;
+  padding-top: 3px;
+  border-top: 0;
+}
+
+.tp-receipt__line--capped .tp-receipt__amount {
+  color: var(--stamp-red);
 }
 
 .tp-receipt__round {
