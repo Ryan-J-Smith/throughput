@@ -695,6 +695,107 @@ body:has(.screen--tp-shop[data-year])::before {
   box-shadow: 0 0 14px -2px rgb(255 77 109 / 0.7);
 }
 
+/* ---------- Card template: one size per place, fixed zones ---------- */
+
+/*
+ * Every windowed card in a THROUGHPUT place is the same box: 5:7 at the width the place gives it
+ * (the hand's --card-w, the shelf's column, a summary tile). Top to bottom: the band, the art window
+ * (the one zone that flexes: it takes whatever height is left), a one-line title, a rules box of
+ * --card-lines lines, and the stage tags pinned to the foot, so every card's zones sit at the same
+ * y. Card (useFitText) steps the title and rules type down to fit and, failing that, ellipsizes or
+ * clamps them with the full text as a tooltip. The bays use the same zones at the Line's height.
+ */
+:is(.screen--tp, .tp-summary, .qa__shelf) .card--windowed {
+  --card-lines: 3;
+  aspect-ratio: 5 / 7;
+  min-height: 0;
+  gap: 0;
+  padding-bottom: 28px;
+}
+
+:is(.screen--tp, .tp-summary, .qa__shelf) .card--windowed > .card__band {
+  flex: none;
+  height: 26px;
+  min-height: 0;
+}
+
+:is(.screen--tp, .tp-summary, .qa__shelf) .card--windowed > .card__art {
+  flex: 1 1 0;
+  min-height: 0;
+  aspect-ratio: auto;
+}
+
+/* The value tab sits inside the window, so the title gets the card's full width. */
+:is(.screen--tp, .tp-summary, .qa__shelf) .card--windowed .badge--value {
+  bottom: 5px;
+}
+
+:is(.screen--tp, .tp-summary, .qa__shelf) .card--windowed > .card__title {
+  flex: none;
+  height: 1.3rem;
+  padding: 7px 10px 0;
+  box-sizing: content-box;
+  overflow: hidden;
+  line-height: 1.3rem;
+  white-space: nowrap;
+}
+
+.card__title[data-fit='1'] {
+  font-size: 0.94rem;
+}
+
+.card__title[data-fit='2'],
+.card__title[data-fit='clamp'] {
+  font-size: 0.82rem;
+}
+
+.card__title[data-fit='clamp'] {
+  text-overflow: ellipsis;
+}
+
+/* The line pitch is fixed, so the smaller step fits more per line and a clamp shows whole lines. */
+:is(.screen--tp, .tp-summary, .qa__shelf) .card--windowed > .card__desc {
+  flex: none;
+  height: calc(var(--card-lines) * 1.35 * var(--text-xs));
+  margin: 3px 0 0;
+  overflow: hidden;
+  line-height: calc(1.35 * var(--text-xs));
+}
+
+.card__desc[data-fit='1'],
+.card__desc[data-fit='clamp'] {
+  font-size: 0.625rem;
+}
+
+.card__desc[data-fit='clamp'] {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--card-lines);
+}
+
+:is(.screen--tp, .tp-summary, .qa__shelf) .card--windowed > .card__tags {
+  position: absolute;
+  right: 0;
+  bottom: 8px;
+  left: 0;
+  flex-wrap: nowrap;
+  margin: 0;
+  padding: 0 10px;
+  overflow: hidden;
+}
+
+/* The hand's cards are narrower: two lines of rules text leave the art window room to read. The
+   summary's tiles carry a short recap, so they give the art the same room. */
+:is(.tp-hand, .tp-summary) .card--windowed {
+  --card-lines: 2;
+}
+
+/* In a bay the card fills the spot's fixed height: same zones, no rules text (the plate has it). */
+.screen--tp .tp-bay__spot .card--windowed {
+  aspect-ratio: auto;
+  height: 150px;
+}
+
 /* ---------- Shift layout: Market rail | the Line over a docked hand | receipt rail ---------- */
 
 /*
@@ -845,9 +946,9 @@ body:has(.screen--tp-shop[data-year])::before {
 /* ---------- Shop layout: payout and Market rail | the shelf over the Line ---------- */
 
 /*
- * The shelf is what the shop is for, so it leads the centre column with the Line it installs into
- * right under it; the payout and the Market sit in a rail. Narrower screens keep that order in one
- * column: shelf, Line, then the Market.
+ * The shelf is what the shop is for, so it leads the centre column (under a one-line payout strip
+ * and any tip) with the Line it installs into right under it; the Market is the rail. Narrower
+ * screens keep that order in one column: payout, shelf, Line, then the Market.
  */
 .screen--tp-shop > .tp-line {
   order: 1;
@@ -881,15 +982,10 @@ body:has(.screen--tp-shop[data-year])::before {
     grid-row: 1;
   }
 
-  .screen--tp-shop > .tp-payout {
-    grid-column: 1;
-    grid-row: 2;
-    width: 100%;
-  }
-
+  /* The rail is only the Market, spanning every centre row, so nothing in the centre waits for it. */
   .screen--tp-shop > .tp-market {
     grid-column: 1;
-    grid-row: 3 / 9;
+    grid-row: 2 / 9;
   }
 
   .screen--tp-shop > :is(.tp-deck, .tp-last, .tp-rules) {
@@ -897,14 +993,52 @@ body:has(.screen--tp-shop[data-year])::before {
   }
 }
 
-/* Every Buy button on one line, however long each card's text runs. */
-.tp-shop .shop__item > .card-wrap {
+/* The round's payout as one compact strip: the heading, then each line inline. */
+.screen--tp-shop > .tp-payout {
   display: flex;
-  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 20px;
+  width: 100%;
+  padding: 10px 16px;
 }
 
-.tp-shop .shop__item > .card-wrap > .card {
-  flex: 1 1 auto;
+.screen--tp-shop > .tp-payout .summary__heading {
+  margin: 0;
+  font-size: var(--text-md);
+}
+
+.screen--tp-shop > .tp-payout .summary__lines {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 18px;
+  margin: 0;
+}
+
+.screen--tp-shop > .tp-payout .summary__line {
+  min-height: 0;
+  padding: 0;
+  font-size: var(--text-sm);
+}
+
+.screen--tp-shop > .tp-payout .summary__line > span:first-child::after {
+  content: none;
+}
+
+.screen--tp-shop > .tp-payout .tp-payout__notice {
+  flex-basis: 100%;
+}
+
+/* The shelf's cards are all one size (the card template below); Buy sits at each offer's foot, so
+   a note above it (e.g. what a Fixture replaces) never pushes it out of line. */
+:is(.tp-shop, .qa__shelf) .shop__shelf {
+  --card-w: 168px;
+  grid-template-columns: repeat(auto-fill, var(--card-w));
+  justify-content: center;
+}
+
+.tp-shop .shop__item > .btn--buy {
+  margin-top: auto;
 }
 
 /* The Line in the centre column: bays share the width, cards show title, art, value and stage. */
@@ -1538,19 +1672,6 @@ body:has(.screen--tp-shop[data-year])::before {
   visibility: hidden;
 }
 
-.tp-summary .tp-summary__line > li > .card-wrap {
-  display: flex;
-  flex: 1 1 auto;
-}
-
-.tp-summary .tp-summary__line .card {
-  flex: 1 1 auto;
-}
-
-.tp-summary .tp-summary__line .card__art {
-  aspect-ratio: 16 / 9;
-}
-
 .tp-summary .tp-summary__line .card__desc {
   color: var(--chalk);
   font-weight: 600;
@@ -1638,6 +1759,17 @@ body:has(.screen--tp-shop[data-year])::before {
     order: 2;
   }
 
+  /* Two offers to a row: both columns stay one size, shrinking together on the narrowest phones.
+     There's no hover for the tooltip here, so the rules box takes a fourth line from the art. */
+  :is(.tp-shop, .qa__shelf) .shop__shelf {
+    --card-w: 142px;
+    grid-template-columns: repeat(2, minmax(0, var(--card-w)));
+  }
+
+  :is(.tp-shop, .qa__shelf) .shop__shelf .card--windowed {
+    --card-lines: 4;
+  }
+
   .tp-market__grid {
     gap: 4px 6px;
   }
@@ -1712,13 +1844,30 @@ body:has(.screen--tp-shop[data-year])::before {
     letter-spacing: 0.04em;
   }
 
-  /* Phones show the effect text only on the card you picked up. */
+  /* Phones show the effect text only on the card you picked up: five lines on a panel over its art
+     and title (the hint above names the card), so none of its zones move. */
   .tp-hand .card__desc {
     display: none;
   }
 
   .tp-hand .card--selected .card__desc {
+    --card-lines: 5;
+    position: absolute;
+    z-index: 3;
+    right: 0;
+    bottom: 28px;
+    left: 0;
     display: block;
+    box-sizing: border-box;
+    height: calc(var(--card-lines) * 1.35 * var(--text-xs) + 12px);
+    margin: 0;
+    padding: 6px 8px;
+    background: #0f182b;
+    color: var(--chalk);
+  }
+
+  .tp-hand .card--selected .card__desc[data-fit='clamp'] {
+    display: -webkit-box;
   }
 
   .tp-hand .hand__controls {
