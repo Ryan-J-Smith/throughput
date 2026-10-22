@@ -1,0 +1,126 @@
+/*
+ * The draw and discard piles beside the Run controls (PileStack): card backs stacked by
+ * [data-depth] (0 to 4), the count on a pill at the foot of each. Display only.
+ */
+
+.tp-piles {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 12px;
+  min-width: 0;
+  padding-bottom: 6px;
+  color: var(--chalk-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.tp-pile {
+  --rim: rgb(255 207 90 / 0.6);
+  --layer: #0d1628;
+  --layer-rim: rgb(255 207 90 / 0.28);
+  position: relative;
+  flex: none;
+  width: 44px;
+  aspect-ratio: 5 / 7;
+  border-radius: 5px;
+  background: url('../../../assets/art/plain/card-back.webp') 50% 50% / cover no-repeat, #13203a;
+  box-shadow:
+    0 0 0 1px var(--rim),
+    0 6px 12px -4px rgb(0 0 0 / 0.7);
+}
+
+/* The backs under the top one, stepping down-right: more of them the fuller the pile. */
+.tp-pile[data-depth='2'] {
+  box-shadow:
+    0 0 0 1px var(--rim),
+    2px 2px 0 0 var(--layer),
+    2px 2px 0 1px var(--layer-rim),
+    0 8px 14px -4px rgb(0 0 0 / 0.7);
+}
+
+.tp-pile[data-depth='3'] {
+  box-shadow:
+    0 0 0 1px var(--rim),
+    2px 2px 0 0 var(--layer),
+    2px 2px 0 1px var(--layer-rim),
+    4px 4px 0 0 var(--layer),
+    4px 4px 0 1px var(--layer-rim),
+    0 10px 16px -4px rgb(0 0 0 / 0.7);
+}
+
+.tp-pile[data-depth='4'] {
+  box-shadow:
+    0 0 0 1px var(--rim),
+    2px 2px 0 0 var(--layer),
+    2px 2px 0 1px var(--layer-rim),
+    4px 4px 0 0 var(--layer),
+    4px 4px 0 1px var(--layer-rim),
+    6px 6px 0 0 var(--layer),
+    6px 6px 0 1px var(--layer-rim),
+    0 12px 18px -4px rgb(0 0 0 / 0.7);
+}
+
+/* An empty pile is just the spot where it would be. */
+.tp-pile[data-depth='0'] {
+  background: none;
+  box-shadow: none;
+  outline: 1px dashed rgb(255 255 255 / 0.2);
+  outline-offset: -1px;
+}
+
+.tp-pile__count {
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  translate: -50% 0;
+  min-width: 22px;
+  padding: 1px 6px;
+  border: 1px solid var(--rim);
+  border-radius: var(--radius-pill);
+  background: #0b1222;
+  color: var(--chalk);
+  font: 700 0.75rem / 1.2 var(--font-display);
+  text-align: center;
+}
+
+/* Discards: a smaller, dimmer, slightly tossed pile. */
+.tp-pile--discard {
+  --rim: rgb(214 222 236 / 0.3);
+  --layer-rim: rgb(214 222 236 / 0.14);
+  width: 32px;
+  rotate: -8deg;
+  filter: saturate(0.35) brightness(0.75);
+}
+
+.tp-pile--discard .tp-pile__count {
+  rotate: 8deg;
+  min-width: 18px;
+  padding: 0 4px;
+  font-size: 0.6875rem;
+}
+
+.tp-piles__note {
+  align-self: center;
+  max-width: 7em;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* Phones: smaller piles, and the note lives in the label only, so the controls stay on one row. */
+@media (max-width: 640px) {
+  .tp-piles {
+    gap: 9px;
+  }
+
+  .tp-pile {
+    width: 32px;
+  }
+
+  .tp-pile--discard {
+    width: 24px;
+  }
+
+  .tp-piles__note {
+    display: none;
+  }
+}

@@ -8,10 +8,11 @@ export type ArtKind = 'style' | 'sprite' | 'card' | 'fixture' | 'contract' | 'bo
 /**
  * How a prompt is built. `illustration` is the direction's style with its references attached;
  * `environment` is the same style as a full-bleed scene for behind the UI (no studio backdrop);
+ * `surface` is the same style as a flat, straight-on design filling the square (e.g. the card back);
  * `sheet` is the direction's style laid out as a style sheet (which then becomes a reference);
  * `silhouettes` is flat black icons with no references, for the icon-extraction experiment.
  */
-export type ArtTemplate = 'illustration' | 'environment' | 'sheet' | 'silhouettes';
+export type ArtTemplate = 'illustration' | 'environment' | 'surface' | 'sheet' | 'silhouettes';
 
 export type ArtAsset = {
   readonly id: string;
@@ -122,6 +123,11 @@ const ENVIRONMENT_COMPOSITION =
   'Camera: a wide establishing shot from about eye level, slightly above. Full-bleed: the scene fills the whole frame edge to edge, with no studio backdrop, vignette or border. ' +
   'Wide 3:2 landscape. Large, simple shapes and soft pools of light, low in contrast overall, with no single hero object in the middle of the frame (game UI sits on top of it).';
 
+/** Flat designs the UI crops and frames itself (the card back): no perspective, nothing around the design. */
+const SURFACE_COMPOSITION =
+  'Camera: straight-on and flat, like a scan, with no perspective. The design fills the whole square frame edge to edge, centred and symmetrical, ' +
+  'with no table, backdrop, card edge, rounded corners or border around it (the game crops and frames it). Square 1:1.';
+
 /** Art the game shows. The style sheet and icon sheets are review-only and stay out of the game's lookup. */
 export function isGameArt(asset: ArtAsset): boolean {
   return asset.kind !== 'style' && asset.kind !== 'sprite';
@@ -133,6 +139,7 @@ export function artReferences(asset: ArtAsset, direction: ArtDirection): readonl
   switch (asset.template) {
     case 'illustration':
     case 'environment':
+    case 'surface':
       return [...own, `${direction.id}/style-sheet.jpg`];
     case 'sheet':
       return own;
@@ -156,6 +163,8 @@ export function artPrompt(asset: ArtAsset, direction: ArtDirection): string {
       ].join('\n');
     case 'environment':
       return [direction.style, ENVIRONMENT_COMPOSITION, `Lighting colours: ${asset.accent ?? 'cool blue'}.`, `Subject: ${asset.subject}`, direction.avoid].join('\n');
+    case 'surface':
+      return [direction.style, SURFACE_COMPOSITION, `Lighting colours: ${asset.accent ?? 'cool blue'}.`, `Subject: ${asset.subject}`, direction.avoid].join('\n');
     case 'sheet':
       return [direction.style, SHEET_COMPOSITION, `Subject: ${asset.subject}`, direction.avoid].join('\n');
     case 'silhouettes':
@@ -316,6 +325,7 @@ export const ART_ASSETS = [
   { id: 'bg-board-review', kind: 'bg', template: 'environment', batch: 4, size: 960, aspect: 'landscape', accent: 'ominous red and deep purple', subject: 'A Board Review: a dark executive boardroom with a long glossy table and empty high-backed chairs under one dramatic spotlight, a big wall screen glowing with an abstract downward chart line, and city lights through tall windows.' },
   { id: 'bg-shop', kind: 'bg', template: 'environment', batch: 4, size: 960, aspect: 'landscape', accent: 'teal and warm gold', subject: 'The supplier trade fair: a sleek showroom floor with spot-lit display pedestals and booths showing machines, robot arms and product samples, on a glossy reflective floor.' },
   { id: 'end-win', kind: 'title', template: 'environment', batch: 4, size: 1280, aspect: 'landscape', accent: 'gold, teal and magenta fireworks', subject: "Victory: the small white robot toy on a winner's podium on a rooftop at night, standing in the right third of the frame and holding a golden trophy high, with fireworks bursting over a glowing city skyline and the company's huge factory below. The left half is open night sky." },
+  { id: 'card-back', kind: 'card', template: 'surface', batch: 4, size: 512, accent: 'teal and warm gold on deep navy', subject: 'The back of the game\'s playing cards: deep navy with a fine, even pattern of tiny embossed gears and conveyor rollers, and at the centre a raised emblem of the small white robot toy\'s head inside a glowing teal and gold gear ring.' },
   { id: 'end-loss', kind: 'title', template: 'environment', batch: 4, size: 1280, aspect: 'landscape', accent: 'muted blue with soft amber lamplight', subject: 'A gentle ending: the small white robot toy sitting on an upturned crate in the right third of the frame, in a quiet factory after closing, with a single warm work lamp on, an unopened box beside it and rain on a skylight. Wistful and hopeful rather than sad. The left half is calm, dim factory.' },
 ] as const satisfies readonly ArtAsset[];
 
