@@ -69,7 +69,7 @@ function MarketRow({ run, stage, quarters }: { run: ThroughputRun; stage: TrendS
               </span>
             ))}
             {pips !== null && (
-              <span className="tp-pips" aria-label={`${pips} buzz pips left`}>
+              <span className="tp-pips" role="img" aria-label={pipsText(pips, holders)} title={pipsText(pips, holders)}>
                 {Array.from({ length: run.hotPipsPerRound }, (_, i) => (
                   <span key={i} className={`tp-pip ${i < pips ? 'is-on' : ''}`} />
                 ))}
@@ -80,6 +80,12 @@ function MarketRow({ run, stage, quarters }: { run: ThroughputRun; stage: TrendS
       })}
     </>
   );
+}
+
+/** The Hot buzz pips in words, e.g. "2 Hot boosts left this round: each Shift that sells Gadgets sells it at ×2 and uses one". */
+function pipsText(pips: number, hot: readonly string[]): string {
+  const left = `${pips} Hot boost${pips === 1 ? '' : 's'} left this round`;
+  return pips === 0 || hot.length === 0 ? left : `${left}: each Shift that sells ${hot.join(' or ')} sells it at ×2 and uses one`;
 }
 
 /** Demand per Category as bars: what is left, what this Shift would use, and why it changes. */
@@ -96,8 +102,12 @@ function DemandBars({ views, inShop, premiumStep }: { views: readonly DemandView
             v.bossCut ?? '',
             v.scale > 0 ? `Scale ${v.scale}` : '',
             v.premium > 0 ? `sells +${Math.round(100 * premiumStep * v.premium)}% (Premium)` : '',
-            v.earned > 0 ? `+${v.earned} from next round` : '',
-            v.sellsOut ? `this Shift sells out${v.wouldEarn > 0 ? `: +${v.wouldEarn}` : ''}` : v.wouldEarn > 0 ? `this Shift: +${v.wouldEarn}` : '',
+            v.earned > 0 ? `Demand grows +${v.earned} next round` : '',
+            v.sellsOut
+              ? `this Shift sells it out${v.wouldEarn > 0 ? `, growing Demand +${v.wouldEarn} next round` : ''}`
+              : v.wouldEarn > 0
+                ? `this Shift grows Demand +${v.wouldEarn} next round`
+                : '',
           ].filter(Boolean);
           return (
             <li
@@ -124,7 +134,11 @@ function DemandBars({ views, inShop, premiumStep }: { views: readonly DemandView
               <span className="tp-demand__count">
                 {v.left}/{v.full}
               </span>
-              {cues.length > 0 && <span className="tp-demand__cues">{cues.join(' · ')}</span>}
+              {cues.length > 0 && (
+                <span className="tp-demand__cues" title="Selling a Category out, or selling an Emerging one, grows its Demand for good from next round.">
+                  {cues.join(' · ')}
+                </span>
+              )}
             </li>
           );
         })}

@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { GrantPicker, HowToPlay, LineView, Shelf, ThroughputBrowserGame, ThroughputScreen, TpHud, TraceReceipt, cardView, demandBossCut, demandViews, lineNotice, plateText } from '../browser';
+import { GrantPicker, HowToPlay, LineView, MarketBoard, Shelf, ThroughputBrowserGame, ThroughputScreen, TpHud, TraceReceipt, cardView, demandBossCut, demandViews, lineNotice, plateText } from '../browser';
 import { cardText, demandUseText, grownText } from '../cli';
 import { DEFAULT_CONFIG, REBRAND, SKETCH, TRUCK, WORKSHOP } from '../content';
 import type { BayState } from '../browser';
@@ -74,7 +74,7 @@ describe('THROUGHPUT browser screen', () => {
     ]);
     const preview = run.preview();
     const html = renderToStaticMarkup(<TraceReceipt result={preview} heading="If you run now" salesBefore={0} target={10} />);
-    expect(html.match(/class="tp-receipt__line[ "]/g)).toHaveLength(5);
+    expect(html.match(/<li class="tp-receipt__line[ "]/g)).toHaveLength(5);
     expect(html).toContain('Make +6 Units');
     expect(html).toContain('Ship sells');
     expect(html).toContain(`$${preview.total}`);
@@ -221,6 +221,29 @@ describe('THROUGHPUT browser screen', () => {
   it('the HUD Capital tile says what Capital is for', () => {
     const html = renderToStaticMarkup(<TpHud run={new ThroughputRun(1)} />);
     expect(html).toContain('<div class="hud__stat hud__stat--cash" title="Capital (C) is what you spend in the shop between rounds. Only Sales ($) count toward the target.">');
+  });
+
+  it('the receipt heads its columns, and its rule terms explain themselves on hover', () => {
+    const result = scoreLine([slot(null, card(WORKSHOP, 'Home')), slot(null, card(TRUCK, 'Home'))], context());
+    const html = renderToStaticMarkup(<TraceReceipt result={result} heading="Shift" salesBefore={0} target={10} baseMargin={2} />);
+    expect(html).toContain('<div class="tp-receipt__line tp-receipt__cols"><span class="tp-receipt__slot-head" title="Slot">#</span><span>What ran</span>');
+    expect(html).toContain('<abbr title="Units in the Batch after this slot: Makes add Units, and Ships sell them.">Units</abbr>');
+    expect(html).toContain(`<abbr title="Margin: the $ each Unit sells for. Every Shift&#x27;s Batch starts at $2; Designs, Handoffs and Fixtures raise it.">Margin</abbr>`);
+    expect(html).toContain('<span class="tp-receipt__amount">Sold</span></div>');
+    expect(html).toContain('<small><abbr title="Handoff: a card right after another card of the same Category adds +$1 Margin.">Handoff +$1</abbr>; ');
+  });
+
+  it('the Market says what the Hot pips are, and Demand growth in plain words', () => {
+    const run = new ThroughputRun(1, easyConfig({ targets: [100_000, 100_000] }));
+    const hot = CATEGORIES.find((c) => run.trendsNow[c] === 'hot') ?? '';
+    const pips = `${run.hotPipsLeft} Hot boosts left this round: each Shift that sells ${hot} sells it at ×2 and uses one`;
+    const preview = { ...run.preview(), demandSold: { Home: 5 }, demandGrowth: { Home: 10 }, soldOut: ['Home'] as Category[] };
+    const html = renderToStaticMarkup(<MarketBoard run={run} preview={preview} />);
+    expect(html).toContain(`<span class="tp-pips" role="img" aria-label="${pips}" title="${pips}">`);
+    expect(html).toContain('this Shift sells it out, growing Demand +10 next round');
+    expect(html).toContain('title="Selling a Category out, or selling an Emerging one, grows its Demand for good from next round."');
+    const emerging = { ...preview, soldOut: [] as Category[], emergingSold: ['Home'] as Category[] };
+    expect(renderToStaticMarkup(<MarketBoard run={run} preview={emerging} />)).toContain('this Shift grows Demand +10 next round');
   });
 
   it('the last round shows no Demand growth "from next round"', () => {

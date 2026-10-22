@@ -241,3 +241,9 @@ export function runSummary(run: ThroughputRun): RunSummary {
     seed: run.seed,
   };
 }
+
+/** A hover explanation for a receipt event that names a rule rather than a card or Fixture; undefined otherwise. */
+export function eventHelp(event: string): string | undefined {
+  if (event.startsWith('Handoff')) return 'Handoff: a card right after another card of the same Category adds +$1 Margin.';
+  return undefined;
+}

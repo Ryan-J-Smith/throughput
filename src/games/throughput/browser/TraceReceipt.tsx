@@ -1,6 +1,8 @@
+import { Fragment } from 'react';
 import { Icon } from '../../../ui/icons';
 import { formatAmount } from '../model';
 import type { ShiftResult, SlotTrace } from '../rules';
+import { eventHelp } from './present';
 
 export type TraceReceiptProps = {
   result: ShiftResult;
@@ -12,10 +14,12 @@ export type TraceReceiptProps = {
   overkillPay?: number;
   /** A line under the slots explaining the total, e.g. what a Shift with no Ship still earns (preview only). */
   note?: string | null;
+  /** The Margin every Shift's Batch starts at, for the Margin column's explanation. */
+  baseMargin?: number;
 };
 
 /** A Shift's Batch printed as a register receipt: one line per slot, then leftovers and the total. */
-export function TraceReceipt({ result, heading, salesBefore, target, overkillPay, note = null }: TraceReceiptProps) {
+export function TraceReceipt({ result, heading, salesBefore, target, overkillPay, note = null, baseMargin }: TraceReceiptProps) {
   const after = Math.max(0, salesBefore + result.total);
   const cleared = result.leftover;
   return (
@@ -25,6 +29,19 @@ export function TraceReceipt({ result, heading, salesBefore, target, overkillPay
           <span className="receipt__store">Shelf Life Co.</span>
           <span className="receipt__kind">{heading}</span>
         </header>
+        <div className="tp-receipt__line tp-receipt__cols">
+          <span className="tp-receipt__slot-head" title="Slot">#</span>
+          <span>What ran</span>
+          <span className="tp-receipt__batch">
+            <abbr title="Units in the Batch after this slot: Makes add Units, and Ships sell them.">Units</abbr>{' '}
+            <abbr
+              title={`Margin: the $ each Unit sells for.${baseMargin === undefined ? '' : ` Every Shift's Batch starts at $${formatAmount(baseMargin)};`} Designs, Handoffs and Fixtures raise it.`}
+            >
+              Margin
+            </abbr>
+          </span>
+          <span className="tp-receipt__amount">Sold</span>
+        </div>
         <ol className="tp-receipt__lines">
           {result.steps.map((step, i) => {
             const earned = step.sales - (result.steps[i - 1]?.sales ?? 0);
@@ -36,7 +53,16 @@ export function TraceReceipt({ result, heading, salesBefore, target, overkillPay
                 <span className="tp-receipt__slot">{step.slot}</span>
                 <span className="tp-receipt__what">
                   <SlotParts step={step} />
-                  {events.length > 0 && <small>{events.join('; ')}</small>}
+                  {events.length > 0 && (
+                    <small>
+                      {events.map((event, e) => (
+                        <Fragment key={e}>
+                          {e > 0 && '; '}
+                          {eventHelp(event) === undefined ? event : <abbr title={eventHelp(event)}>{event}</abbr>}
+                        </Fragment>
+                      ))}
+                    </small>
+                  )}
                 </span>
                 <span className="tp-receipt__batch">
                   {step.units}u ${formatAmount(step.margin)}

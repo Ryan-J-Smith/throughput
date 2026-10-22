@@ -345,6 +345,7 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
               target={run.target}
               overkillPay={run.overkillPayFor(Math.max(0, run.sales + preview.total))}
               note={noShipNote(run)}
+              baseMargin={run.config.baseMargin}
             />
           </aside>
         </div>
@@ -406,7 +407,7 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
       {lastShift !== null && (
         <details className="tp-last">
           <summary>Last Shift receipt (${lastShift.result.total})</summary>
-          <TraceReceipt result={lastShift.result} heading={lastShift.heading} salesBefore={lastShift.salesBefore} target={lastShift.target} />
+          <TraceReceipt result={lastShift.result} heading={lastShift.heading} salesBefore={lastShift.salesBefore} target={lastShift.target} baseMargin={run.config.baseMargin} />
         </details>
       )}
       <RulesSheet run={run} />

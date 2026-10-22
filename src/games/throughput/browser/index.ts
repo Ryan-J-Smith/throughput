@@ -1,6 +1,8 @@
 export { HowToPlay } from './HowToPlay';
 export type { HowToPlayProps } from './HowToPlay';
 export { LineView } from './LineView';
+export { MarketBoard } from './MarketBoard';
+export type { MarketBoardProps } from './MarketBoard';
 export { GrantPicker, Shelf } from './ShopParts';
 export type { GrantPickerProps, ShelfProps } from './ShopParts';
 export type { BayState, LineViewProps } from './LineView';
@@ -8,7 +10,7 @@ export { ThroughputBrowserGame } from './ThroughputBrowserGame';
 export { ThroughputScreen } from './ThroughputScreen';
 export { TraceReceipt } from './TraceReceipt';
 export type { TraceReceiptProps } from './TraceReceipt';
-export { CATEGORY_ACCENT, cardView, demandBossCut, demandViews, fixtureView, lineNotice, money, offerView, plateText, runProgressLabel, runSummary } from './present';
+export { CATEGORY_ACCENT, cardView, demandBossCut, demandViews, eventHelp, fixtureView, lineNotice, money, offerView, plateText, runProgressLabel, runSummary } from './present';
 export type { DemandView, RunSummary } from './present';
 export { RunAutosave, handNumber } from './run-autosave';
 export { RunSummaryView } from './RunSummary';

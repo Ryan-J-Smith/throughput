@@ -1512,6 +1512,25 @@ body:has(.screen--tp-shop[data-year])::before {
   box-shadow: 0 0 16px -6px rgb(61 220 151 / 0.8);
 }
 
+/* Column heads over the receipt's slot lines; dotted terms explain themselves on hover. */
+.tp-receipt__cols {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--print-dim);
+  background: none;
+}
+
+.tp-receipt__cols .tp-receipt__slot-head {
+  text-align: center;
+}
+
+.tp-receipt__cols abbr,
+.tp-receipt__what abbr {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}
+
 /* What a Shift with no Ship still earns (TraceReceipt `note`). */
 .tp-receipt__note {
   margin: 0;
