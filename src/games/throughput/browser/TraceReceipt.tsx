@@ -1,5 +1,6 @@
+import { Icon } from '../../../ui/icons';
 import { formatAmount } from '../model';
-import type { ShiftResult } from '../rules';
+import type { ShiftResult, SlotTrace } from '../rules';
 
 export type TraceReceiptProps = {
   result: ShiftResult;
@@ -25,12 +26,15 @@ export function TraceReceipt({ result, heading, salesBefore, target, overkillPay
         <ol className="tp-receipt__lines">
           {result.steps.map((step, i) => {
             const earned = step.sales - (result.steps[i - 1]?.sales ?? 0);
+            const empty = !step.welded && step.fixture === null && step.card === null;
+            // A welded slot's only event is "Welded shut", which its line already says.
+            const events = step.welded ? [] : step.events;
             return (
-              <li key={step.slot} className={`tp-receipt__line ${step.label === '(empty)' ? 'is-empty' : ''}`}>
+              <li key={step.slot} className={`tp-receipt__line ${empty ? 'is-empty' : ''} ${step.welded ? 'is-welded' : ''}`}>
                 <span className="tp-receipt__slot">{step.slot}</span>
                 <span className="tp-receipt__what">
-                  {step.label}
-                  {step.events.length > 0 && <small>{step.events.join('; ')}</small>}
+                  <SlotParts step={step} />
+                  {events.length > 0 && <small>{events.join('; ')}</small>}
                 </span>
                 <span className="tp-receipt__batch">
                   {step.units}u ${formatAmount(step.margin)}
@@ -63,5 +67,28 @@ export function TraceReceipt({ result, heading, salesBefore, target, overkillPay
         </p>
       </div>
     </section>
+  );
+}
+
+/** What ran in a slot: its Fixture as a chip (struck through when idle), then the card. */
+function SlotParts({ step }: { step: SlotTrace }) {
+  if (step.welded) return <span className="tp-receipt__card">Welded shut</span>;
+  if (step.fixture === null && step.card === null) return <span className="tp-receipt__card">Empty</span>;
+  return (
+    <>
+      {step.fixture !== null && (
+        <span
+          className="tp-receipt__fixture"
+          data-kind={step.fixture.kind}
+          data-idle={step.idle || undefined}
+          title={step.idle ? `${step.fixture.name}: idle for this card` : step.fixture.name}
+        >
+          <Icon name={step.fixture.kind === 'station' ? 'station' : 'mod'} className="tp-receipt__fixture-icon" />
+          {step.fixture.name}
+        </span>
+      )}
+      {step.fixture !== null && step.card !== null && ' '}
+      {step.card !== null && <span className="tp-receipt__card">{step.card}</span>}
+    </>
   );
 }

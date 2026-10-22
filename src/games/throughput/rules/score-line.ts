@@ -1,7 +1,7 @@
 import type { ThroughputConfig } from '../content';
 import { Batch, cardName, designAdd, formatAmount, makeUnits, shipCap } from '../model';
 import { CATEGORIES } from '../model';
-import type { BoardBoss, Card, Category, Fixture, GrantLevels, TrendStage } from '../model';
+import type { BoardBoss, Card, Category, Fixture, FixtureDef, GrantLevels, TrendStage } from '../model';
 
 export type LineSlot = {
   readonly fixture: Fixture | null;
@@ -31,6 +31,14 @@ export type SlotTrace = {
   readonly slot: number;
   /** "[Fixture] Card", "[Station]", "(empty)" or "(welded)". */
   readonly label: string;
+  /** The Fixture that ran here; null if none or welded. */
+  readonly fixture: FixtureDef | null;
+  /** True if the Fixture did nothing for this slot's card (Quality Lab under a Truck). */
+  readonly idle: boolean;
+  /** The name of the card that ran here; null if none, under a Station, or welded. */
+  readonly card: string | null;
+  /** True if a boss welded the slot shut. */
+  readonly welded: boolean;
   readonly events: readonly string[];
   readonly units: number;
   readonly margin: number;
@@ -92,9 +100,14 @@ export function scoreLine(line: readonly LineSlot[], ctx: ShiftContext, options:
       }
     }
     chain.push(card);
+    const idle = fixture !== null && card !== null && !fixture.def.effect.appliesTo(card);
     steps.push({
       slot: i + 1,
-      label: slotLabel(fixture, card, welded),
+      label: slotLabel(fixture, card, welded, idle),
+      fixture: fixture?.def ?? null,
+      idle,
+      card: card === null ? null : cardName(card),
+      welded,
       events: batch.takeEvents(),
       units: batch.units,
       margin: batch.margin,
@@ -211,9 +224,8 @@ function ship(card: Card, marginMul: number, fixture: Fixture | null, batch: Bat
   batch.note(`Ship sells ${sold} × $${formatAmount(price)} = $${revenue}${notes.length > 0 ? ` (${notes.join(', ')})` : ''}`);
 }
 
-function slotLabel(fixture: Fixture | null, card: Card | null, welded: boolean): string {
+function slotLabel(fixture: Fixture | null, card: Card | null, welded: boolean, idle: boolean): string {
   if (welded) return '(welded)';
-  const idle = fixture !== null && card !== null && !fixture.def.effect.appliesTo(card);
   const parts = [fixture === null ? '' : `[${fixture.def.name}${idle ? ': idle' : ''}]`, card === null ? '' : cardName(card)].filter(Boolean);
   return parts.length > 0 ? parts.join(' ') : '(empty)';
 }

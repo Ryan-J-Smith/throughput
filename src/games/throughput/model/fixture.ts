@@ -51,6 +51,8 @@ export type FixtureDef = {
   readonly rarity: Rarity;
   readonly price: number;
   readonly text: string;
+  /** A 2–4 word gist for the bay plate (e.g. "+$1 per Make before"); the plate shows `text` without one. */
+  readonly short?: string;
   readonly effect: FixtureEffect;
 };
 
