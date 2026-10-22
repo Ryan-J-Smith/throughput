@@ -66,7 +66,7 @@ describe('ThroughputRun: setup', () => {
   });
 });
 
-/** A boss that changes nothing and may come from `earliestYear` on. */
+/** A boss that changes nothing, may come from `earliestYear` on, and weighs `lateWeight` in the draw from Year 3. */
 class YearBoss extends BoardBoss {
   readonly id: string;
   readonly name: string;
@@ -74,13 +74,33 @@ class YearBoss extends BoardBoss {
   readonly short = '';
   readonly pressures = '';
   override readonly earliestYear: number;
+  private readonly lateWeight: number;
 
-  constructor(id: string, earliestYear = 1) {
+  constructor(id: string, earliestYear = 1, lateWeight = 1) {
     super();
     this.id = id;
     this.name = id;
     this.earliestYear = earliestYear;
+    this.lateWeight = lateWeight;
   }
+
+  override drawWeight(year: number): number {
+    return year >= 3 ? this.lateWeight : 1;
+  }
+}
+
+/** The draw before boss weights: a uniform pick among the unmet bosses a Year allows. */
+function uniformDraw(pool: readonly BoardBoss[], years: number, rng: Rng): BoardBoss[] {
+  const out: BoardBoss[] = [];
+  let unmet = [...pool];
+  for (let year = 1; year <= years; year++) {
+    const allowed = (boss: BoardBoss) => boss.earliestYear <= year;
+    if (!unmet.some(allowed)) unmet = [...pool];
+    const pick = rng.pick(unmet.filter(allowed));
+    out.push(pick);
+    unmet = unmet.filter((boss) => boss !== pick);
+  }
+  return out;
 }
 
 describe('assignBosses', () => {
@@ -114,6 +134,26 @@ describe('assignBosses', () => {
     // Year 3 picks from 7 unmet bosses (5 early left, 2 late): each about 1/7.
     for (const id of ids(pool)) expect((year3.get(id) ?? 0) / seeds, id).toBeLessThan(0.2);
     expect(((year3.get('late1') ?? 0) + (year3.get('late2') ?? 0)) / seeds).toBeCloseTo(2 / 7, 1);
+  });
+
+  it('with every weight at 1, draws exactly as the uniform pick did', () => {
+    for (let seed = 1; seed <= 200; seed++) expect(ids(assignBosses(pool, 12, new Rng(seed))), `seed ${seed}`).toEqual(ids(uniformDraw(pool, 12, new Rng(seed))));
+  });
+
+  it('draws a boss weighted for late Years more often there, and earliestYear still gates', () => {
+    const heavy = [...early, new YearBoss('late1', 3), new YearBoss('heavy', 1, 3)];
+    const count = (year: number, id: string) => {
+      let n = 0;
+      for (let seed = 1; seed <= 4000; seed++) {
+        const drawn = ids(assignBosses(heavy, 4, new Rng(seed)));
+        expect(drawn.slice(0, 2)).not.toContain('late1');
+        if (drawn[year - 1] === id) n++;
+      }
+      return n / 4000;
+    };
+    // Years 1–2 pick uniformly among the 8 early bosses; Year 3 weighs 'heavy' 3 against 1 for the others.
+    expect(count(1, 'heavy')).toBeCloseTo(1 / 8, 1);
+    expect(count(3, 'heavy')).toBeGreaterThan(count(3, 'a') * 2);
   });
 });
 
@@ -635,13 +675,17 @@ describe('ThroughputRun: bosses', () => {
   });
 
   it('Turnover dispatches Designs', () => {
+    // Turnover waits for Year 3: one round a Year, so round 3 is its Board.
     const run = findRun(
-      { ...config, targets: [10, 10_000, 10, 10] },
+      { ...config, roundsPerYear: 1, targets: [10, 10, 10_000, 10] },
       (r) => {
         makeAndShip(r);
+        if (r.phase !== 'shop') return;
         r.continueToNextRound();
+        makeAndShip(r);
+        if (r.phase === 'shop') r.continueToNextRound();
       },
-      (r) => r.boss?.id === 'turnover' && r.hand.some((c) => c.def.stage === 'design'),
+      (r) => r.round === 3 && r.boss?.id === 'turnover' && r.hand.some((c) => c.def.stage === 'design'),
     );
     run.load([{ hand: handIndex(run, 'design'), slot: 0 }]);
     expect(run.staysAfterShift(0)).toBe(false);

@@ -9,6 +9,8 @@ export class Batch {
   margin: number;
   /** Multiplier on every later Ship cap (Price Gun). */
   capMul = 1;
+  /** Stations passed so far this Shift; every one after the first multiplies Units by less (Megafactory, Assembly Line). */
+  stations = 0;
   sales = 0;
   /** The most this Shift's Sales may reach (Quota Cap); Infinity when there is no cap. */
   readonly salesCap: number;

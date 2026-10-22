@@ -66,7 +66,7 @@ export function assignBosses(pool: readonly BoardBoss[], years: number, rng: Rng
     if (!unmet.some(allowed)) unmet = [...pool];
     const choices = unmet.filter(allowed);
     if (choices.length === 0) break;
-    const pick = rng.pick(choices);
+    const pick = rng.weightedPick(choices, (boss) => boss.drawWeight(year));
     out.push(pick);
     unmet = unmet.filter((boss) => boss !== pick);
   }
@@ -964,7 +964,7 @@ export class ThroughputRun {
   private enterShop(): void {
     this.phase_ = 'shop';
     if (this.stored_ > 0) this.storageNotice_ = `Warehouse: ${this.stored_} Units in stock for the next Board Review`;
-    this.shop_.restock((c) => this.whyContractUnavailable(c) === null);
+    this.shop_.restock((c) => this.whyContractUnavailable(c) === null, this.quarterOf(this.round_ + 1).year);
   }
 
   private applyContract(effect: ContractEffect, { deckCard, category, option }: BuyTarget): void {

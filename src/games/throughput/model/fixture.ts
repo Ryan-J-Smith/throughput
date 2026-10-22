@@ -30,6 +30,14 @@ export abstract class FixtureEffect {
     return 1;
   }
 
+  /**
+   * False if `saleMultiplier` replaces Hot instead of stacking with it: the sale takes the larger of the two, and a
+   * Hot pip is spent only when Hot is the larger (Express Lane).
+   */
+  stacksWithHot(): boolean {
+    return true;
+  }
+
   /** Runs each time the card here finishes resolving. */
   afterResolve(_card: Card, _batch: Batch): void {}
 
@@ -56,6 +64,10 @@ export type FixtureDef = {
   readonly text: string;
   /** A 2–4 word gist for the bay plate (e.g. "+$1 per Make before"); the plate shows `text` without one. */
   readonly short?: string;
+  /** First Year whose shops offer it (the premium Fixtures: Year 3); 1 when absent. */
+  readonly earliestYear?: number;
+  /** Offer weight, outside the rarity odds (the premium Fixtures); the rarity's share when absent. */
+  readonly weight?: number;
   readonly effect: FixtureEffect;
 };
 

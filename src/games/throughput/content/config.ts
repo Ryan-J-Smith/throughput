@@ -75,9 +75,10 @@ export type ThroughputConfig = {
 export const SEED_03_TARGETS: readonly number[] = [150, 250, 400, 600, 900, 1300, 1800, 2600, 3600, 5000, 7000, 10000];
 
 export const DEFAULT_CONFIG: ThroughputConfig = {
-  // Playtest-2 re-fit (DESIGN_NOTES "Target re-fit from R7"): R1–R6 as before, then ×1.3–1.5 a round,
-  // calibrated to LLM play (Sonnet's Shift-1 output), not to the bots, which now win 1–3%.
-  targets: [130, 200, 270, 360, 470, 600, 950, 1400, 2050, 3000, 4300, 5800],
+  // Playtest-2 re-fit (DESIGN_NOTES "Target re-fit from R7"): ×1.3–1.5 a round from R7, calibrated to LLM play
+  // (Sonnet's Shift-1 output), not to the bots, which now win 1–3%. Playtest 3 (DESIGN_NOTES "Years 1–2 re-firmed"):
+  // R1–R7 up 15–20%, since Years 1–2 were the softest part of the curve; R8–R12 unchanged.
+  targets: [150, 240, 320, 420, 560, 720, 1050, 1400, 2050, 3000, 4300, 5800],
   roundsPerYear: 3,
   endlessGrowth: 1.3,
   shiftsPerRound: 4,

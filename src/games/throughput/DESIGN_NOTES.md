@@ -807,3 +807,245 @@ differences patched):
 
 **Runtime:** about 2 minutes per 100 seeds on one core (118 s wall for `--runs 100`). The strategy bots take about
 2 s.
+
+## Playtest-3 balance pass
+
+Round 3 found that burst runs (Express Lane or Megafactory) ran R7–R12 at 1.89× with 83% Shift-1 clears. No-burst
+runs ran at 1.21× with 17%. Targets for round 4: burst and no-burst within about 1.3× of each other late, and no
+single item deciding whether a run has tension. Each step below is simmed before and after.
+
+### Roster and baseline
+
+Two bots join the default roster, so the burst builds are measured every run:
+
+| Bot | Plan |
+|---|---|
+| `express-burst` | Rerolls (up to 2 a visit) for Express Lane, then Robot Arm, Marketplace, Influencer, Design Studio. Takes the Premium grant on its best seller. |
+| `station-volume` | Stacks Units-multiplier Stations (Megafactory, Assembly Line, Robotics Cell) with sell-all Ships (Export Deal, Wholesale Club) and a Price Gun. |
+
+`classifyBuild` gains matching `express-burst` and `station-volume` archetypes: Express Lane owned; or 2 Units
+multipliers plus a sell-all Ship.
+
+**Baseline** (`06bb721`, roster 1000 seeds each, expert 200 seeds). "Burst" means the run owns Express Lane or
+Megafactory at the round's start.
+
+| Bot | Wins | R4–R6 | R7–R12 | Burst | No-burst |
+|---|---|---|---|---|---|
+| greedy | 5.4% | 1.52 | 1.17 | 1.19 | 1.16 |
+| mass-market | 6.6% | 1.43 | 1.17 | 1.22 | 1.14 |
+| rnd-compounder | 9.2% | 1.46 | 1.21 | – | 1.21 |
+| trend-surfer | 3.0% | 1.54 | 1.14 | 1.17 | 1.13 |
+| express-burst | 2.5% | 1.55 | 1.15 | 1.20 (S1 23%) | 1.12 |
+| station-volume | 17.5% | 1.47 | 1.26 | 1.33 | 1.22 |
+| expert | 52.5% | 1.96 (S1 85%) | 1.43 | 1.56 (S1 69%) | 1.33 (S1 39%) |
+
+- The expert's Express Lane rounds run at 1.57× late. Its runs that end up as express-burst win 61% (85 runs).
+  Station-volume wins 92% (13 runs).
+- Express Lane's best single rounds reach 7–11× (greedy 11.4×, expert 9.1×). That matches round 3's 8.71× R5.
+
+### Express Lane: a garnish (round 3 §7 #1)
+
+Express Lane multiplied Hot ×2, Marketplace ×1.5 and Premium on one Shift-1 Ship, for ×6–×11. Two candidates, each
+simmed on the full roster (1000 seeds a bot) and the expert:
+
+| Express Lane | Expert wins | Expert wins, owning EL / not | EL rounds, late | Burst / no-burst, late | Best EL round |
+|---|---|---|---|---|---|
+| ×3, stacks with Hot (before) | 53.0% (400 seeds) | 62.0% / 45.4% | 1.57 | 1.56 / 1.32 | 9.07× (R3) |
+| ×2, stacks with Hot | 43.5% (200 seeds) | 37.0% / 47.2% | 1.31 | 1.41 / 1.32 | 6.84× (R5) |
+| **×3, doesn't stack with Hot** | 49.5% (400 seeds) | **54.4% / 45.9%** | 1.37 | **1.42 / 1.32** | 6.73× |
+
+- **Chosen: ×3 that doesn't stack with Hot.** A Hot Ship on the Lane in Shift 1 takes the larger multiplier
+  (Express ×3) and doesn't spend the Hot pip, which stays for a later Hot sale. In later Shifts, Hot applies as normal.
+  - It stays a good pick: runs that own it win 8.5 points more often, against 16.6 before.
+  - The expert's R4–R6 rounds with it drop from 2.91× to 1.97× on average (200 seeds).
+  - Late, burst and no-burst land within 1.08× of each other (target: 1.3×).
+- **×2 made it a trap.** Runs that bought it won 10 points less often: ×2 on one Shift a round loses to a plain Mod.
+- **The no-burst field doesn't move.** Roster no-burst R7–R12 stays at 1.12–1.22 per bot, and the expert's at 1.32.
+- **Text:** "A Ship here sells at Margin ×3 in Shift 1 of each round; Hot doesn't stack." (75 characters.)
+- **Wiring:** `FixtureEffect.stacksWithHot()` (default true; Express Lane false) is the contract. asst-a wires it in
+  `scoreLine`: when it is false, the sale takes the larger of Hot and the Fixture's multiplier, and spends the pip only
+  if Hot is the larger.
+
+### Station × Station × sell-all (round 3 §7 #2)
+
+Sonnet's VS ran Robotics ×3 → Megafactory ×3 → Assembly ×2 → Price Gun ×2 → Export Deal: 144–185 Units a Shift, all
+sold, since sell-all ignored Demand and Price Gun's cap cut. Simmed on top of the Express Lane change. "Mega" rounds own
+Megafactory but not Express Lane.
+
+| Variant | Expert wins | Late burst / no-burst | Mega rounds, late | Megafactory runs win | VS builds (wins) | `station-volume` bot |
+|---|---|---|---|---|---|---|
+| Express Lane change only | 48.0% | 1.43 / 1.33 | 1.60 (best 7.91×) | 79% | 13 (92%) | 17.5%, burst 1.33 / 1.22 |
+| + sell-all respects cap cuts | 48.0% | 1.41 / 1.32 | 1.61 | 77% | 12 (83%) | 16.2%, 1.31 / 1.21 |
+| + Price Gun spares its own Ship (B1 text) | **60.0%** | 1.42 / 1.36 | 1.59 | 82% | 12 (92%) | 15.9%, 1.31 / 1.21 |
+| **+ cap cuts, a 2nd Station ×1.5** | 47.5% | **1.39 / 1.31** | **1.54 (best 6.61×)** | 78% | 10 (80%) | **13.3%, 1.21 / 1.21** |
+
+Expert on seeds 1–200; roster 1000 seeds per bot.
+
+- **Sell-all Ships respect cap cuts.** They still ignore Demand, which is their identity. With Price Gun ahead, a sell-all
+  sells half its Units at ×2, so the gun is no longer a free ×2. asst-a wires it in `scoreLine`.
+- **B1: the text changes, not the behaviour.** Sparing Price Gun's own Ship (what the old text said) gave every Truck a
+  clean ×2 and lifted expert wins from 48% to 60%. Price Gun keeps halving the Ship in its own slot. The new text:
+  "Margin ×2. Ship caps halve from here on (a Truck: half the Demand left)."
+- **A Station after another Station multiplies Units by ×1.5** (the 2nd-Rebrand pattern). Megafactory and Assembly Line
+  are the only Stations, and both are Units multipliers. The first Station in Line order keeps its full factor, so
+  ordering still matters: Megafactory then Assembly gives ×4.5, against ×3 the other way round.
+  - It cuts the Mega lane from 1.22× to 1.18× of the no-burst field, and trims its peak.
+  - It puts the `station-volume` bot's burst rounds level with its no-burst rounds.
+- **No-burst holds:** 1.31–1.33 for the expert in every variant, and the roster's no-burst is unchanged.
+
+### Hot opener A/B (asst-a's `hotOpener`, round 3 §7 #6)
+
+Simmed on tp-r3 (`f022d03`) merged with the two changes above, with the hotOpener flag on and off. Roster 1000 seeds a
+bot, expert 200.
+
+| | Expert wins | Expert Shift-1 clears, R1–R5 | Roster wins (6 bots) | Roster Shift-1 clears, R1 / R4–R6 |
+|---|---|---|---|---|
+| Off | 48.0% | 74–90% | 2.3–13.4% | 34% / 18–27% |
+| **On** | 45.0% | 81–100% | 1.5–12.2% | 69% / 27–45% |
+
+- **Keep it on.** It removes the stranded-Hot-pip turns that 7 of 8 testers reported, and round tempo speeds up.
+- Ratios dip slightly, because rounds end on Shift 1 more often: the roster loses 0.6–2 points on 5 of 6 bots, and
+  the expert's dip is within noise.
+- The expert's `sampleHand` now mirrors the Hot swap, once tp-r3 is on main.
+
+### Years 1–2 re-firmed (round 3 §7 #3)
+
+Round 3 ran R4–R6 at 2.28×, with 83% Shift-1 clears. Re-fitted after Express Lane, the Station changes and the Hot
+opener, on the merged tp-r3 tree; R8–R12 unchanged. Expert 200 seeds (400 for the chosen curve), roster 1000 a bot.
+Cells are mean sales ÷ target, with Shift-1 clear % in parentheses.
+
+| Curve, R1–R7 | Expert R1–R3 | Expert R4–R6 | Expert wins | Roster reaching R7 | Roster wins |
+|---|---|---|---|---|---|
+| 130 / 200 / 270 / 360 / 470 / 600 / 950 (before) | 1.79 (93%) | 1.90 (93%) | 47.5% | 91% | 1.5–12.2% |
+| 130 / 200 / 270 / 420 / 560 / 720 / 1050 | 1.79 (93%) | 1.66 (88%) | 46.5% | 85% | 1.8–11.3% |
+| 155 / 240 / 325 / 420 / 560 / 720 / 1050 | 1.54 (81%) | 1.59 (90%) | 47.0% | 81% | 0.8–10.1% |
+| 170 / 260 / 350 / 450 / 600 / 780 / 1100 | 1.45 (82%) | 1.54 (86%) | 43.0% | 76% | 1.0–9.8% |
+| **150 / 240 / 320 / 420 / 560 / 720 / 1050 (chosen)** | **1.55 (83%)** | **1.61 (89%)** | **46.5%** | **81%** | **1.0–10.3%** |
+
+- **New curve:** 150, 240, 320 | 420, 560, 720 | 1050, 1400, 2050 | 3000, 4300, 5800.
+  - R1–R3 rise 15–20%, as NH asked. R4–R6 and R7 are the orchestrator's hypothesis.
+  - R10–R12 are not raised.
+- **Skilled play** (expert, 400 seeds):
+  - Years 1–2 now run at about 1.6× rather than 1.8–1.9×.
+  - Late play is unchanged: R7–R12 1.29×, burst / no-burst 1.33 / 1.26.
+  - The expert loses only at the Year-3 and Year-4 Boards (R9 12%, R12 36%).
+- **Weak play** (roster): Year-1 Board losses rise from 1% to 3%, and 81% reach R7 (91% before).
+  - The steeper curve costs weak play another 5 points of reach for little gain in skilled tension, so it was
+    rejected.
+- The expert still clears most of Years 1–2 on Shift 1. Raising targets doesn't change that: even +30% leaves 86%. Its
+  Shift-1 output is about 1.5× the target, so forcing Shift 2 would take +50%, which would wipe out weak play.
+  Tension in Years 1–2 has to come from the Boards and the draw, not the targets.
+
+### Dead items, supply and the Skimmer lane (round 3 §7 #9)
+
+Round 3's dead list: Pop-Up 0/19, Wholesale 1/18, Cross-Dock 2/21, Factory Floor 2/21, Signature Line 2/18, Packaging
+Line 1/10, Lean Cell 0/7 and Patent Office 0/3. Each candidate was simmed alone on the expert, which reads "would a
+skilled player take it?" better than the roster. Then the set was simmed together.
+
+| Item | Before (expert pick %, wins with / without) | Change | After |
+|---|---|---|---|
+| Pop-Up Shop | 7% (31% / 50%) | Ship 5 at ×3 → ×4: the Skimmer's spike Ship | 18%, at par |
+| Wholesale Club | 2% | **Retired from the shop.** Export Deal does the same job at ×0.75. | – |
+| Cross-Dock | 21% | +$2 per Make before → Margin ×1.2 per Make before | 27% |
+| Signature Line | 37% (−9% aware) | +$2 → Margin ×1.25 after a same-Category card | 40% (at par) |
+| Packaging Line | 24% | +6 → +8 Units | 24% (+10% aware) |
+| Patent Office | 3% | ×(1 + growth ÷ 10) → ×1.5, +0.1 per $1 grown: no longer needs R&D fuel | 45%, at par |
+| Luxury Counter | 1–2% | caps ≤ 8 → ≤ 12 (Subscriptions qualifies); ×2 → ×2, +0.25 a round owned | Skimmer payoff, below |
+| Outsourcer | 24% | 6 → 5C | 31% |
+| R&D Grant | 328 offers in 200 runs | always offered by the 3rd shop visit, if the run can take one | 454 offers |
+
+- **Not changed:**
+  - **Lean Cell is not dead for skilled play.** The expert buys it in 82% of runs at ×1.5, since early Lines hold 15
+    Units or fewer. At ×2 it alone lifted expert wins from 46.5% to 56.5%.
+  - **Factory Floor:** +12 Units without the −$1 barely moved the expert (35% → 37–42%, still below par). The
+    Station changes already make Units scarcer, so it waits for round 4.
+  - Packaging Line as "a capped Ship here sells up to twice its cap" was worse (5% pick), so it was rejected.
+- **Skimmer payoff.** A new `skimmer` roster bot commits to the lane: Luxury Counter, Boutique, Lean Cell, Packaging,
+  Pop-Up and Designs. Over 1000 seeds:
+
+  | Variant | `skimmer` wins | `skimmer` R7–R12 | Best `skimmer` round |
+  |---|---|---|---|
+  | Before | 0.9% (last of 7 bots) | 1.09 | 3.1× |
+  | Pop-Up ×4, Luxury ×2 + 0.25/round, caps ≤ 8 | 4.2% | 1.16 | 4.6× |
+  | **… caps ≤ 12** | **6.0% (mid-field)** | **1.17** | **4.6×** |
+  | … + 0.5/round | 7.1% | 1.20 | 5.8× |
+
+  - The +0.25 version takes the lane from last to mid-field, and its peaks stay under the field's.
+  - The expert still rarely buys Luxury Counter (3–5%), since one-buy-at-a-time valuation can't see a payoff that
+    grows. Committed play (LLM testers) can.
+- **Dense copy** (asst-a's note):
+  - Patent Office: "A Design here gives Margin ×1.5, +0.1 per $1 it has grown."
+  - R&D Grant: "Category: Premium (+25% price) or Scale (+10 Demand, +3 Units a Ship)."
+- **The shipped set** (everything above, Factory Floor unchanged), 400 expert seeds:
+  - Expert wins move from 46.5% to 48.0%.
+  - Every reworked item sits at or above par when bought. Luxury Counter is +22% aware on its few buys, Patent Office
+    +5% at 49% picks, and Packaging Line +9%.
+  - The roster's `skimmer` wins 6.0%. The other bots are unchanged within noise (station-volume 11.7%).
+  - The late curve is left alone, as asked.
+
+### Premium Fixtures for late shops (round 3 §7 #8)
+
+Six of eight testers said Year 3–4 shops had nothing worth buying. Three rare Fixtures now come only in shops leading
+into Year 3 or later, at 12–14C, built on existing hooks:
+
+| Fixture | Price | Rule | Hook |
+|---|---|---|---|
+| Creative Director | 12C | The Design here resolves three times. | `resolveCount` |
+| Global Brand | 12C | A Ship here sells at Margin ×2 (stacks with Hot). | `saleMultiplier` |
+| Conglomerate | 14C | Margin ×1.5, carrying on to later slots. | `onSlot` |
+
+- **Offers:**
+  - `FixtureDef` gains `earliestYear` and `weight`. The shop's restock takes the Year of the round it leads into.
+  - Premium Fixtures carry their own weight (5 each), outside the 60 / 30 / 10 rarity odds. So Year 1–2 odds are
+    unchanged, and they make about 13% of late Fixture offers, about 1.9 a run.
+- **Expert, 400 seeds** (on the item-4 build), offer weight 3 vs 5:
+
+  | | Wins | R10–R12 | Picks: Creative Director / Global Brand / Conglomerate |
+  |---|---|---|---|
+  | None (before) | 48.0% | 1.18 | – |
+  | Weight 3 | 51.5% | 1.19 | 18% / 20% / 9% |
+  | **Weight 5** | 51.3% | 1.18 | 18% / 21% / 8% |
+
+  - Buyers of Creative Director (+20% aware) and Conglomerate (+12%) win more often; Global Brand is at par.
+  - R10–R12 ratios don't move: the premium items compete with each other and with the late spending the expert
+    already does. So late shops gain real choices without softening the end.
+- Not done, since they're new features for the user: the paid boss mitigation and the reroll lock.
+
+### Boss Years and weights (round 3 §7 #4, with asst-a)
+
+Round 3: Short Week was free in Year 2 (0 of 3 changed play) and Turnover in Year 1 (1 of 3). The three Sonnet burst
+runs met 2 biting Boards in 12, and none drew Quota Cap.
+
+- **Short Week and Turnover wait for Year 3** (`earliestYear`). The expert cleared both on Shift 1 98–100% of the
+  time in Years 1–2.
+  - Year 1–2 Boards are now Bottleneck, JIT Auditor, Line Shift, Quota Cap and Supply Shock (about 20% each).
+- **Quota Cap, Ethics Review and Bottleneck weigh 3 in Years 3–4** (`BoardBoss.drawWeight(year)`).
+  - `assignBosses` uses a weighted pick. With every weight at 1 it draws exactly as before.
+  - Line Shift's rework needs the user, so it is unchanged.
+- **Simulation:** expert, 400 seeds per variant, on the build with items 1–5:
+
+  | | Expert wins | Late Board losses | Biting share of late Boards | Runs meeting a biting late Board |
+  |---|---|---|---|---|
+  | Before | 51.2% | 20% | 35% | about 58% |
+  | Short Week and Turnover in Year 3 | 53.5% | 19% | 32% | about 54% |
+  | … + weight 2 | 52.2% | 20% | 47% | – |
+  | **… + weight 3** | **49.2%** | 21% | **53%** | **about 79%** |
+
+- **Late Boards for the expert, after the change** (loss % and Shift-1 clear %):
+
+  | Board | Loss | Shift-1 clears |
+  |---|---|---|
+  | Supply Shock | 46% | 14% |
+  | Bottleneck | 39% | 14% |
+  | Recession | 26% | 21% |
+  | Line Shift | 20% | 49% |
+  | Ethics Review | 18% | 36% |
+  | Short Week | 15% | 47% |
+  | Quota Cap | 10% | 0% |
+  | JIT Auditor | 8% | 57% |
+  | Turnover | 5% | 66% |
+
+  - Quota Cap now always costs tempo but rarely kills (asst-a's sales-stop-at-the-cap rule).
+  - Bottleneck and Supply Shock are the lethal ones. That matches DH's "cliff" note, so it's passed to asst-a and the
+    orchestrator (boss rules are theirs).
+  - Turnover stays nearly free even late.

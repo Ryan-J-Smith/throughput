@@ -13,6 +13,15 @@ export abstract class BoardBoss {
   /** The first Year this boss can be drawn for; later-Year bosses wait until engines exist to test. */
   readonly earliestYear: number = 1;
 
+  /**
+   * Relative chance of being drawn for `year` among the unmet bosses (the Boards that bite weigh more
+   * late). 0 excludes it for that Year, but keep exclusion to `earliestYear`: if every unmet boss
+   * weighed 0, the draw would throw.
+   */
+  drawWeight(_year: number): number {
+    return 1;
+  }
+
   /** True if this 0-based slot is unusable this round. */
   isWelded(_slot: number): boolean {
     return false;
