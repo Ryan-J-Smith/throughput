@@ -756,3 +756,54 @@ Winning the Year-4 Board ends the run as a win, as before. The win screen can no
 - Revisit `endlessGrowth` after LLM playtest round 3.
 
 **Not included:** endless-only modifiers, a score multiplier, a leaderboard. None of them were requested.
+
+## Expert bot (sim tooling)
+
+The strategy bots under-rate skilled play badly. Their late Shift-1 output is about a fifth of Sonnet's, so every curve
+decision waited on an LLM playtest. `ExpertBot` (`sim/expert-bot.ts`) approximates skilled play instead. It sits
+outside the default roster, so existing reports stay comparable. Run it with
+`npm run sim -- --scenario throughput-expert --runs 100`.
+
+**How it plays:**
+- **Load:** the shared planner. The planner now also solves detached `LoadProblem`s, and the strategy bots play
+  exactly as before.
+- **Retools:** when the plan can't clear, it tries the 1–3 least useful cards, and any mix of the cards the plan
+  leaves out. It draws sample redraws from the draw pile's contents, not its order. It Retools only if the redraws
+  make clearing this Shift clearly likelier: clearing scores 1 and partial progress at most 0.3.
+  - Digging for progress alone burned the cards a four-Shift Board needs. That lost seed 261's Year-1 Board.
+- **Shop:** it scores each offer, in every place it could go, by the gain in expected best Shift-1 sales:
+  - over 12 sampled hands, half for the next round and half for the one after (their trends, Demand cuts and
+    bosses);
+  - including replacing onto a full Line.
+  - It buys the best gain per Capital while the gain is at least 2% of the target, and rerolls up to 3 times while
+    5C stays for a buy.
+  - Before leaving, it makes any Fixture move that pays, such as moving out of a slot the next boss welds.
+  - Training (once) and Floor Expansion get a small flat bonus, since one round's hands can't show their value.
+  - Moves and the Floor Expansion bonus together took wins on the 65c5785 build from 83–86% to 92%.
+
+**Calibration against playtest round 2** (the 65c5785 build and curve; the bot was ported with the old API's
+differences patched):
+
+| | Expert, round-2 seeds | Sonnet (4 runs) | Haiku (4 runs) |
+|---|---|---|---|
+| Wins | 8 of 8 | 4 of 4 | 3 of 4 |
+| R7–R12 sales ÷ target | 1.58 | 1.77 (1.48–2.07 per run) | 1.41 (1.04–2.05) |
+| Shift-1 clears | 76% | 79% | 28% |
+| Retools a run | 11–22 | about 17 | about 14 |
+| Rerolls a run | 5–9 | 7–14 | about 0 |
+| Capital at the end | 12–20C | 18–46C | 46–106C |
+
+- Over 100 seeds of the old build, the expert wins 92%, with R7–R12 at 1.40× (per-run median 1.32, IQR 1.23–1.43).
+- **Verdict:** it plays like Sonnet in tempo (Shift-1 clears, Retools, rerolls), and it buys the same spine (Quality
+  Lab 97% of runs, Overtime Crew 90%, Contract Manufacturer 70%, Training 73%).
+- Its late engine is weaker. R7–R12 sits at Sonnet's low end (RS 1.48), between the Haiku average and Sonnet's.
+  Sonnet's R10–R11 spikes (2.2–2.7×) came from quadratic volume and multiplier chains, which a one-buy-at-a-time
+  valuation doesn't plan toward.
+- Read its curve as a floor for skilled play.
+
+**Current build** (`dfa9e41` content, 100 seeds): the expert wins 55%. Its margin over target by round is +78%
+(R1), +105% (R5), +73% (R7), +38% (R9), +43% (R10), +33% (R11) and +15% (R12). Its item impact flags Megafactory
+(+40% aware Δ, 87.5% wins when bought) and Export Deal (+22%), which the strategy bots under-play.
+
+**Runtime:** about 2 minutes per 100 seeds on one core (118 s wall for `--runs 100`). The strategy bots take about
+2 s.
