@@ -28,16 +28,10 @@
   z-index: 1;
 }
 
+/* The title's descenders hang below its tight line box, so the tagline sits a little further off. */
 .home__header {
   display: grid;
-  gap: 8px;
-}
-
-.home__brand {
-  margin: 0;
-  color: var(--chalk-dim);
-  font: 600 0.95rem/1.2 var(--font-body);
-  letter-spacing: 0.04em;
+  gap: 14px;
 }
 
 .home__title {
