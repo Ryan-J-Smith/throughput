@@ -435,7 +435,7 @@ export class ExpressBurstBot extends StrategyBot {
 /** Fixtures that multiply a Batch's Units (Stations) or a Make's (Robotics Cell). */
 const UNIT_MULTIPLIERS: readonly string[] = ['megafactory', 'assembly-line', 'robotics-cell'];
 /** Ship cards that sell every Unit, ignoring Demand. */
-const SELL_ALL: readonly string[] = ['export-deal', 'wholesale-club'];
+const SELL_ALL: readonly string[] = ['export-deal'];
 
 /**
  * Station × Station volume into a sell-all Ship (playtest 3's other dominant family): Robotics
