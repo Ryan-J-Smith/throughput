@@ -14,3 +14,4 @@ export { RunAutosave, handNumber } from './run-autosave';
 export { RunSummaryView } from './RunSummary';
 export type { CopyText, RunSummaryViewProps } from './RunSummary';
 export type { RestoredRun } from './run-autosave';
+export { CATEGORY_ICON, STAGE_ICON, bossArt, cardArt, contractArt, fixtureArt } from './art';

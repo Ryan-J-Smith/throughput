@@ -2,6 +2,7 @@ import { RunBrowserGame } from './app';
 import { DemoGame } from './content/demo';
 import { BomBrowserGame } from './games/bom/browser';
 import { ThroughputBrowserGame } from './games/throughput/browser';
+import { ArtGalleryBrowserGame } from './ui/gallery';
 import type { BrowserGame } from './ui/games';
 
 /**
@@ -19,4 +20,6 @@ export const BROWSER_GAMES: readonly BrowserGame[] = [
     listing: 'dev',
     createGame: () => new DemoGame(),
   }),
+  // Dev server only: review generated art between batches. Vite drops this branch from builds.
+  ...(import.meta.env.DEV ? [new ArtGalleryBrowserGame()] : []),
 ];

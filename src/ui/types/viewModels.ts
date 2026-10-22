@@ -1,3 +1,5 @@
+import type { IconName } from '../icons';
+
 // Display-only view models. The UI renders these and reports intent through callbacks;
 // whatever owns game state (placeholder now, engine later) is responsible for producing them.
 
@@ -25,6 +27,10 @@ export type CardView = {
   accent?: string;
   /** Text for the big model number instead of "+value" (e.g. "+$2", "×1.5"); presentational only. */
   valueLabel?: string;
+  /** Illustration URL for the card's window; presentational only. */
+  art?: string;
+  /** Glyph shown in the band, and in the window when there is no art; presentational only. */
+  icon?: IconName;
 };
 
 export type ModifierView = {

@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { Icon } from '../icons';
 import type { CardView, Rarity } from '../types';
 import { Tooltip } from './Tooltip';
 
@@ -16,13 +17,16 @@ export type CardProps = {
 
 /**
  * A card printed like product packaging: a department band (first tag, coloured by `accent`),
- * the name, the value as a big model number, the blurb, and remaining tags as stamps.
+ * the name, the value as a big model number, the blurb, and remaining tags as stamps. With art
+ * (or an icon) the box gets a window under the band and the value sits on it as a sticker.
  */
 export function Card({ card, selected = false, disabled = false, compact = false, rarity, index, onClick, footer }: CardProps) {
   const isDisabled = disabled || card.disabled === true;
+  const windowed = !compact && (card.art !== undefined || card.icon !== undefined);
   const className = [
     'card',
     compact && 'card--compact',
+    windowed && 'card--windowed',
     rarity && `card--rarity-${rarity}`,
     selected && 'card--selected',
     isDisabled && 'card--disabled',
@@ -33,14 +37,30 @@ export function Card({ card, selected = false, disabled = false, compact = false
   const [department, ...stamps] = card.tags;
   const style = index === undefined ? undefined : ({ '--i': index } as CSSProperties);
 
+  const valueText = card.valueLabel ?? (card.value !== undefined ? `+${card.value}` : undefined);
+  const value = valueText !== undefined && <span className="badge badge--value">{valueText}</span>;
+
   const body = (
     <>
       <div className="card__band">
-        <span className="card__dept">{department ?? ''}</span>
+        <span className="card__dept">
+          {card.icon !== undefined && <Icon name={card.icon} className="card__dept-icon" />}
+          {department ?? ''}
+        </span>
         {card.cost !== undefined && <span className="badge badge--cost">${card.cost}</span>}
       </div>
+      {windowed && (
+        <div className={`card__art ${card.art === undefined ? 'card__art--icon' : ''}`}>
+          {card.art !== undefined ? (
+            <img src={card.art} alt="" loading="lazy" decoding="async" draggable={false} />
+          ) : (
+            card.icon !== undefined && <Icon name={card.icon} />
+          )}
+          {value}
+        </div>
+      )}
       <div className="card__title">{card.title}</div>
-      {(card.valueLabel ?? card.value) !== undefined && <span className="badge badge--value">{card.valueLabel ?? `+${card.value}`}</span>}
+      {!windowed && value}
       <p className="card__desc">{card.description}</p>
       {stamps.length > 0 && (
         <ul className="card__tags">

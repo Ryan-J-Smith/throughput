@@ -1,0 +1,329 @@
+/* Dev-only Art gallery. Colours, type and radii come from ui/theme/tokens.css. */
+
+.gallery {
+  gap: 22px;
+}
+
+.gallery__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 18px;
+}
+
+.gallery__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: 900;
+}
+
+.gallery__note {
+  margin: 0;
+  color: var(--chalk-dim);
+}
+
+.gallery__show {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.gallery__pill {
+  padding: 3px 12px;
+  border: 1.5px solid var(--chalk-dim);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--chalk);
+  background: transparent;
+  cursor: pointer;
+}
+
+.gallery__pill.is-on {
+  border-color: var(--focus);
+  color: var(--print);
+  background: var(--focus);
+}
+
+.gallery__pill:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.gallery__batch {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gallery__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gallery__tile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  color: var(--print);
+  background: var(--paper);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+}
+
+.gallery__grid--both {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr));
+}
+
+.gallery__images {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 10px;
+}
+
+.gallery__figure {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+}
+
+.gallery__pair {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.gallery__img {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border: 1px solid var(--stock-edge);
+}
+
+/* About the size art gets on a card in a bay. */
+.gallery__thumb {
+  flex: none;
+  width: 72px;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border: 1px solid var(--stock-edge);
+}
+
+.gallery__missing {
+  display: grid;
+  place-items: center;
+  min-height: 72px;
+  border: 2px dashed var(--stock-edge);
+  font-weight: 700;
+  color: var(--print-dim);
+}
+
+.gallery__variant {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--print-dim);
+}
+
+.gallery__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.gallery__id {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.gallery__kind {
+  font-size: var(--text-xs);
+  color: var(--print-dim);
+}
+
+.gallery__subject {
+  margin: 4px 0 0;
+  font-size: var(--text-sm);
+}
+
+.gallery__prompt summary {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.gallery__prompt pre {
+  margin: 4px 0 0;
+  font-size: var(--text-xs);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.gallery__rejects {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.gallery__reject-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.gallery__route {
+  padding: 10px;
+  color: var(--print);
+  background: var(--paper);
+  border-radius: var(--radius-panel);
+}
+
+.gallery__route-name {
+  margin: 0 0 6px;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+}
+
+.gallery__strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gallery__piece {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-xs);
+}
+
+.gallery__piece img {
+  width: 64px;
+  height: 64px;
+}
+
+/* An SVG used as a mask takes a CSS colour, like a currentColor icon would. */
+.gallery__tint-bg {
+  display: block;
+  padding: 6px;
+  background: var(--floor);
+  border-radius: var(--radius-panel);
+}
+
+.gallery__tinted {
+  display: block;
+  width: 52px;
+  height: 52px;
+  background: var(--dept-mustard);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+@media (max-width: 640px) {
+  .gallery__show {
+    margin-left: 0;
+  }
+}
+
+/* ---- Direction comparison and takes ---- */
+
+.gallery__compare {
+  display: grid;
+  gap: 10px;
+}
+
+.gallery__direction,
+.gallery__compare-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 8px;
+  color: var(--print);
+  background: var(--paper);
+  border-radius: var(--radius-panel);
+}
+
+.gallery__direction span {
+  font-size: var(--text-xs);
+  color: var(--print-dim);
+}
+
+.gallery__takes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.gallery__take {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--print-dim);
+  text-decoration: none;
+}
+
+.gallery__take img {
+  width: 72px;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border: 2px solid transparent;
+  border-radius: 3px;
+}
+
+.gallery__take--large {
+  flex: 1 1 140px;
+}
+
+.gallery__take--large img {
+  width: 100%;
+  aspect-ratio: auto;
+}
+
+.gallery__take.is-picked img {
+  border-color: var(--focus);
+}
+
+/* ---- Hand-drawn icon set ---- */
+
+.gallery__icons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gallery__icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  font-size: var(--text-xs);
+  color: var(--chalk);
+  background: rgb(255 255 255 / 0.05);
+  border-radius: var(--radius-panel);
+}

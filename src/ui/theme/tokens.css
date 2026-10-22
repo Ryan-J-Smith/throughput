@@ -54,6 +54,12 @@
   --text-2xl: 2.5rem;
   --text-3xl: clamp(3.5rem, 13vw, 7rem);
 
+  /* ---- Icon sizes (ui/icons) ---- */
+  --icon-sm: 14px;
+  --icon-md: 18px;
+  --icon-lg: 24px;
+  --icon-xl: 40px;
+
   /* ---- Space, radii ---- */
   --gap: 16px;
   --radius-card: 6px;

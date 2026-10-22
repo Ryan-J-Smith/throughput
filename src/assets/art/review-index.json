@@ -1,0 +1,63 @@
+{
+  "variants": {
+    "card-apparel-design": [
+      "plain"
+    ],
+    "card-apparel-make": [
+      "plain"
+    ],
+    "card-apparel-ship": [
+      "plain"
+    ],
+    "card-gadgets-design": [
+      "plain"
+    ],
+    "card-gadgets-make": [
+      "plain"
+    ],
+    "card-gadgets-ship": [
+      "plain"
+    ],
+    "card-home-design": [
+      "plain"
+    ],
+    "card-home-make": [
+      "plain"
+    ],
+    "card-home-ship": [
+      "plain"
+    ],
+    "fixture-robot-arm": [
+      "plain"
+    ],
+    "title-key-art": [
+      "plain"
+    ]
+  },
+  "experiments": {
+    "icon-sheet": [
+      "cutout/1-apparel.png",
+      "cutout/2-gadgets.png",
+      "cutout/3-home.png",
+      "cutout/4-food.png",
+      "cutout/5-design.png",
+      "cutout/6-make.png",
+      "cutout/7-ship.png",
+      "cutout/8-coin.png",
+      "cutout/9-truck.png",
+      "plain.webp",
+      "vector/1-apparel.svg",
+      "vector/2-gadgets.svg",
+      "vector/3-home.svg",
+      "vector/4-food.svg",
+      "vector/5-design.svg",
+      "vector/6-make.svg",
+      "vector/7-ship.svg",
+      "vector/8-coin.svg",
+      "vector/9-truck.svg"
+    ],
+    "icon-sheet-2": [
+      "plain.webp"
+    ]
+  }
+}

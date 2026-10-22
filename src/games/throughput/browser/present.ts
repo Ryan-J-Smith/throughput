@@ -2,6 +2,7 @@ import type { CardView } from '../../../ui/types';
 import { CATEGORIES, cardEffect, designAdd, formatAmount, makeUnits, shipCap } from '../model';
 import type { Card, CardDef, Category, FixtureDef, TrendStage } from '../model';
 import type { Offer, ShiftResult, ThroughputRun } from '../rules';
+import { CATEGORY_ICON, cardArt, contractArt, fixtureArt } from './art';
 
 /** Department colour per Category (keys from ui/theme/tokens.css). */
 export const CATEGORY_ACCENT: Readonly<Record<Category, string>> = { Apparel: 'violet', Gadgets: 'blue', Home: 'orange', Food: 'green' };
@@ -41,7 +42,14 @@ export function cardView(card: Card, id = `card-${card.uid}`, demandLeft?: Reado
     tags: [card.category, STAGE_LABEL[card.def.stage], ...extras],
     accent: CATEGORY_ACCENT[card.category],
     valueLabel: valueLabel(card, demandLeft),
+    ...withArt(cardArt(card.def.id, card.category, card.def.stage)),
+    icon: CATEGORY_ICON[card.category],
   };
+}
+
+/** `{ art }` when there is an illustration, so CardView never carries `art: undefined`. */
+function withArt(art: string | undefined): { art?: string } {
+  return art === undefined ? {} : { art };
 }
 
 /** A shop card shown before it exists in the deck. */
@@ -56,6 +64,8 @@ export function fixtureView(def: FixtureDef, id: string): CardView {
     description: def.text.replace(/^Station\. /, ''),
     tags: [def.kind === 'station' ? 'Station' : 'Mod'],
     accent: def.kind === 'station' ? 'mustard' : 'teal',
+    ...withArt(fixtureArt(def.id)),
+    icon: def.kind === 'station' ? 'station' : 'mod',
   };
 }
 
@@ -84,7 +94,7 @@ export function offerView(offer: Offer, id: string): CardView {
     case 'card':
       return cardDefView(offer.def, offer.category, id);
     case 'contract':
-      return { id, title: offer.def.name, description: offer.def.text, tags: ['Contract'], accent: 'red' };
+      return { id, title: offer.def.name, description: offer.def.text, tags: ['Contract'], accent: 'red', ...withArt(contractArt(offer.def.id)), icon: 'sales' };
   }
 }
 
