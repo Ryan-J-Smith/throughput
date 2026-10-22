@@ -57,7 +57,8 @@ These notes record where the docs were silent or ambiguous, and what was chosen.
 | Fixture rarity | 70/25/5 by tier, split evenly within each tier. | Doc's odds are per tier, not per item. |
 | Floor Expansion | Not offered once the Line has 7 slots. | Max 7. |
 | Restock | `restocksPerRound` (1): the first draw of a round that finds the draw pile empty first shuffles the discard pile (dispatched, scrapped and retooled cards, including those just retooled) into a new draw pile. After that an empty pile stays empty. | Approved 2026-10-22 (`docs/ai_docs/throughput-mechanics-writeups.md` §1). Testers: 31 of 110 Shift-2+ starts had ≤3 cards left, and 2 of 5 losses ended on an empty pile. Sims: lost rounds that end on an empty pile −60%, wins +0.5pp. "Every time" sims the same as "once". |
-| Opening hand | `openingHandTypes` (Make, Ship): after the round's first draw, each missing type swaps in the next card of that type from the draw pile for the last hand card of the hand's most common other type, which takes its place in the pile. Skipped if the pile has none. | Same write-up §1: 4 of 7 tester dead starts were Shift-1 openers; sims −20% dead starts at no measurable balance cost. A third Retool and a full mulligan were simmed and rejected. |
+| Opening hand | `openingHandTypes` (Make, Ship): after the round's first draw, each missing type swaps in the next card of that type from the draw pile for the last hand card of the hand's most common other type, which takes its place in the pile. Skipped if the pile has none. With `designOpener` (on), a Design-only Mod outside a welded slot also asks for a Design. | Same write-up §1: 4 of 7 tester dead starts were Shift-1 openers; sims −20% dead starts at no measurable balance cost. A third Retool and a full mulligan were simmed and rejected. `designOpener`: Design-less openers under a Design-only Mod fall from 3–8% to 0%, with rnd-compounder +0.5–0.7 pp, design-stack +0.5 pp and no other change (see "Ship refill and the Design opener, A/B"). |
+| Ship refill | `shipRefill` (on): after a Shift 2+ refill or a Retool, if neither the hand nor the Line (outside welded slots) has a Ship, the next Ship in the draw pile swaps in the same way. Shift 1 is left to the opener. | On the 16-card starter, 3–6% of Shift 2+ hands were dead (27–54% of runs). With the refill, 0%. Win % +0.0–0.6 per bot, and no item moves ≥3 pp (see the A/B section). |
 | Hand positions | A card keeps its hand position while it is in hand. The next Shift's draws fill the lowest gaps, a Retool's draws go into the retooled positions, and an unloaded card returns to its old position if it is free. `hand` stays dense (Placements, Retools and the bots index it); `handSlots` gives the positions for display. | Playtest round 1: renumbering after each load caused misloads (4/7). Presentation only: the draw order is unchanged. |
 
 ## Trend conveyor
@@ -678,11 +679,17 @@ Board clears on 242fb77's 9-boss pool, before and after the change. Each cell is
 
 - **Difficulty:** unchanged, and win % moves within noise (6.4 / 7.5 / 9.5 / 1.9). Both bosses sit near the Year-3
   average: Recession clears 59%, Ethics Review 56%.
-- **Year-3 spread:** Bottleneck 32% and Supply Shock 34% are the hard Boards. Quota Cap 78% and Turnover 79% are the
-  soft ones.
-- **The draw concentrates.** `assignBosses` gives each Year the first unmet boss that may come. So a late boss skipped
-  in Years 1–2 is still at the front at Year 3. Recession or Ethics Review is the Year-3 Board 60% of the time (about
-  30% each, against about 5% for each other boss).
+- **The first draw concentrated.** It gave each Year the first unmet boss allowed. A late boss skipped in Years 1–2
+  stayed at the front, so Recession or Ethics Review was the Year-3 Board 60% of the time.
+  - asst-a's d101484 picks uniformly among the allowed, unmet bosses each Year.
+  - Year 3 is now Recession 14% and Ethics Review 13%, with the rest 9–12%.
+- **Uniform draw re-sim** (96af216, 1000 seeds × 4 bots):
+  - Board clears by Year: 99 / 94 / 58 / 34%.
+  - Year 3 by boss: Bottleneck 38, Supply Shock 42, Short Week 54, Recession 55, Ethics Review 57, Line Shift 59,
+    JIT Auditor 70, Turnover 74, Quota Cap 77.
+  - Year 4: Bottleneck 12 and Supply Shock 13 are the hardest; Ethics Review is 24, though only 119 runs reach it there.
+    Quota Cap 63 is the softest.
+  - The orchestrator holds boss tuning until LLM playtest round 3.
 
 **Dead refills on the 16-card starter.** This counts Shift 2+ hands with no Ship while the draw pile still holds one,
 over 500 seeds per bot.
@@ -695,7 +702,25 @@ over 500 seeds per bot.
 - A deal model of the orchestrator's case, Round 1 Shift 2 after a 5-card Shift 1, on the 16-card starter:
   - 2.8% when the player kept a spare Ship;
   - 9.8% when they played every Ship.
-- That is under the ~15% per-Shift bar, but about one run in three meets it.
+- That is under the ~15% per-Shift bar, but about one run in three meets it. So the orchestrator approved a Ship
+  refill: `shipRefill` (asst-a's 96af216, see the "Ship refill" row).
+
+**Ship refill and the Design opener, A/B** (96af216, 1000 seeds per bot, same seeds). Win % for greedy / mass-market /
+rnd-compounder / trend-surfer:
+
+| `shipRefill` | `designOpener` | Win % | Builds: rnd / design-stack / mass / skimmer / stockpile |
+|---|---|---|---|
+| on | on | 5.4 / 6.6 / 9.2 / 3.0 | 8.4 / 6.8 / 6.3 / 4.9 / 3.3 |
+| off | on | 4.8 / 6.4 / 8.8 / 3.0 | 7.9 / 6.5 / 6.0 / 4.6 / 3.0 |
+| on | off | 5.2 / 6.6 / 8.6 / 3.1 | 7.7 / 6.3 / 6.3 / 4.9 / 3.3 |
+| off | off | 4.9 / 6.4 / 8.3 / 3.0 | 7.4 / 6.0 / 6.1 / 4.8 / 3.0 |
+
+- **Ship refill.** Dead refills go from 3–6% of Shift 2+ hands (27–54% of runs) to 0%. Each build gains 0.1–0.5
+  points. No item's aware Δ moves 3 points or more.
+- **Design opener.** Without it, 3–8% of rounds with a Design-only Mod on the Line open with no Design (bots;
+  mass-market never builds one). With it, 0%. The gain lands where it should: rnd-compounder +0.5–0.7 and
+  design-stack +0.5.
+- **Both stay on.** Each removes a feel-bad moment, and neither moves balance beyond noise.
 
 ## Endless (draft)
 
