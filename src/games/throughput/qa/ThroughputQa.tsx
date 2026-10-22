@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Card } from '../../../ui/components';
 import type { BrowserGameProps } from '../../../ui/games';
-import { LineView, RunSummaryView, TraceReceipt, bossArt, cardView, offerView } from '../browser';
+import { LineView, PileStack, RunSummaryView, TraceReceipt, bossArt, cardView, offerView } from '../browser';
 import { BOSSES, CONTRACTS, FIXTURES, SHOP_CARDS } from '../content';
 import { CATEGORIES } from '../model';
 import type { Offer } from '../rules';
@@ -79,6 +79,7 @@ export function ThroughputQa(_props: BrowserGameProps) {
                   <button type="button" className="btn btn--discard">
                     Retool
                   </button>
+                  <PileStack draw={run.drawPile.length} discard={run.discardPile.length} note={run.restocksLeft > 0 ? 'Restock ready' : 'Restocked'} />
                   <button type="button" className="btn btn--play">
                     Run Shift {run.shift}: ${preview?.total ?? 0}
                   </button>
