@@ -141,3 +141,67 @@ export function demandViews(run: ThroughputRun, preview: ShiftResult | null): De
     };
   });
 }
+
+/** What the end-of-run screen shows. */
+export type RunSummary = {
+  readonly won: boolean;
+  /** Sales across every round played, including the last. */
+  readonly totalSales: number;
+  readonly roundsCleared: number;
+  readonly rounds: number;
+  /** The run's biggest single Shift and where it was, e.g. "Year 3 Q1, Shift 2". */
+  readonly bestShift: { readonly total: number; readonly where: string } | null;
+  /** One line on how the run ended. */
+  readonly outcome: string;
+  /** The final Line's Fixtures by slot (null for a bay without one). */
+  readonly line: readonly (CardView | null)[];
+  /** Deck cards the player bought or improved. */
+  readonly cards: readonly CardView[];
+  /** R&D Grants bought, per Category, e.g. "Gadgets Scale 1, Premium ×1.5". */
+  readonly grants: readonly string[];
+  readonly seed: number;
+};
+
+/** "Year 2 Q1" or "Year 2 Board Review". */
+function quarterName(run: ThroughputRun, round: number): string {
+  const q = run.quarterOf(round);
+  return `Year ${q.year} ${q.isBoard ? 'Board Review' : `Q${q.quarter}`}`;
+}
+
+/** "$12,480". */
+export function money(amount: number): string {
+  return `$${amount.toLocaleString('en-US')}`;
+}
+
+export function runSummary(run: ThroughputRun): RunSummary {
+  let bestShift: RunSummary['bestShift'] = null;
+  for (const record of run.history) {
+    for (const [i, total] of record.shiftTotals.entries()) {
+      if (bestShift === null || total > bestShift.total) bestShift = { total, where: `${quarterName(run, record.round)}, Shift ${i + 1}` };
+    }
+  }
+  const last = run.history[run.history.length - 1];
+  const won = run.phase === 'won';
+  const outcome =
+    last === undefined
+      ? ''
+      : won
+        ? `Cleared all ${run.rounds} rounds, through the ${quarterName(run, last.round)}.`
+        : `Missed the ${quarterName(run, last.round)} target by ${money(last.target - last.sales)}.`;
+  return {
+    won,
+    totalSales: run.history.reduce((sum, r) => sum + r.sales, 0),
+    roundsCleared: run.history.filter((r) => r.won).length,
+    rounds: run.rounds,
+    bestShift,
+    outcome,
+    line: run.line.map((slot, i) => (slot.fixture === null ? null : fixtureView(slot.fixture.def, `summary-fixture-${i}`))),
+    cards: run.deck.filter((c) => c.paid > 0 || c.upgrades > 0 || c.growth > 0).map((c) => cardView(c, `summary-card-${c.uid}`)),
+    grants: CATEGORIES.flatMap((c) => {
+      const { scale, premium } = run.grants[c];
+      const parts = [scale > 0 ? `Scale ${scale}` : '', premium > 0 ? `Premium ×${formatAmount(1 + run.config.grant.premiumStep * premium)}` : ''].filter(Boolean);
+      return parts.length === 0 ? [] : [`${c} ${parts.join(', ')}`];
+    }),
+    seed: run.seed,
+  };
+}

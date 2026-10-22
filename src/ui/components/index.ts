@@ -16,3 +16,4 @@ export { ToastStack } from './ToastStack';
 export type { ToastStackProps } from './ToastStack';
 export { Tooltip } from './Tooltip';
 export type { TooltipProps } from './Tooltip';
+export { useTickingNumber } from './useTickingNumber';

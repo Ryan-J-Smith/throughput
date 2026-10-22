@@ -180,7 +180,7 @@ describe('ThroughputRun: a Shift', () => {
     const run = new ThroughputRun(1, easyConfig({ targets: [10_000] }));
     for (let i = 0; i < 4; i++) run.runShift();
     expect(run.phase).toBe('lost');
-    expect(run.history).toEqual([{ round: 1, isBoard: false, target: 10_000, sales: 0, won: false, shiftsUsed: 4, capital: 4 }]);
+    expect(run.history).toEqual([{ round: 1, isBoard: false, target: 10_000, sales: 0, won: false, shiftsUsed: 4, shiftTotals: [0, 0, 0, 0], capital: 4 }]);
   });
 });
 

@@ -12,6 +12,7 @@ import type { BayState } from './LineView';
 import { MarketBoard } from './MarketBoard';
 import { cardView } from './present';
 import { RunAutosave, handNumber } from './run-autosave';
+import { RunSummaryView } from './RunSummary';
 import { DeckDrawer, GrantPicker, PayoutSlip, RulesSheet, Shelf } from './ShopParts';
 import { TpHud } from './TpHud';
 import { TraceReceipt } from './TraceReceipt';
@@ -76,7 +77,7 @@ export function ThroughputScreen({ seed, onQuit, store, resume }: BrowserGamePro
     setToasts([]);
   };
 
-  if (run.phase === 'won' || run.phase === 'lost') return <EndView run={run} onNewRun={newRun} onQuit={onQuit} />;
+  if (run.phase === 'won' || run.phase === 'lost') return <RunSummaryView run={run} onNewRun={newRun} onQuit={onQuit} />;
 
   const handIndex = (uid: number) => run.hand.findIndex((c) => c.uid === uid);
 
@@ -296,34 +297,4 @@ function shiftHint(run: ThroughputRun, mode: Mode): string {
     return card === undefined ? 'Tap a bay.' : `Tap an empty bay for ${cardName(card)}.`;
   }
   return 'Tap a card, then a bay. Tap a card you loaded to take it back.';
-}
-
-function EndView({ run, onNewRun, onQuit }: { run: ThroughputRun; onNewRun: () => void; onQuit: () => void }) {
-  const won = run.phase === 'won';
-  const q = run.quarter;
-  return (
-    <main className={`screen screen--end ${won ? 'screen--victory' : 'screen--game-over'}`}>
-      <h1 className="end-title">{won ? 'Victory' : 'Run over'}</h1>
-      <dl className="end-stats">
-        <dt>Reached</dt>
-        <dd>
-          Year {q.year} {q.isBoard ? 'Board' : `Q${q.quarter}`}
-        </dd>
-        <dt>Sales</dt>
-        <dd>
-          ${run.sales} / ${run.target}
-        </dd>
-        <dt>Capital</dt>
-        <dd>{run.wallet.cash}C</dd>
-      </dl>
-      <div className="tp-end-actions">
-        <button type="button" className="btn btn--play btn--large" onClick={onNewRun}>
-          New run
-        </button>
-        <button type="button" className="btn btn--large" onClick={onQuit}>
-          All games
-        </button>
-      </div>
-    </main>
-  );
 }

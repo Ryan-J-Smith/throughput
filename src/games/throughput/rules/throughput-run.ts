@@ -36,6 +36,8 @@ export type RoundRecord = {
   readonly sales: number;
   readonly won: boolean;
   readonly shiftsUsed: number;
+  /** What each Shift of the round made, in order. */
+  readonly shiftTotals: readonly number[];
   /** Capital after the round's payout. */
   readonly capital: number;
 };
@@ -100,6 +102,7 @@ export class ThroughputRun {
   /** Fixtures as the player arranged them, restored after a round (Line Shift moves them). */
   private layout: (Fixture | null)[] = [];
   private lastShift_: ShiftResult | null = null;
+  private shiftTotals_: number[] = [];
   private fixtureMoves_: readonly FixtureMove[] = [];
   private restocksLeft_ = 0;
   private restocked_ = 0;
@@ -483,6 +486,7 @@ export class ThroughputRun {
     this.stored_ = result.storedAfter;
     this.dispatch();
     this.lastShift_ = result;
+    this.shiftTotals_.push(result.total);
 
     if (this.sales_ >= this.target) this.clearRound();
     else if (this.shift_ >= this.shiftsThisRound) this.loseRound();
@@ -622,6 +626,7 @@ export class ThroughputRun {
       this.roundDemand_[c] = this.demandLeft_[c];
     }
     this.lastShift_ = null;
+    this.shiftTotals_ = [];
     this.lastPayout_ = null;
     this.storageNotice_ = null;
     for (const slot of this.slots_) slot.card = null;
@@ -747,6 +752,7 @@ export class ThroughputRun {
       sales: this.sales_,
       won,
       shiftsUsed: this.shift_,
+      shiftTotals: [...this.shiftTotals_],
       capital: this.wallet.cash,
     });
     // Line Shift moved the fixtures during the round; put the player's layout back.
