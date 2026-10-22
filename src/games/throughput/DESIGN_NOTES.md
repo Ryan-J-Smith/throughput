@@ -80,7 +80,7 @@ These notes record where the docs were silent or ambiguous, and what was chosen.
 
 | Boss | Pressures | Notes |
 |---|---|---|
-| Line Shift | R&D Compounder, Skimmer (Designs drift off their Mods) | Shift 1 runs on the player's layout; from Shift 2 on, Fixtures move one slot right before each Shift. Parked cards may be unloaded back to hand that round. The layout is restored after the round. Approved rework (write-up §2): it was the only boss that ended tester runs; bot clears 76.6% → 88.7%, level with Turnover and JIT. General recall of parked cards was rejected (§3: +4pp wins, and it removes the parked-Design stack's one cost). |
+| Line Shift | R&D Compounder, Skimmer (Designs drift off their Mods) | Before every Shift, Shift 1 included, Fixtures move one slot right (user-approved after playtest 3, when the from-Shift-2 version moved a Fixture 0 times in 8 encounters; re-sim under "Line Shift from Shift 1"). Before that: Shift 1 ran on the player's layout; from Shift 2 on, Fixtures moved one slot right before each Shift. Parked cards may be unloaded back to hand that round. The layout is restored after the round. Approved rework (write-up §2): it was the only boss that ended tester runs; bot clears 76.6% → 88.7%, level with Turnover and JIT. General recall of parked cards was rejected (§3: +4pp wins, and it removes the parked-Design stack's one cost). |
 | Turnover | Design-heavy builds (Skimmer, R&D Compounder) | Dispatches Designs only; Automation still keeps Make cards. |
 | Supply Shock | Brand Chain, long layouts | Slot 1's card *and* Fixture are inactive; loading there is refused. |
 | JIT Auditor | Mass Market, Stockpile (overproduction) | Leftover Units cost $2 each; Warehouse closed (stored Units stay stored). A Shift can lower round Sales, floored at 0. |
@@ -1051,3 +1051,26 @@ runs met 2 biting Boards in 12, and none drew Quota Cap.
   - Bottleneck and Supply Shock are the lethal ones. That matches DH's "cliff" note, so it's passed to asst-a and the
     orchestrator (boss rules are theirs).
   - Turnover stays nearly free even late.
+
+### Line Shift from Shift 1 (re-sim, report only)
+
+asst-a's `65a079d` (user-approved) moves Fixtures one slot right before every Shift, Shift 1 included.
+
+- **Sim tooling:** the expert's shop valuation now plans a Board's Shift 1 on the layout after the boss moves it
+  (`shiftFixtures(…, 1)`). So it pre-compensates, as a skilled player would.
+  - Year 1–2 Line Shift Boards: Shift-1 clears 75% (naive) → 92% (pre-compensating).
+- **Late (Year 3–4) Line Shift Boards for the expert:**
+
+  | Rule | Natural draw, 400 seeds | Forced late (drawn ~216 times) |
+  |---|---|---|
+  | From Shift 2 (before) | 20% loss (n 45) | 12% loss, 65% Shift-1 clears |
+  | **Every Shift (now), naive expert** | 53% (n 45) | – |
+  | **Every Shift (now), pre-compensating** | 38% (n 42) | **24% loss, 48% Shift-1 clears** |
+  | Odd Shifts only (option) | – | 14% |
+  | Shift 1 only (option) | – | 9% |
+
+  - Expert wins move from 49.2% to 45.5%.
+  - The bigger forced sample puts the new rule at about 24% late losses. That's level with Recession (26%), and
+    under Bottleneck and Supply Shock (39–46%).
+  - So it is not a cliff by the orchestrator's 60% bar, and no change was made (v1 wind-down).
+  - If round-4 humans find it harsh, "odd Shifts only" or "Shift 1 only" halve it or better.

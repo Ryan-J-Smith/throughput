@@ -268,16 +268,17 @@ export class ExpertBot extends ThroughputBot {
   private value(run: ThroughputRun, model: Model, samples: number): number {
     const last = Math.min(run.lastPlannedRound, run.round + HORIZON);
     const rounds = Array.from({ length: Math.max(1, last - run.round) }, (_, i) => run.round + 1 + i);
-    const base: LineSlot[] = model.fixtures.map((fixture) => ({ fixture, card: null }));
     const setups = rounds.map((round) => {
       const ctx = nextRoundContext(run, model, round);
+      // A boss that moves Fixtures (Line Shift) moves them before Shift 1 too: plan on where they land.
+      const base: LineSlot[] = (ctx.boss?.shiftFixtures(model.fixtures, 1) ?? model.fixtures).map((fixture) => ({ fixture, card: null }));
       const open = base.flatMap((slot, i) => (slot.fixture?.def.kind === 'station' || (ctx.boss?.isWelded(i) ?? false) ? [] : [i]));
-      return { round, ctx, open, types: openingTypes(run, model, ctx) };
+      return { round, ctx, base, open, types: openingTypes(run, model, ctx) };
     });
     const modelKey = `${model.fixtures.map((f) => f?.uid ?? '-').join(',')}|${CATEGORIES.map((c) => `${model.grants[c].scale}.${model.grants[c].premium}.${model.demand[c]}`).join(',')}`;
     let sum = 0;
     for (let k = 0; k < samples; k++) {
-      const { round, ctx, open, types } = setups[k % setups.length] as (typeof setups)[number];
+      const { round, ctx, base, open, types } = setups[k % setups.length] as (typeof setups)[number];
       const hand = this.sampleHand(model.deck, k, run.config.handSize, types, run.config.hotOpener ? ctx : null);
       const key = `${round}|${modelKey}|${hand.map((c) => `${c.uid}.${c.upgrades}.${c.growth}`).join(',')}`;
       let total = this.totals.get(key);
