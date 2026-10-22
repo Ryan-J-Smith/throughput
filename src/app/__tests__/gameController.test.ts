@@ -51,7 +51,7 @@ describe('GameController: lifecycle', () => {
     expect(round.hud.boss).toBeUndefined();
     expect(round.handLocked).toBe(false);
     expect(round.maxSelected).toBe(3);
-    expect(round.modifierRow).toEqual({ slots: 1, modifiers: [] });
+    expect(round.modifierRow).toEqual({ slots: 1, modifiers: [], locked: false });
   });
 
   it('caches the view until something changes and notifies subscribers', () => {
@@ -288,5 +288,128 @@ describe('GameController: toasts', () => {
     const [first, second] = c.getToasts();
     c.onDismissToast(first!.id);
     expect(c.getToasts()).toEqual([second]);
+  });
+});
+
+/** Shop with $200, two slots, both modifiers bought: Plus first, then Pricy. */
+function shopWithBoth(): GameController<TestCard> {
+  const c = toShop(controller({ startingCash: 200, modifierSlots: 2 }));
+  for (const title of ['Plus', 'Pricy']) c.onBuy(expectScreen(c, 'shop').offers.find((o) => o.card.title === title)!.id);
+  return c;
+}
+
+const rowTitles = (c: GameController<TestCard>) => {
+  const view = c.getView();
+  if (view.screen !== 'shop' && view.screen !== 'round') throw new Error(`no modifier row on ${view.screen}`);
+  return view.modifierRow.modifiers.map((m) => m.title);
+};
+
+describe('GameController: selling modifiers', () => {
+  it('shows each owned modifier’s sell value and sells it for that', () => {
+    const c = toShop(controller());
+    c.onBuy(expectScreen(c, 'shop').offers.find((o) => o.card.title === 'Plus')!.id);
+    const plus = expectScreen(c, 'shop').modifierRow.modifiers[0]!;
+    expect(plus).toMatchObject({ title: 'Plus', sellValue: 1, canSell: true });
+    c.onSellModifier(plus.id);
+    const shop = expectScreen(c, 'shop');
+    expect(shop.modifierRow.modifiers).toEqual([]);
+    expect(shop.hud.cash).toBe(5 + 1);
+    expect(lastToast(c)).toBe('Sold Plus for $1');
+  });
+
+  it('can sell during a round, but not while a tally is playing', () => {
+    const c = toShop(controller({ rounds: 3 }));
+    c.onBuy(expectScreen(c, 'shop').offers.find((o) => o.card.title === 'Plus')!.id);
+    c.onContinue();
+    select(c, 3);
+    c.onPlay();
+    const tallying = expectScreen(c, 'round');
+    expect(tallying.modifierRow.locked).toBe(true);
+    expect(tallying.modifierRow.modifiers[0]!.canSell).toBe(false);
+    c.onSellModifier(tallying.modifierRow.modifiers[0]!.id);
+    expect(rowTitles(c)).toEqual(['Plus']);
+    c.onTallyComplete();
+    const summary = expectScreen(c, 'round');
+    expect(summary.summary).toBeDefined();
+    expect(summary.modifierRow.locked).toBe(false);
+    expect(summary.modifierRow.modifiers[0]!.canSell).toBe(true);
+  });
+
+  it('locks the row once the run is over', () => {
+    const c = toShop(controller());
+    c.onBuy(expectScreen(c, 'shop').offers.find((o) => o.card.title === 'Plus')!.id);
+    c.onContinue();
+    playThree(c); // clears the final round
+    expect(expectScreen(c, 'round').modifierRow.locked).toBe(true);
+  });
+
+  it('ignores unknown modifier ids', () => {
+    const c = shopWithBoth();
+    const before = c.getView();
+    c.onSellModifier('mod-nope');
+    c.onMoveModifier('mod-nope', 0);
+    expect(c.getView()).toBe(before);
+  });
+});
+
+describe('GameController: reordering modifiers', () => {
+  it('moves a modifier to a slot, clamping out-of-range targets', () => {
+    const c = shopWithBoth();
+    expect(rowTitles(c)).toEqual(['Plus', 'Pricy']);
+    const pricy = expectScreen(c, 'shop').modifierRow.modifiers[1]!;
+    c.onMoveModifier(pricy.id, 0);
+    expect(rowTitles(c)).toEqual(['Pricy', 'Plus']);
+    expect(c.run?.modifiers.modifiers.map((m) => m.name)).toEqual(['Pricy', 'Plus']);
+    c.onMoveModifier(pricy.id, 99);
+    expect(rowTitles(c)).toEqual(['Plus', 'Pricy']);
+  });
+
+  it('slot order changes the score', () => {
+    const scoreWith = (pricyFirst: boolean): number => {
+      const c = shopWithBoth();
+      if (pricyFirst) c.onMoveModifier(expectScreen(c, 'shop').modifierRow.modifiers[1]!.id, 0);
+      c.onContinue();
+      select(c, 3);
+      c.onPlay();
+      return expectScreen(c, 'round').tally!.finalTotal;
+    };
+    expect(scoreWith(false)).toBe(15 * 4); // (1 + 1) × 2
+    expect(scoreWith(true)).toBe(15 * 3); // 1 × 2 + 1
+  });
+});
+
+describe('GameController: hand sorting', () => {
+  const values = Array.from({ length: 12 }, (_, i) => ({ value: i + 1 }));
+
+  it('sorts the displayed hand without touching the engine hand', () => {
+    const c = controller({ startingDeck: values, target: () => 1000 });
+    c.onStart();
+    const engineOrder = [...c.run!.deck.hand];
+    c.onSortHand('value');
+    const round = expectScreen(c, 'round');
+    const shown = round.hand.map((card) => card.value!);
+    expect(round.handSort).toBe('value');
+    expect(shown).toEqual([...shown].sort((a, b) => b - a));
+    expect(c.run!.deck.hand).toEqual(engineOrder);
+  });
+
+  it('selection maps back to the right cards and plays them in display order', () => {
+    const c = controller({ startingDeck: values, target: () => 1000 });
+    c.onStart();
+    c.onSortHand('value');
+    const [top, second] = expectScreen(c, 'round').hand;
+    c.onToggleSelect(second!.id);
+    c.onToggleSelect(top!.id);
+    c.onPlay();
+    const tally = expectScreen(c, 'round').tally!;
+    expect(tally.contributions.map((s) => s.amount)).toEqual([top!.value, second!.value]);
+    expect(c.run!.deck.discardPile.map((card) => card.value).sort()).toEqual([top!.value, second!.value].sort());
+  });
+
+  it('keeps the sort choice across rounds', () => {
+    const c = toShop(controller());
+    c.onSortHand('group');
+    c.onContinue();
+    expect(expectScreen(c, 'round').handSort).toBe('group');
   });
 });

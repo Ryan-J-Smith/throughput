@@ -39,12 +39,16 @@ export class PlusMod extends Modifier<TestCard> {
   }
 }
 
-/** Never affordable in these tests. */
+/** ×2 multiplier every play; unaffordable unless a test raises starting cash. */
 export class PricyMod extends Modifier<TestCard> {
   static readonly info: ModifierInfo = { id: 'pricy', name: 'Pricy', description: '×2 multiplier', rarity: 'rare', price: 100 };
 
   constructor() {
     super(PricyMod.info);
+  }
+
+  override onEvent(event: EngineEvent<TestCard>): void {
+    if (event.type === 'beforeScore') event.score.multiply('multiplier', 2, this.name);
   }
 }
 

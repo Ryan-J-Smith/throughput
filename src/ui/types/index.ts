@@ -2,6 +2,7 @@ export type {
   BossView,
   CardView,
   GlossaryEntryView,
+  HandSort,
   HudView,
   ModifierRowView,
   ModifierView,

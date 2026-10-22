@@ -520,6 +520,111 @@ button {
   border-radius: var(--radius);
 }
 
+/* Slot wrappers carry drag state; the card inside stays a normal Card. */
+.modifier-slot {
+  min-width: 0;
+  border-radius: var(--radius);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+/* Stretch cards so every slot's action strip lines up. */
+.modifier-slot,
+.modifier-slot > .card-wrap > .tooltip-anchor {
+  display: flex;
+}
+
+.modifier-slot > .card-wrap,
+.modifier-slot > .card-wrap > .tooltip-anchor,
+.modifier-slot > .card-wrap > .card,
+.modifier-slot .tooltip-anchor > .card {
+  flex: 1;
+}
+
+.modifier-slot--draggable {
+  cursor: grab;
+}
+
+.modifier-slot--dragging {
+  opacity: 0.4;
+}
+
+.modifier-slot--drop-target {
+  outline: 3px dashed var(--accent-select);
+  outline-offset: 3px;
+  transform: scale(1.03);
+}
+
+.modifier-row__hint {
+  margin-left: auto;
+  margin-right: 12px;
+  font-size: 0.7rem;
+  color: var(--ink-dim);
+}
+
+.modifier-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.modifier-actions button {
+  border: 0;
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: #fff;
+  background: #3a4052;
+  cursor: pointer;
+}
+
+.modifier-actions button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.modifier-actions button:focus-visible {
+  outline: 2px solid var(--accent-select);
+  outline-offset: 1px;
+}
+
+.modifier-actions__nudge {
+  flex: 0 0 26px;
+}
+
+.modifier-actions__sell {
+  flex: 1;
+  background: var(--accent-cash) !important;
+  color: #2a1d00 !important;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/* ---------- Hand sort ---------- */
+
+.hand__sort {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: -6px;
+}
+
+.hand__sort-button {
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-dim);
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.hand__sort-button[aria-pressed='true'] {
+  border-color: var(--accent-select);
+  background: rgb(255 194 62 / 0.15);
+  color: var(--accent-select);
+}
+
 /* ---------- Hand ---------- */
 
 .hand {
@@ -1094,10 +1199,14 @@ button {
     font-size: 1.25rem;
   }
 
+  .modifier-row__hint {
+    display: none;
+  }
+
   .modifier-row__slots {
     grid-template-columns: none;
     grid-auto-flow: column;
-    grid-auto-columns: 112px;
+    grid-auto-columns: 128px;
     overflow-x: auto;
   }
 

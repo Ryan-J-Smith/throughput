@@ -29,6 +29,10 @@ export type ModifierView = {
   description: string;
   tags: readonly string[];
   tooltip?: TooltipView;
+  /** Cash received if sold now. */
+  sellValue: number;
+  /** Styling hint only; Sell stays clickable so the state owner can explain a refusal. */
+  canSell: boolean;
 };
 
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'legendary';
@@ -121,9 +125,15 @@ export type NextRoundView = {
 };
 
 export type ModifierRowView = {
+  /** In slot order, which is the order they apply. */
   modifiers: readonly ModifierView[];
   slots: number;
+  /** True while selling and reordering are paused (e.g. a tally is playing). */
+  locked: boolean;
 };
+
+/** Display order for the hand: as dealt, or by presenter-provided sort keys. */
+export type HandSort = 'dealt' | 'value' | 'group';
 
 export type ShellView =
   | { screen: 'title' }
@@ -131,7 +141,9 @@ export type ShellView =
       screen: 'round';
       hud: HudView;
       modifierRow: ModifierRowView;
+      /** In display order (see handSort). */
       hand: readonly CardView[];
+      handSort: HandSort;
       selectedIds: readonly string[];
       maxSelected: number;
       canPlay: boolean;
@@ -168,4 +180,8 @@ export type ShellActions = {
   onTallyComplete: () => void;
   onCashOut: () => void;
   onDismissToast: (toastId: string) => void;
+  onSellModifier: (modifierId: string) => void;
+  /** Moves a modifier to slot `toIndex`, shifting the others. */
+  onMoveModifier: (modifierId: string, toIndex: number) => void;
+  onSortHand: (sort: HandSort) => void;
 };

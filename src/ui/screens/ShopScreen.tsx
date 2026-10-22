@@ -11,6 +11,8 @@ export type ShopScreenProps = {
   onBuy: (offerId: string) => void;
   onReroll: () => void;
   onContinue: () => void;
+  onSellModifier: (modifierId: string) => void;
+  onMoveModifier: (modifierId: string, toIndex: number) => void;
 };
 
 export function ShopScreen({
@@ -23,11 +25,13 @@ export function ShopScreen({
   onBuy,
   onReroll,
   onContinue,
+  onSellModifier,
+  onMoveModifier,
 }: ShopScreenProps) {
   return (
     <main className="screen screen--shop">
       <Hud hud={hud} />
-      <ModifierRow row={modifierRow} />
+      <ModifierRow row={modifierRow} onSell={onSellModifier} onMove={onMoveModifier} />
       {nextRound && <NextRoundPanel next={nextRound} />}
       <section className="shop" aria-label="Shop">
         <div className="shop__header">
