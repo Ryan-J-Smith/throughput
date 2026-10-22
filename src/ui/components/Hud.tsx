@@ -41,6 +41,12 @@ export function Hud({ hud }: HudProps) {
         <span className="hud__label">Cash</span>
         <span className="hud__value">${hud.cash}</span>
       </div>
+      {hud.boss && (
+        <div className="hud__boss">
+          <span className="hud__boss-name">{hud.boss.name}</span>
+          <span className="hud__boss-desc">{hud.boss.description}</span>
+        </div>
+      )}
     </header>
   );
 }

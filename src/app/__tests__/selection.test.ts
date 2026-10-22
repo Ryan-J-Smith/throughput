@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { toggleSelection } from './selection';
+import { toggleSelection } from '../selection';
 
 describe('toggleSelection', () => {
   it('adds an unselected id', () => {
