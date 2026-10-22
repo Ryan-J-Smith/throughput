@@ -55,7 +55,7 @@
 .home__actions {
   display: grid;
   gap: 12px;
-  max-width: 24rem;
+  max-width: 30rem;
 }
 
 .home__actions .btn {
@@ -77,10 +77,16 @@
   opacity: 0.85;
 }
 
+/* Each label on one line: a column fits the longest ("Custom seed"); narrower screens drop to two. */
 .home__secondary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(9.25rem, 1fr));
   gap: 12px;
+}
+
+.home__secondary .btn {
+  padding-inline: 16px;
+  white-space: nowrap;
 }
 
 .home__panel {
