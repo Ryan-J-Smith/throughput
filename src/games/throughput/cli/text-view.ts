@@ -283,8 +283,8 @@ function marketLines(run: ThroughputRun): string[] {
       : '';
     lines.push(`  ${now ? 'now ' : '    '}${quarterLabel(run, round)}: ${trendsText(trends, pips)}`);
   }
-  const loyal = run.config.loyalEquity;
-  lines.push(`  Equity: ${CATEGORIES.map((c) => `${c} ${run.equity[c]}${run.equity[c] >= loyal ? ' (Loyal)' : ''}`).join(' · ')} (Loyal at ${loyal})`);
+  const grant = (c: Category) => (run.grants[c].scale + run.grants[c].premium > 0 ? ` (Scale ${run.grants[c].scale}, Premium ${run.grants[c].premium})` : '');
+  lines.push(`  Demand left / Demand: ${CATEGORIES.map((c) => `${c} ${run.demandLeft[c]}/${run.demand[c]}${grant(c)}`).join(' · ')}`);
   return lines;
 }
 
@@ -305,8 +305,8 @@ export function deckText(run: ThroughputRun): string[] {
 export function stateData(run: ThroughputRun, context: ViewContext): Record<string, unknown> {
   const fixture = (f: Fixture | null) => (f === null ? null : { id: f.def.id, name: f.def.name, kind: f.def.kind, text: fixtureText(f), roundsOwned: f.roundsOwned });
   const card = (c: Card) => ({ name: cardName(c), id: c.def.id, stage: c.def.stage, category: c.category, effect: cardEffect(c), upgrades: c.upgrades, growth: c.growth });
-  const equity: Partial<Record<Category, number>> = {};
-  for (const c of CATEGORIES) equity[c] = run.equity[c];
+  const demand: Partial<Record<Category, { left: number; demand: number; scale: number; premium: number }>> = {};
+  for (const c of CATEGORIES) demand[c] = { left: run.demandLeft[c], demand: run.demand[c], ...run.grants[c] };
   return {
     ...context,
     phase: run.phase,
@@ -325,7 +325,7 @@ export function stateData(run: ThroughputRun, context: ViewContext): Record<stri
     boss: run.boss === null ? null : { name: run.boss.name, text: run.boss.text },
     fixtureMoves: run.phase === 'shift' ? run.fixtureMoves.map((m) => ({ fixture: m.fixture.def.name, from: m.from + 1, to: m.to + 1 })) : [],
     market: run.trends.slice(run.round - 1, run.round + 3).map((trends, i) => ({ round: run.round + i, trends })),
-    equity,
+    demand,
     boards: run.upcomingBoards().map((b) => ({ round: b.round, boss: b.boss.name, text: b.boss.text })),
     line: run.line.map((slot, i) => ({
       slot: i + 1,

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { BOUTIQUE, FACTORY_FLOOR, INFLUENCER, SKETCH, TRUCK, WHOLESALE_CLUB, WORKSHOP } from '../content';
+import { BOUTIQUE, DEFAULT_CONFIG, FACTORY_FLOOR, INFLUENCER, SKETCH, TRUCK, WHOLESALE_CLUB, WORKSHOP } from '../content';
+import type { Card } from '../model';
 import { scoreLine } from '../rules';
-import { boss, card, context, equity, fixture, slot, trends } from './fixtures';
+import { boss, card, context, demandLeft, fixture, grants, slot, trends } from './fixtures';
 
 /** seed-03 §2 worked example: six slots, the R&D Sketch already at +$5. */
 function workedExample(make = card(WORKSHOP, 'Home')) {
@@ -17,10 +18,14 @@ function workedExample(make = card(WORKSHOP, 'Home')) {
   return { line, rndSketch };
 }
 
+// seed-03 predates Demand: Home Demand 24 leaves the Truck behind the Gun its old reach of 10 after
+// the Boutique's 4 (half of the 20 left).
+const workedDemand = () => context({ demandLeft: demandLeft({ Home: 24 }) });
+
 describe('scoreLine: seed-03 worked example', () => {
   it('Shift 1 makes $562, matching the table row by row', () => {
     const { line, rndSketch } = workedExample();
-    const result = scoreLine(line, context());
+    const result = scoreLine(line, workedDemand());
     expect(result.steps.map((s) => [s.units, s.margin, s.sales])).toEqual([
       [0, 7, 0],
       [0, 14, 0],
@@ -36,7 +41,7 @@ describe('scoreLine: seed-03 worked example', () => {
 
   it('a Factory Floor instead of the Workshop overproduces behind the Gun: $552', () => {
     const { line } = workedExample(card(FACTORY_FLOOR, 'Home'));
-    const result = scoreLine(line, context());
+    const result = scoreLine(line, workedDemand());
     expect(result.shipSales).toBe(544);
     expect(result.overstockSales).toBe(8);
     expect(result.total).toBe(552);
@@ -84,7 +89,7 @@ describe('scoreLine: cards and fixtures', () => {
       slot(null, card(TRUCK, 'Food')),
     ];
     const result = scoreLine(line, context());
-    expect(result.steps[3]?.events.join(' ')).toContain('cap 20→5');
+    expect(result.steps[3]?.events.join(' ')).toContain('cap ×0.25 of Demand');
     expect(result.shipSales).toBe(5 * 4);
   });
 
@@ -136,16 +141,59 @@ describe('scoreLine: trends', () => {
     expect(noPips.hotPipUsed).toBe(false);
   });
 
-  it('Emerging grants Equity when it ships, and Equity adds to that Category’s sales', () => {
-    expect(scoreLine(line(), context({ trends: trends({ Home: 'emerging' }) })).equityGained).toEqual(['Home']);
-    expect(scoreLine(line(), context({ equity: equity({ Home: 2 }) })).total).toBe(6 * 5);
+  it('Emerging sales grow that Category’s Demand', () => {
+    const result = scoreLine(line(), context({ trends: trends({ Home: 'emerging' }) }));
+    expect(result.emergingSold).toEqual(['Home']);
+    expect(result.demandGrowth).toEqual({ Home: DEFAULT_CONFIG.demand.emergingGrowth });
+  });
+});
+
+describe('scoreLine: Demand', () => {
+  const line = () => [slot(null, card(WORKSHOP, 'Home')), slot(null, card(TRUCK, 'Home'))];
+  // Margin: 2, Factory Floor -1, handoff +1, Factory Floor -1, handoff +1 = $2; 28 Units.
+  const big = (...ships: Card[]) => [slot(null, card(FACTORY_FLOOR, 'Home')), slot(null, card(FACTORY_FLOOR, 'Home')), ...ships.map((c) => slot(null, c))];
+
+  it('a Truck sells up to its Category’s Demand left, shared with later Ships of that Category', () => {
+    const result = scoreLine(big(card(TRUCK, 'Home'), card(TRUCK, 'Gadgets'), card(TRUCK, 'Home')), context({ demandLeft: demandLeft({ Home: 15 }) }));
+    expect(result.steps.slice(2).map((s) => s.units)).toEqual([13, 0, 0]);
+    expect(result.demandSold).toEqual({ Home: 15, Gadgets: 13 });
+    expect(result.steps[2]?.events.at(-1)).toMatch(/Ship sells 15 × \$2 = \$30 \(Home Demand sold out\)/);
   });
 
-  it('Saturated halves caps unless the Category is Loyal', () => {
-    // Margin: 2, Factory Floor -1, handoff +1, Factory Floor -1, handoff +1 = $2; 28 Units.
-    const big = () => [slot(null, card(FACTORY_FLOOR, 'Home')), slot(null, card(FACTORY_FLOOR, 'Home')), slot(null, card(TRUCK, 'Home'))];
-    expect(scoreLine(big(), context({ trends: trends({ Home: 'saturated' }) })).shipSales).toBe(10 * 2);
-    expect(scoreLine(big(), context({ trends: trends({ Home: 'saturated' }), equity: equity({ Home: 3 }) })).shipSales).toBe(20 * 5);
+  it('selling the last of a Category’s Demand grows it for good', () => {
+    const result = scoreLine(big(card(TRUCK, 'Home')), context());
+    expect(result.soldOut).toEqual(['Home']);
+    expect(result.demandGrowth).toEqual({ Home: DEFAULT_CONFIG.demand.sellOutGrowth });
+    expect(scoreLine(line(), context()).soldOut).toEqual([]);
+  });
+
+  it('a Category with no Demand left sells nothing and does not sell out again', () => {
+    const result = scoreLine(big(card(TRUCK, 'Home')), context({ demandLeft: demandLeft({ Home: 0 }) }));
+    expect(result.shipSales).toBe(0);
+    expect(result.soldOut).toEqual([]);
+  });
+
+  it('Boutique sells up to 8 and its Demand left; Wholesale Club ignores Demand', () => {
+    expect(scoreLine(big(card(BOUTIQUE, 'Home')), context({ demandLeft: demandLeft({ Home: 5 }) })).demandSold).toEqual({ Home: 5 });
+    const wholesale = scoreLine(big(card(WHOLESALE_CLUB, 'Home')), context({ demandLeft: demandLeft({ Home: 0 }) }));
+    expect(wholesale.shipSales).toBe(28 * 1);
+    expect(wholesale.demandSold).toEqual({});
+  });
+
+  it('Price Gun halves what a Truck may take of Demand', () => {
+    const result = scoreLine([slot(fixture('price-gun'), null), ...big(card(TRUCK, 'Home'))], context());
+    expect(result.demandSold).toEqual({ Home: 10 });
+  });
+});
+
+describe('scoreLine: R&D Grants', () => {
+  const line = () => [slot(null, card(WORKSHOP, 'Home')), slot(null, card(TRUCK, 'Home'))];
+  it('Scale adds Units at each of the Category’s Ships; Premium raises its price', () => {
+    const scaled = scoreLine(line(), context({ grants: grants({ Home: { scale: 2 } }) }));
+    expect(scaled.steps[1]?.events).toContain(`Scale +${2 * DEFAULT_CONFIG.grant.scaleUnits} Units`);
+    expect(scaled.total).toBe((6 + 2 * DEFAULT_CONFIG.grant.scaleUnits) * 3);
+    expect(scoreLine(line(), context({ grants: grants({ Home: { premium: 2 } }) })).total).toBe(Math.floor(6 * 3 * (1 + 2 * DEFAULT_CONFIG.grant.premiumStep)));
+    expect(scoreLine(line(), context({ grants: grants({ Gadgets: { scale: 1, premium: 1 } }) })).total).toBe(6 * 3);
   });
 });
 

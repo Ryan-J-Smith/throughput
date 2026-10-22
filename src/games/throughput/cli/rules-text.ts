@@ -63,15 +63,22 @@ HOW A SALE IS PRICED
        Empty slots and Stations break the chain.
     b. The slot's Fixture applies.
     c. The card resolves. A Design adds its +$ and then applies its ×. A Make adds Units.
-       A Ship sells min(Units, its cap); sold Units leave the Batch.
+       A Ship sells min(Units, its cap, its Category's Demand left); sold Units leave the Batch.
   Every change to Margin (Handoffs, Fixtures, Designs, Factory Floor's -$1) carries on to all later
   slots. So order matters: Quality Lab's +$4 under an Influencer lands before the Influencer's ×1.5,
   and a Tooling Upgrade's +$1 on an Influencer is added before its ×1.5.
   A Ship sells each Unit at:
-    (Margin + that Category's Equity) × the Ship card's own × (Boutique ×2, Wholesale Club ×0.5)
-      × Hot ×${c.hotMultiplier} (while a buzz pip is left) × Flagship Store
+    Margin × the Ship card's own × (Boutique ×2, Wholesale Club ×0.5)
+      × Hot ×${c.hotMultiplier} (while a buzz pip is left) × Flagship Store × R&D Premium
   These sale bonuses apply to that one sale only and do not carry on.
-  Caps: Saturated and Price Gun each halve a Ship's cap (they stack); Wholesale Club ignores cap cuts.
+  Caps: a Truck sells up to its Category's Demand left; Boutique sells up to 8 (and Demand left).
+  Price Gun halves what later Ships may sell. Wholesale Club sells every Unit and ignores Demand.
+
+DEMAND
+  Each Category has Demand: the Units it buys per round, shared by all its Ship cards (start
+  ${c.demand.start}). It refills each round. A Shift that sells the last of it grows it +${c.demand.sellOutGrowth} for good
+  (from next round). An R&D Grant can Scale it (+${c.grant.scaleDemand} Demand and +${c.grant.scaleUnits} Units at each of its Ships)
+  or make it Premium (+${Math.round(c.grant.premiumStep * 100)}% sale price per level).
   Revenue is rounded down once per sale. Margin itself is kept exact and shown to 2 decimals.
 
 MARKET (trends)
@@ -81,10 +88,9 @@ MARKET (trends)
   - Hot: the Hot Category has ${pips} per round. A Shift in which a Hot Ship card sells at least
     1 Unit spends 1 pip, and every Hot sale that Shift gets Margin ×${c.hotMultiplier}. A Shift with no Hot sale
     keeps the pips, so you can save them for your best Shift. Pips don't carry over to the next round.
-  - Emerging: each Shift in which a Ship card of that Category sells at least 1 Unit gives the
-    Category +1 Equity. Units have no Category; the Ship card's Category counts.
-  - Equity is permanent: +$1 per point on that Category's Ship sales (before the ×s above).
-  - Saturated: that Category's Ship caps are halved, unless it is Loyal (Equity ${c.loyalEquity}+).
+  - Emerging: each Shift in which a Ship card of that Category sells at least 1 Unit grows its
+    Demand +${c.demand.emergingGrowth} for good. Units have no Category; the Ship card's Category counts.
+  - Saturated: that Category has ×${c.demand.saturatedMul} of its Demand this round.
 
 CAPITAL AND THE SHOP
   Capital (C) is separate from Sales. When a round clears you earn ${income},

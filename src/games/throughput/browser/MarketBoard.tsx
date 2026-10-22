@@ -7,7 +7,7 @@ const ROWS: readonly TrendStage[] = ['hot', 'emerging', 'saturated', 'neutral'];
 
 export type MarketBoardProps = { run: ThroughputRun };
 
-/** Trend board: this quarter and the next three, Equity per Category, and the Board Reviews ahead. */
+/** Trend board: this quarter and the next three, Demand per Category, and the Board Reviews ahead. */
 export function MarketBoard({ run }: MarketBoardProps) {
   const first = run.phase === 'shop' ? run.round + 1 : run.round;
   const quarters = Array.from({ length: 4 }, (_, i) => first + i).filter((r) => r <= run.rounds);
@@ -31,11 +31,10 @@ export function MarketBoard({ run }: MarketBoardProps) {
         ))}
       </div>
       <p className="tp-market__equity">
-        <span className="tp-market__equity-label">Equity</span>
+        <span className="tp-market__equity-label">Demand</span>
         {CATEGORIES.map((c) => (
           <span key={c} className="tp-chip" data-accent={CATEGORY_ACCENT[c]}>
-            {c} {run.equity[c]}
-            {run.equity[c] >= run.config.loyalEquity ? ', Loyal' : ''}
+            {c} {run.demandLeft[c]}/{run.demand[c]}
           </span>
         ))}
       </p>

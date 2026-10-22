@@ -4,7 +4,7 @@ import { Rng } from '../../../engine/rng';
 import { BOSSES, DEFAULT_CONFIG, STARTER_CARDS } from '../content';
 import type { ThroughputConfig } from '../content';
 import { CATEGORIES, cardName } from '../model';
-import type { BoardBoss, Card, CardDef, Category, Fixture, FixtureDef, Stage } from '../model';
+import type { BoardBoss, Card, CardDef, Category, ContractEffect, Fixture, FixtureDef, GrantLevels, GrantOption, Stage } from '../model';
 import { trendSchedule } from './market';
 import { scoreLine } from './score-line';
 import type { LineSlot, ShiftContext, ShiftResult, Trends } from './score-line';
@@ -47,7 +47,7 @@ export type Placement = { readonly hand: number; readonly slot: number };
 export type FixtureMove = { readonly fixture: Fixture; readonly from: number; readonly to: number };
 
 /** What `buy` acts on: a Line slot for a Fixture, a deck card for a targeted Contract. */
-export type BuyTarget = { readonly slot?: number; readonly deckCard?: number };
+export type BuyTarget = { readonly slot?: number; readonly deckCard?: number; readonly category?: Category; readonly option?: GrantOption };
 
 type SlotState = { fixture: Fixture | null; card: LineCard | null };
 
@@ -70,7 +70,10 @@ export class ThroughputRun {
   private readonly deckRng: Rng;
   private readonly shop_: ThroughputShop;
   private readonly slots_: SlotState[];
-  private readonly equity_: Record<Category, number>;
+  /** Each Category's Demand (grows for good) and what is left of it this round. */
+  private readonly demand_: Record<Category, number>;
+  private readonly demandLeft_: Record<Category, number>;
+  private readonly grants_: Record<Category, { scale: number; premium: number }>;
   private readonly history_: RoundRecord[] = [];
   private phase_: Phase = 'shift';
   private round_ = 1;
@@ -111,7 +114,9 @@ export class ThroughputRun {
     this.boardBosses = Array.from({ length: years }, (_, i) => order[i % order.length] as BoardBoss);
     this.shop_ = new ThroughputShop(config, rng.fork('shop'));
     this.wallet = new Wallet(config.startingCapital);
-    this.equity_ = Object.fromEntries(CATEGORIES.map((c) => [c, 0])) as Record<Category, number>;
+    this.demand_ = Object.fromEntries(CATEGORIES.map((c) => [c, config.demand.start])) as Record<Category, number>;
+    this.demandLeft_ = { ...this.demand_ };
+    this.grants_ = Object.fromEntries(CATEGORIES.map((c) => [c, { scale: 0, premium: 0 }])) as Record<Category, { scale: number; premium: number }>;
     this.slots_ = Array.from({ length: config.startSlots }, () => ({ fixture: null, card: null }));
     for (const category of CATEGORIES) {
       for (const def of STARTER_CARDS) this.deck_.push(this.newCard(def, category, 0));
@@ -163,8 +168,19 @@ export class ThroughputRun {
     return this.stored_;
   }
 
-  get equity(): Readonly<Record<Category, number>> {
-    return this.equity_;
+  /** Each Category's Demand: the Units it buys per round (before a Saturated halving). */
+  get demand(): Readonly<Record<Category, number>> {
+    return this.demand_;
+  }
+
+  /** Demand left this round per Category (in the shop: what the round just played left). */
+  get demandLeft(): Readonly<Record<Category, number>> {
+    return this.demandLeft_;
+  }
+
+  /** R&D Grant levels bought per Category. */
+  get grants(): Readonly<Record<Category, GrantLevels>> {
+    return this.grants_;
   }
 
   get trendsNow(): Trends {
@@ -412,7 +428,10 @@ export class ThroughputRun {
     this.sales_ = Math.max(0, this.sales_ + result.total);
     for (const card of result.grown) card.growth++;
     if (result.hotPipUsed) this.hotPips_--;
-    for (const category of result.equityGained) this.equity_[category]++;
+    for (const c of CATEGORIES) {
+      this.demandLeft_[c] -= result.demandSold[c] ?? 0;
+      this.demand_[c] += result.demandGrowth[c] ?? 0;
+    }
     this.stored_ = result.storedAfter;
     this.dispatch();
     this.lastShift_ = result;
@@ -443,8 +462,16 @@ export class ThroughputRun {
       if (item.def.effect === 'expand' && this.slots_.length >= this.config.maxSlots) return `The Line is already at ${this.config.maxSlots} slots`;
       if (item.def.targetsCard) {
         if (target.deckCard === undefined) return `Say which deck card (buy ${offer + 1} <deck card>)`;
-        if (this.deck_[target.deckCard] === undefined) return `No deck card ${target.deckCard + 1}`;
+        const card = this.deck_[target.deckCard];
+        if (card === undefined) return `No deck card ${target.deckCard + 1}`;
         if (item.def.effect === 'downsize' && this.deck_.length <= 1) return 'Your deck needs at least one card';
+        if (item.def.effect === 'tooling' && card.def.stage === 'ship' && typeof card.def.cap !== 'number') {
+          return `${cardName(card)} has no cap to raise (it sells ${card.def.cap === 'all' ? 'all Units' : 'up to Demand'})`;
+        }
+      }
+      if (item.def.targetsCategory) {
+        if (target.category === undefined || target.option === undefined) return `Say which Category and scale or premium (buy ${offer + 1} <category> scale|premium)`;
+        if (!CATEGORIES.includes(target.category)) return `No Category ${target.category}`;
       }
     }
     return null;
@@ -461,7 +488,7 @@ export class ThroughputRun {
         this.deck_.push(this.newCard(item.def, item.category, item.price));
         break;
       case 'contract':
-        this.applyContract(item.def.effect, target.deckCard);
+        this.applyContract(item.def.effect, target);
         break;
     }
     return item;
@@ -541,6 +568,7 @@ export class ThroughputRun {
     this.shift_ = 1;
     this.retools_ = this.config.retoolsPerRound;
     this.hotPips_ = this.config.hotPips;
+    for (const c of CATEGORIES) this.demandLeft_[c] = Math.floor(this.demand_[c] * (this.trendsNow[c] === 'saturated' ? this.config.demand.saturatedMul : 1));
     this.lastShift_ = null;
     this.lastPayout_ = null;
     this.storageNotice_ = null;
@@ -692,8 +720,16 @@ export class ThroughputRun {
     this.shop_.restock(this.canExpand());
   }
 
-  private applyContract(effect: 'tooling' | 'downsize' | 'expand', deckCard: number | undefined): void {
+  private applyContract(effect: ContractEffect, { deckCard, category, option }: BuyTarget): void {
     switch (effect) {
+      case 'grant': {
+        const grant = this.grants_[category as Category];
+        if (option === 'scale') {
+          grant.scale++;
+          this.demand_[category as Category] += this.config.grant.scaleDemand;
+        } else grant.premium++;
+        return;
+      }
       case 'tooling':
         (this.deck_[deckCard as number] as Card).upgrades++;
         return;
@@ -712,15 +748,16 @@ export class ThroughputRun {
     return this.slots_.map((s) => ({ fixture: s.fixture, card: s.card?.card ?? null }));
   }
 
-  /** What scoring needs besides the Line: trends, Equity, pips, storage, boss (a snapshot). */
+  /** What scoring needs besides the Line: trends, Demand, Grants, pips, storage, boss (a snapshot). */
   shiftContext(): ShiftContext {
     return {
       config: this.config,
       trends: this.trendsNow,
-      equity: { ...this.equity_ },
       hotPipsLeft: this.hotPips_,
       stored: this.stored_,
       boss: this.boss,
+      demandLeft: { ...this.demandLeft_ },
+      grants: Object.fromEntries(CATEGORIES.map((c) => [c, { ...this.grants_[c] }])) as Record<Category, GrantLevels>,
     };
   }
 

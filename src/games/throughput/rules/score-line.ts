@@ -1,6 +1,7 @@
 import type { ThroughputConfig } from '../content';
 import { Batch, cardName, designAdd, formatAmount, makeUnits, shipCap } from '../model';
-import type { BoardBoss, Card, Category, Fixture, TrendStage } from '../model';
+import { CATEGORIES } from '../model';
+import type { BoardBoss, Card, Category, Fixture, GrantLevels, TrendStage } from '../model';
 
 export type LineSlot = {
   readonly fixture: Fixture | null;
@@ -13,7 +14,10 @@ export type Trends = Readonly<Record<Category, TrendStage>>;
 export type ShiftContext = {
   readonly config: ThroughputConfig;
   readonly trends: Trends;
-  readonly equity: Readonly<Record<Category, number>>;
+  /** Units each Category still buys this round (its Demand left). */
+  readonly demandLeft: Readonly<Record<Category, number>>;
+  /** R&D Grant levels per Category. */
+  readonly grants: Readonly<Record<Category, GrantLevels>>;
   /** Shifts left this round that sell the Hot Category at ×2. */
   readonly hotPipsLeft: number;
   /** Units in storage before the Shift. */
@@ -48,8 +52,14 @@ export type ShiftResult = {
   /** Designs that grew (R&D Lab), one entry per +$1. */
   readonly grown: readonly Card[];
   readonly hotPipUsed: boolean;
-  /** Emerging Categories that shipped this Shift (each gains +1 Equity). */
-  readonly equityGained: readonly Category[];
+  /** Units each Category's Ship cards sold against its Demand this Shift (Wholesale Club's don't count). */
+  readonly demandSold: Readonly<Partial<Record<Category, number>>>;
+  /** Categories whose Demand this Shift sold the last of. */
+  readonly soldOut: readonly Category[];
+  /** Emerging Categories that sold at least 1 Unit this Shift. */
+  readonly emergingSold: readonly Category[];
+  /** Permanent Demand growth this Shift earns (sell-outs and Emerging sales), from next round. */
+  readonly demandGrowth: Readonly<Partial<Record<Category, number>>>;
 };
 
 /**
@@ -105,19 +115,38 @@ export function scoreLine(line: readonly LineSlot[], ctx: ShiftContext, options:
     total: batch.sales + overstockSales,
     grown: batch.grown,
     hotPipUsed: sale.hotUsed,
-    equityGained: [...sale.equityGained],
+    demandSold: Object.fromEntries(sale.demandSold),
+    soldOut: [...sale.soldOut],
+    emergingSold: [...sale.emergingSold],
+    demandGrowth: demandGrowth(sale, config),
   };
 }
 
-/** Trend effects collected while a Shift's Ship cards sell. */
+/** Trend and Demand effects collected while a Shift's Ship cards sell. */
 class SaleState {
   hotUsed = false;
-  readonly equityGained = new Set<Category>();
+  readonly demandSold = new Map<Category, number>();
+  readonly soldOut = new Set<Category>();
+  readonly emergingSold = new Set<Category>();
   readonly ctx: ShiftContext;
 
   constructor(ctx: ShiftContext) {
     this.ctx = ctx;
   }
+
+  demandSoldOf(category: Category): number {
+    return this.demandSold.get(category) ?? 0;
+  }
+}
+
+/** Sell-outs and Emerging sales grow Demand for good. */
+function demandGrowth(sale: SaleState, config: ThroughputConfig): Partial<Record<Category, number>> {
+  const growth: Partial<Record<Category, number>> = {};
+  for (const c of CATEGORIES) {
+    const amount = (sale.soldOut.has(c) ? config.demand.sellOutGrowth : 0) + (sale.emergingSold.has(c) ? config.demand.emergingGrowth : 0);
+    if (amount > 0) growth[c] = amount;
+  }
+  return growth;
 }
 
 function resolveCard(card: Card, fixture: Fixture | null, batch: Batch, sale: SaleState): void {
@@ -141,30 +170,41 @@ function resolveCard(card: Card, fixture: Fixture | null, batch: Batch, sale: Sa
 }
 
 function ship(card: Card, marginMul: number, fixture: Fixture | null, batch: Batch, sale: SaleState): void {
-  const { config, trends, equity } = sale.ctx;
+  const { config, trends } = sale.ctx;
   const category = card.category;
   const stage = trends[category];
-  const saturated = stage === 'saturated' && equity[category] < config.loyalEquity;
+  const grant = sale.ctx.grants[category];
+  if (grant.scale > 0) batch.addUnits(config.grant.scaleUnits * grant.scale, 'Scale');
   const base = shipCap(card);
-  const cap = base === 'all' ? batch.units : Math.floor(base * batch.capMul * (saturated ? config.saturatedCapMul : 1));
-  const sold = Math.min(batch.units, cap);
+  // Every Ship but Wholesale Club's "all" draws on the Category's Demand, shared across the round.
+  const usesDemand = base !== 'all';
+  const left = usesDemand ? Math.max(0, sale.ctx.demandLeft[category] - sale.demandSoldOf(category)) : Infinity;
+  const cap = base === 'all' ? batch.units : Math.floor((base === 'demand' ? left : base) * batch.capMul);
+  const sold = Math.min(batch.units, cap, left);
   const hot = stage === 'hot' && sale.ctx.hotPipsLeft > 0 && sold > 0;
   const flagship = fixture?.def.effect.saleMultiplier(card, fixture) ?? 1;
-  const price = (batch.margin + equity[category]) * marginMul * (hot ? config.hotMultiplier : 1) * flagship;
+  const premium = 1 + config.grant.premiumStep * grant.premium;
+  const price = batch.margin * marginMul * (hot ? config.hotMultiplier : 1) * flagship * premium;
   const revenue = Math.floor(sold * price);
 
   batch.units -= sold;
   batch.sales += revenue;
   if (hot) sale.hotUsed = true;
-  if (stage === 'emerging' && sold > 0) sale.equityGained.add(category);
+  if (usesDemand && sold > 0) {
+    sale.demandSold.set(category, sale.demandSoldOf(category) + sold);
+    if (sold === left) sale.soldOut.add(category);
+  }
+  if (stage === 'emerging' && sold > 0) sale.emergingSold.add(category);
   if (!batch.tracing) return;
 
   const notes: string[] = [];
-  if (base !== 'all' && cap !== base) notes.push(`cap ${base}→${cap}${saturated ? ' (Saturated)' : ''}`);
-  if (equity[category] > 0) notes.push(`Equity +$${equity[category]}`);
+  if (typeof base === 'number' && cap !== base) notes.push(`cap ${base}→${cap}`);
+  if (base === 'demand' && batch.capMul !== 1) notes.push(`cap ×${formatAmount(batch.capMul)} of Demand`);
+  if (usesDemand) notes.push(`${category} Demand ${sold === left && sold > 0 ? 'sold out' : `${left - sold} left`}`);
   if (marginMul !== 1) notes.push(`×${formatAmount(marginMul)}`);
   if (hot) notes.push(`Hot ×${formatAmount(config.hotMultiplier)}`);
   if (flagship !== 1) notes.push(`Flagship ×${formatAmount(flagship)}`);
+  if (premium !== 1) notes.push(`Premium ×${formatAmount(premium)}`);
   batch.note(`Ship sells ${sold} × $${formatAmount(price)} = $${revenue}${notes.length > 0 ? ` (${notes.join(', ')})` : ''}`);
 }
 

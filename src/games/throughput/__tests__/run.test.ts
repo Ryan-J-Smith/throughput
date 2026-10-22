@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_CONFIG } from '../content';
 import type { ThroughputConfig } from '../content';
-import type { Stage } from '../model';
+import { CATEGORIES } from '../model';
+import type { Category, Stage } from '../model';
 import { ThroughputRun } from '../rules';
 import { easyConfig } from './fixtures';
 
@@ -272,6 +274,14 @@ describe('ThroughputRun: payout and shop', () => {
     expect(run.line).toHaveLength(6);
   });
 
+  it('Tooling Upgrade refuses Trucks and Wholesale Clubs, which have no cap to raise', () => {
+    const run = new ThroughputRun(1, easyConfig({ startingCapital: 1000 }));
+    makeAndShip(run);
+    for (let i = 0; i < 200 && !(run.offers[4]?.kind === 'contract' && run.offers[4].def.effect === 'tooling'); i++) run.reroll();
+    const truck = run.deck.findIndex((c) => c.def.id === 'truck');
+    expect(run.whyCannotBuy(4, { deckCard: truck })).toMatch(/Truck-. has no cap to raise \(it sells up to Demand\)/);
+  });
+
   it('continue starts the next round with a fresh deck and the market moved on', () => {
     const run = new ThroughputRun(1, easyConfig());
     makeAndShip(run);
@@ -377,5 +387,50 @@ describe('ThroughputRun: bosses', () => {
     const fee = Math.ceil(run.stored / 10);
     expect(run.storageNotice).toBe(`Paid ${fee}C storage for ${run.stored} stored Units`);
     expect(run.wallet.cash).toBe(cash + (run.lastPayout ?? []).reduce((sum, l) => sum + l.amount, 0) - fee);
+  });
+});
+
+describe('ThroughputRun: Demand and R&D Grants', () => {
+  const tight = (start: number) => easyConfig({ targets: [10_000, 10_000, 10_000], demand: { start, sellOutGrowth: 10, emergingGrowth: 0, saturatedMul: 0.5 } });
+
+  it('each Category starts with the configured Demand, halved in its Saturated round', () => {
+    const run = findRun(easyConfig(), () => {}, (r) => Object.values(r.trendsNow).includes('saturated'));
+    for (const c of CATEGORIES) {
+      expect(run.demand[c]).toBe(DEFAULT_CONFIG.demand.start);
+      expect(run.demandLeft[c]).toBe(run.trendsNow[c] === 'saturated' ? DEFAULT_CONFIG.demand.start / 2 : DEFAULT_CONFIG.demand.start);
+    }
+  });
+
+  it('sales use up Demand for the round; a sell-out grows it for good from the next round', () => {
+    const run = findRun(tight(3), () => {}, (r) => r.hand.some((c) => c.def.stage === 'ship' && r.trendsNow[c.category] === 'neutral'));
+    const truck = run.hand.findIndex((c) => c.def.stage === 'ship' && run.trendsNow[c.category] === 'neutral');
+    const category = run.hand[truck]?.category as Category;
+    run.load([
+      { hand: handIndex(run, 'make'), slot: 3 },
+      { hand: truck, slot: 4 },
+    ]);
+    const result = run.runShift();
+    expect(result.demandSold[category]).toBe(3);
+    expect(result.soldOut).toContain(category);
+    expect(run.demandLeft[category]).toBe(0);
+    expect(run.demand[category]).toBe(13);
+  });
+
+  it('an R&D Grant needs a Category and an option; Scale adds Demand, Premium a level', () => {
+    const run = new ThroughputRun(1, easyConfig({ startingCapital: 1000 }));
+    makeAndShip(run);
+    const rerollForGrant = () => {
+      for (let i = 0; i < 200 && !(run.offers[4]?.kind === 'contract' && run.offers[4].def.effect === 'grant'); i++) run.reroll();
+    };
+    rerollForGrant();
+    expect(run.whyCannotBuy(4)).toMatch(/Say which Category and scale or premium/);
+    const food = run.demand.Food;
+    run.buy(4, { category: 'Food', option: 'scale' });
+    expect(run.grants.Food).toEqual({ scale: 1, premium: 0 });
+    expect(run.demand.Food).toBe(food + DEFAULT_CONFIG.grant.scaleDemand);
+    rerollForGrant();
+    run.buy(4, { category: 'Home', option: 'premium' });
+    expect(run.grants.Home).toEqual({ scale: 0, premium: 1 });
+    expect(run.shiftContext().grants.Home).toEqual({ scale: 0, premium: 1 });
   });
 });

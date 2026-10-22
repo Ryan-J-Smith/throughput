@@ -19,10 +19,10 @@ export function makeUnits(card: Card): number {
   return card.def.stage === 'make' ? card.def.units + 3 * card.upgrades : 0;
 }
 
-/** A Ship card's capacity before cap cuts, including Tooling Upgrades. */
-export function shipCap(card: Card): number | 'all' {
+/** A Ship card's capacity before cap cuts, including Tooling Upgrades (numeric caps only). */
+export function shipCap(card: Card): number | 'demand' | 'all' {
   if (card.def.stage !== 'ship') return 0;
-  return card.def.cap === 'all' ? 'all' : card.def.cap + 5 * card.upgrades;
+  return typeof card.def.cap === 'number' ? card.def.cap + 5 * card.upgrades : card.def.cap;
 }
 
 /** What the card does with its current upgrades, e.g. "Design: +$5 Margin". */
@@ -39,7 +39,8 @@ export function cardEffect(card: Card): string {
     case 'ship': {
       const cap = shipCap(card);
       const at = def.marginMul === 1 ? '' : def.marginMul === 0.5 ? ' at half Margin' : ` at Margin ×${formatAmount(def.marginMul)}`;
-      return `${STAGE_LABEL.ship}: sell ${cap === 'all' ? 'all Units' : `up to ${cap} Units`}${at}${cap === 'all' ? ' (ignores cap cuts)' : ''}`;
+      const amount = cap === 'all' ? 'all Units' : cap === 'demand' ? "up to its Category's Demand" : `up to ${cap} Units`;
+      return `${STAGE_LABEL.ship}: sell ${amount}${at}${cap === 'all' ? ' (ignores Demand and cap cuts)' : ''}`;
     }
   }
 }

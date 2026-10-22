@@ -188,7 +188,7 @@ describe('rules and shop text', () => {
   it('a shop card offer names its Category and type, in the same words the deck uses', () => {
     expect(offerText({ kind: 'card', def: INFLUENCER, category: 'Food', price: 5 })).toBe('Card · Influencer-F (Food Design) · 5C: Margin ×1.5');
     expect(offerText({ kind: 'card', def: WHOLESALE_CLUB, category: 'Home', price: 4 })).toBe(
-      'Card · Wholesale Club-H (Home Ship) · 4C: sell all Units at half Margin (ignores cap cuts)',
+      'Card · Wholesale Club-H (Home Ship) · 4C: sell all Units at half Margin (ignores Demand and cap cuts)',
     );
   });
 });
