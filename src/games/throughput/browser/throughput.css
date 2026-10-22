@@ -567,7 +567,7 @@ body:has(.screen--tp-shop[data-year])::before {
   outline-offset: 3px;
 }
 
-.tp-bay__spot .card-wrap {
+:is(.tp-bay__spot, .tp-replay__face) .card-wrap {
   width: 100%;
 }
 
@@ -793,8 +793,9 @@ body:has(.screen--tp-shop[data-year])::before {
   --card-lines: 2;
 }
 
-/* In a bay the card fills the spot's fixed height: same zones, no rules text (the plate has it). */
-.screen--tp .tp-bay__spot .card--windowed {
+/* In a bay (and on the replay's belt) the card fills the spot's fixed height: same zones, no rules
+   text (the plate has it). */
+.screen--tp :is(.tp-bay__spot, .tp-replay__face) .card--windowed {
   aspect-ratio: auto;
   height: 150px;
 }
@@ -1285,22 +1286,22 @@ body:has(.screen--tp-shop[data-year])::before {
   min-height: 158px;
 }
 
-.tp-bay__spot .card {
+:is(.tp-bay__spot, .tp-replay__face) .card {
   min-height: 0;
 }
 
-.tp-bay__spot .card__art,
+:is(.tp-bay__spot, .tp-replay__face) .card__art,
 .tp-hand .card__art {
   aspect-ratio: 16 / 9;
 }
 
-.tp-bay__spot .card--windowed .badge--value,
+:is(.tp-bay__spot, .tp-replay__face) .card--windowed .badge--value,
 .tp-hand .card--windowed .badge--value {
   padding: 3px 7px 2px;
   font-size: 1.3rem;
 }
 
-.tp-bay__spot .card__desc {
+:is(.tp-bay__spot, .tp-replay__face) .card__desc {
   display: none;
 }
 

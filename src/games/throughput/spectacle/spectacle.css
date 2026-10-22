@@ -520,6 +520,89 @@
   }
 }
 
+/* ---- The cards on the belt: each slot as the Line showed it ---- */
+
+/* Card faces need the grid layouts' room; the docked replay below them keeps the name tiles. */
+.tp-replay__face {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  /* With the cards on it the replay stands taller than the Line, so it spans the Line and the
+     waiting hand: nothing under it moves while it plays. */
+  .screen--tp-shift > .tp-replay {
+    grid-row: line / hand;
+    align-self: start;
+  }
+
+  /* The replay covers the top of the hand, so its cards step aside rather than show cut off. */
+  .screen--tp-shift[data-replay] .tp-hand .hand__cards {
+    opacity: 0;
+  }
+
+  .tp-replay__slots:has(> [data-face]) {
+    padding-top: 6px;
+  }
+
+  .tp-replay__face {
+    display: block;
+  }
+
+  .tp-replay__slot[data-face] {
+    padding: 0;
+    background: none;
+    border: 0;
+  }
+
+  /* The card carries the name; screen readers still get it from the tile. */
+  .tp-replay__slot[data-face] > .tp-replay__name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* The bay number rides in the card's band, where the bay's plate had it. */
+  .tp-replay__slot[data-face] > .tp-replay__num {
+    position: absolute;
+    top: 6px;
+    right: 7px;
+    z-index: 2;
+    font-size: var(--text-xs);
+    color: rgb(255 255 255 / 0.75);
+  }
+
+  .tp-replay__slot[data-face][data-state='active'] {
+    box-shadow: none;
+  }
+
+  .tp-replay__slot[data-face][data-state='active'] .card {
+    border-color: var(--cat-gadgets);
+    box-shadow: 0 0 0 1px var(--cat-gadgets), var(--shadow-card), 0 0 26px -6px rgb(46 197 255 / 0.8);
+  }
+
+  .tp-replay__slot[data-face] > .tp-replay__fixture {
+    padding: 0 2px;
+  }
+
+  .tp-replay__slot[data-face] > .tp-replay__deltas {
+    margin-top: 2px;
+  }
+
+  /* A sale rises off the card's art, so it needs more weight than over a plain tile. */
+  .tp-replay__slot[data-face] > .tp-replay__pop {
+    top: 18%;
+    font-size: 2rem;
+    text-shadow:
+      0 2px 0 #06301f,
+      0 0 3px #06301f,
+      0 0 18px rgb(61 220 151 / 0.9),
+      0 6px 14px rgb(0 0 0 / 0.7);
+  }
+}
+
 /* ---- Phones: narrower slots, the fixture line goes ---- */
 
 @media (max-width: 640px) {

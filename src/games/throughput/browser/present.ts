@@ -74,6 +74,17 @@ export function fixtureView(def: FixtureDef, id: string): CardView {
   };
 }
 
+/**
+ * What stands in each bay, as the Line draws it: the loaded card, else a Station (which fills its
+ * bay), else nothing. The replay puts these faces on the belt, so a Run plays with the real cards.
+ */
+export function lineFaces(run: ThroughputRun): (CardView | null)[] {
+  return run.line.map((slot, i) => {
+    if (slot.card !== null) return cardView(slot.card.card, `replay-${i}`, run.demandLeft);
+    return slot.fixture?.def.kind === 'station' ? fixtureView(slot.fixture.def, `replay-${i}`) : null;
+  });
+}
+
 /** A bay plate's text: the Fixture's short gist (or its rule), then what it does now (Flagship's growing ×). */
 export function plateText(fixture: Fixture): string {
   return `${fixture.def.short ?? fixture.def.text.replace(/^Station\. /, '')} ${fixtureNow(fixture)}`.trim();

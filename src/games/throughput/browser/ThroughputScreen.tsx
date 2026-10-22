@@ -5,7 +5,7 @@ import type { BrowserGameProps } from '../../../ui/games';
 import { durationToken } from '../../../ui/motion';
 import { SilentPlayer } from '../../../ui/sound';
 import type { KeyValueStore } from '../../../ui/storage';
-import type { ToastKind, ToastView } from '../../../ui/types';
+import type { CardView, ToastKind, ToastView } from '../../../ui/types';
 import { noShipNote, shipsToDraw } from '../cli';
 import type { ThroughputAction } from '../cli';
 import { cardName } from '../model';
@@ -17,7 +17,7 @@ import { LineView } from './LineView';
 import type { BayState } from './LineView';
 import { MarketBoard } from './MarketBoard';
 import { PileStack } from './PileStack';
-import { cardView, overkillHelp } from './present';
+import { cardView, lineFaces, overkillHelp } from './present';
 import { RunAutosave, handNumber } from './run-autosave';
 import { RunSummaryView } from './RunSummary';
 import { beatReveal, hitStopMs, salesBefore } from './replay-hud';
@@ -46,6 +46,8 @@ type Replay = {
   readonly shift: number;
   readonly outcome: ShiftOutcome;
   readonly timing: ReplayTiming;
+  /** The card or Station in each bay as the Run starts, drawn on the belt. */
+  readonly faces: readonly (CardView | null)[];
 };
 
 type Session = { readonly run: ThroughputRun; readonly autosave: RunAutosave };
@@ -221,7 +223,7 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
     setMode(IDLE);
     // Sales stays put until the first sale banks; the reveal keeps the HUD from offering "+$N if you run" meanwhile.
     setReveal({ from: run.sales, to: run.sales });
-    setReplay({ key: replayKey.current++, result, beats: shiftBeats(result, run.config.baseMargin), shift: run.shift, outcome, timing });
+    setReplay({ key: replayKey.current++, result, beats: shiftBeats(result, run.config.baseMargin), shift: run.shift, outcome, timing, faces: lineFaces(run) });
   };
 
   /** Applies the replayed Run: when the replay is done, or as soon as the player does anything else. */
@@ -385,6 +387,7 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
           result={replay.result}
           shift={replay.shift}
           baseMargin={run.config.baseMargin}
+          faces={replay.faces}
           onBeat={(beat, i) => {
             playBeat(sound, beat, replay.timing.stepMs, salesBefore(replay.beats, i));
             const banked = beatReveal(run, beat, i, replay.timing.stepMs);

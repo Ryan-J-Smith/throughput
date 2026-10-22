@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { artUrl } from '../../../assets/art';
+import { Card } from '../../../ui/components';
 import { Icon } from '../../../ui/icons';
 import { prefersReducedMotion, speedScale } from '../../../ui/motion';
+import type { CardView } from '../../../ui/types';
 import { formatAmount } from '../model';
 import type { ShiftResult } from '../rules';
 import { shiftBeats } from './beats';
@@ -33,6 +35,8 @@ export type ShiftReplayProps = {
   shift: number;
   /** The Margin a Batch starts with (the run's config), so a first-slot Design shows its gain. */
   baseMargin?: number;
+  /** The card (or Station) in each slot, by slot index, drawn on the belt as the Line shows it; a slot without one shows its name. */
+  faces?: readonly (CardView | null)[];
   /** Each slot as the token reaches it (in order, `stepMs` apart); not called under reduced motion. */
   onBeat?: (beat: Beat, index: number) => void;
   /** Extra milliseconds to hold on a slot before moving on (a hit-stop on a big sale); 0 if unset. */
@@ -59,7 +63,7 @@ const MAX_CRATES = 8;
  * anything past a Board's Shift cap, which the finale names).
  * Click or Skip jumps to the finale.
  */
-export function ShiftReplay({ result, shift, baseMargin, onBeat, holdAfter, onFinale, onDone }: ShiftReplayProps) {
+export function ShiftReplay({ result, shift, baseMargin, faces, onBeat, holdAfter, onFinale, onDone }: ShiftReplayProps) {
   const data = useMemo(() => shiftBeats(result, baseMargin), [result, baseMargin]);
   const n = data.beats.length;
   const [timing] = useState(replayTiming);
@@ -112,7 +116,7 @@ export function ShiftReplay({ result, shift, baseMargin, onBeat, holdAfter, onFi
       <div className="tp-replay__belt">
         <ol className="tp-replay__slots">
           {data.beats.map((beat, i) => (
-            <Slot key={beat.slot} beat={beat} state={i < at ? 'past' : i === at ? 'active' : 'ahead'} />
+            <Slot key={beat.slot} beat={beat} face={faces?.[beat.slot - 1] ?? null} state={i < at ? 'past' : i === at ? 'active' : 'ahead'} />
           ))}
         </ol>
         {artUrl('token-hero-robot') !== undefined && (
@@ -158,13 +162,26 @@ function Readout({ kind, value, label }: { kind: 'units' | 'margin' | 'sales'; v
   );
 }
 
-function Slot({ beat, state }: { beat: Beat; state: 'past' | 'active' | 'ahead' }) {
+function Slot({ beat, face, state }: { beat: Beat; face: CardView | null; state: 'past' | 'active' | 'ahead' }) {
   const shown = state !== 'ahead';
   const name = beat.kind === 'welded' ? 'Welded' : (beat.card ?? beat.fixture ?? 'Empty');
+  // A welded bay does nothing, whatever stands there.
+  const drawn = beat.kind === 'welded' ? null : face;
   return (
-    <li className="tp-replay__slot" data-state={state} data-kind={beat.kind} data-flourishes={beat.flourishes.join(' ') || undefined}>
+    <li
+      className="tp-replay__slot"
+      data-state={state}
+      data-kind={beat.kind}
+      data-face={drawn !== null || undefined}
+      data-flourishes={beat.flourishes.join(' ') || undefined}
+    >
       <span className="tp-replay__num">{beat.slot}</span>
       <span className="tp-replay__name">{name}</span>
+      {drawn !== null && (
+        <span className="tp-replay__face" aria-hidden="true">
+          <Card card={drawn} />
+        </span>
+      )}
       {beat.fixture !== null && beat.card !== null && (
         <span className="tp-replay__fixture" data-idle={beat.idle || undefined}>
           {beat.fixture}
