@@ -4,6 +4,7 @@ import { LineView, ThroughputBrowserGame, ThroughputScreen, TraceReceipt, lineNo
 import type { BayState } from '../browser';
 import type { Stage } from '../model';
 import { ThroughputRun } from '../rules';
+import { MemoryStore } from '../../../ui/storage';
 import { easyConfig } from './fixtures';
 
 function handIndex(run: ThroughputRun, stage: Stage): number {
@@ -26,7 +27,7 @@ function renderLine(run: ThroughputRun, bayState: (slot: number) => BayState = (
 
 describe('THROUGHPUT browser screen', () => {
   it('opens on Shift 1 with the Line, the Market board and an empty preview receipt', () => {
-    const html = renderToStaticMarkup(<ThroughputScreen seed={1} onQuit={() => {}} />);
+    const html = renderToStaticMarkup(<ThroughputScreen seed={1} onQuit={() => {}} store={new MemoryStore()} resume={false} />);
     expect(html).toContain('Run Shift 1: $0');
     expect(html.match(/class="tp-bay /g)).toHaveLength(5);
     expect(html).toContain('aria-label="Market"');

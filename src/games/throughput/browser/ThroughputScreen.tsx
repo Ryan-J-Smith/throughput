@@ -1,7 +1,9 @@
 import { useCallback, useRef, useState } from 'react';
 import { Card, ToastStack } from '../../../ui/components';
 import type { BrowserGameProps } from '../../../ui/games';
+import type { KeyValueStore } from '../../../ui/storage';
 import type { ToastKind, ToastView } from '../../../ui/types';
+import type { ThroughputAction } from '../cli';
 import { cardName } from '../model';
 import { ThroughputRun } from '../rules';
 import type { ShiftResult } from '../rules';
@@ -9,6 +11,7 @@ import { LineView } from './LineView';
 import type { BayState } from './LineView';
 import { MarketBoard } from './MarketBoard';
 import { cardView } from './present';
+import { RunAutosave, handNumber } from './run-autosave';
 import { DeckDrawer, PayoutSlip, RulesSheet, Shelf } from './ShopParts';
 import { TpHud } from './TpHud';
 import { TraceReceipt } from './TraceReceipt';
@@ -27,29 +30,46 @@ const IDLE: Mode = { kind: 'idle' };
 
 type ShiftRecord = { readonly result: ShiftResult; readonly heading: string; readonly salesBefore: number; readonly target: number };
 
+type Session = { readonly run: ThroughputRun; readonly autosave: RunAutosave };
+
+/** The autosaved run if `resume` and it still replays, else a fresh autosaved run from `seed`. */
+function openSession(store: KeyValueStore, seed: number, resume: boolean): Session & { readonly notice: string | null } {
+  const restored = resume ? RunAutosave.restore(store) : null;
+  if (restored?.ok === true) return { run: restored.run, autosave: restored.autosave, notice: null };
+  const notice = restored === null ? null : `Your saved run couldn't be restored (${restored.reason}), so a new run has started.`;
+  return { run: new ThroughputRun(seed), autosave: RunAutosave.start(store, seed), notice };
+}
+
 /** THROUGHPUT in the browser: tap a card, then a bay; run the Shift; shop for Fixtures between rounds. */
-export function ThroughputScreen({ seed, onQuit }: BrowserGameProps) {
-  const [run, setRun] = useState(() => new ThroughputRun(seed));
+export function ThroughputScreen({ seed, onQuit, store, resume }: BrowserGameProps) {
+  const [opened] = useState(() => openSession(store, seed, resume));
+  const [{ run, autosave }, setSession] = useState<Session>(opened);
   const [, setVersion] = useState(0);
   const [mode, setMode] = useState<Mode>(IDLE);
-  const [toasts, setToasts] = useState<readonly ToastView[]>([]);
+  const [toasts, setToasts] = useState<readonly ToastView[]>(() => (opened.notice === null ? [] : [{ id: 'tp-restore', kind: 'error', message: opened.notice }]));
   const [lastShift, setLastShift] = useState<ShiftRecord | null>(null);
   const toastId = useRef(0);
 
   const notify = (kind: ToastKind, message: string) => setToasts((t) => [...t, { id: `tp-${toastId.current++}`, kind, message }]);
   const dismiss = useCallback((id: string) => setToasts((t) => t.filter((x) => x.id !== id)), []);
-  /** Applies `action` if `reason` is null (then re-renders), else explains why not. */
-  const attempt = (reason: string | null, action: () => void): void => {
+  /**
+   * Applies `action` if `reason` is null, autosaves it as `entry` (built before applying, while
+   * hand numbers still name the cards) and re-renders; else explains why not.
+   */
+  const attempt = (reason: string | null, entry: ThroughputAction, action: () => void): void => {
     if (reason !== null) {
       notify('error', reason);
       return;
     }
     action();
+    if (run.phase === 'won' || run.phase === 'lost') autosave.clear();
+    else autosave.record(entry);
     setMode(IDLE);
     setVersion((v) => v + 1);
   };
   const newRun = () => {
-    setRun(new ThroughputRun(Date.now()));
+    const next = Date.now();
+    setSession({ run: new ThroughputRun(next), autosave: RunAutosave.start(store, next) });
     setMode(IDLE);
     setLastShift(null);
     setToasts([]);
@@ -76,9 +96,10 @@ export function ThroughputScreen({ seed, onQuit }: BrowserGameProps) {
     const held = run.line[slot]?.card;
     if (mode.kind === 'place') {
       const placement = [{ hand: handIndex(mode.uid), slot }];
-      attempt(run.whyCannotLoad(placement), () => run.load(placement));
+      const entry: ThroughputAction = { verb: 'load', placements: [{ hand: handNumber(run, handIndex(mode.uid)), slot }] };
+      attempt(run.whyCannotLoad(placement), entry, () => run.load(placement));
     } else if (held != null && run.whyCannotUnload([slot]) === null) {
-      attempt(run.whyCannotUnload([slot]), () => run.unload([slot]));
+      attempt(run.whyCannotUnload([slot]), { verb: 'unload', slots: [slot] }, () => run.unload([slot]));
     } else if (held == null) {
       notify('info', 'Tap a card in your hand first, then a bay');
     }
@@ -92,7 +113,7 @@ export function ThroughputScreen({ seed, onQuit }: BrowserGameProps) {
   const runShift = () => {
     const before = { salesBefore: run.sales, target: run.target, heading: `Round ${run.round}, Shift ${run.shift}` };
     const restocked = run.restocked;
-    attempt(run.whyCannotRun(), () => {
+    attempt(run.whyCannotRun(), { verb: 'run' }, () => {
       const result = run.runShift();
       setLastShift({ result, ...before });
       if (run.phase === 'shop') notify('success', `Target hit! Shift made $${result.total}`);
@@ -108,12 +129,14 @@ export function ThroughputScreen({ seed, onQuit }: BrowserGameProps) {
     if (!run.wallet.canAfford(item.price)) return notify('error', `Not enough Capital (${item.price}C)`);
     if (item.kind === 'fixture') return setMode(mode.kind === 'install' && mode.offer === offer ? IDLE : { kind: 'install', offer });
     if (item.kind === 'contract' && item.def.targetsCard) return setMode(mode.kind === 'contract' && mode.offer === offer ? IDLE : { kind: 'contract', offer });
-    attempt(run.whyCannotBuy(offer), () => run.buy(offer));
+    attempt(run.whyCannotBuy(offer), { verb: 'buy', offer, target: null }, () => run.buy(offer));
   };
 
   const tapBayInShop = (slot: number) => {
-    if (mode.kind === 'install') return attempt(run.whyCannotBuy(mode.offer, { slot }), () => run.buy(mode.offer, { slot }));
-    if (mode.kind === 'fixture' && mode.slot !== slot) return attempt(run.whyCannotMove(mode.slot, slot), () => run.moveFixture(mode.slot, slot));
+    if (mode.kind === 'install') return attempt(run.whyCannotBuy(mode.offer, { slot }), { verb: 'buy', offer: mode.offer, target: slot }, () => run.buy(mode.offer, { slot }));
+    if (mode.kind === 'fixture' && mode.slot !== slot) {
+      return attempt(run.whyCannotMove(mode.slot, slot), { verb: 'move', from: mode.slot, to: slot }, () => run.moveFixture(mode.slot, slot));
+    }
     if (run.line[slot]?.fixture != null) return setMode(mode.kind === 'fixture' ? IDLE : { kind: 'fixture', slot });
     notify('info', 'Buy a Fixture, then choose its bay');
   };
@@ -142,7 +165,7 @@ export function ThroughputScreen({ seed, onQuit }: BrowserGameProps) {
       <TpHud run={run} />
       {!inShift && <PayoutSlip run={run} />}
       <MarketBoard run={run} />
-      <LineView run={run} bayState={bayState} onBay={inShift ? tapBayInShift : tapBayInShop} onScrap={inShift ? (s) => attempt(run.whyCannotScrap([s]), () => run.scrap([s])) : undefined} bayLabel={bayLabel} />
+      <LineView run={run} bayState={bayState} onBay={inShift ? tapBayInShift : tapBayInShop} onScrap={inShift ? (s) => attempt(run.whyCannotScrap([s]), { verb: 'scrap', slots: [s] }, () => run.scrap([s])) : undefined} bayLabel={bayLabel} />
 
       {inShift && preview !== null && (
         <div className="tp-desk">
@@ -164,7 +187,7 @@ export function ThroughputScreen({ seed, onQuit }: BrowserGameProps) {
                     onClick={() => {
                       const hand = mode.uids.map(handIndex);
                       const restocked = run.restocked;
-                      attempt(run.whyCannotRetool(hand), () => {
+                      attempt(run.whyCannotRetool(hand), { verb: 'retool', hand: hand.map((h) => handNumber(run, h)) }, () => {
                         run.retool(hand);
                         announceRestock(restocked);
                       });
@@ -209,7 +232,7 @@ export function ThroughputScreen({ seed, onQuit }: BrowserGameProps) {
               <span>
                 {pendingFixture.def.name}: tap another bay to move it ({run.config.moveCost}C), or
               </span>
-              <button type="button" className="btn btn--discard" onClick={() => attempt(run.whyCannotSellFixture(mode.slot), () => run.sellFixture(mode.slot))}>
+              <button type="button" className="btn btn--discard" onClick={() => attempt(run.whyCannotSellFixture(mode.slot), { verb: 'sell', what: 'fixture', index: mode.slot }, () => run.sellFixture(mode.slot))}>
                 Sell {Math.floor(pendingFixture.paid * run.config.sellRate)}C
               </button>
               <button type="button" className="btn" onClick={() => setMode(IDLE)}>
@@ -222,9 +245,9 @@ export function ThroughputScreen({ seed, onQuit }: BrowserGameProps) {
             run={run}
             pending={mode.kind === 'install' || mode.kind === 'contract' ? mode.offer : null}
             onBuy={buy}
-            onReroll={() => attempt(run.whyCannotReroll(), () => run.reroll())}
+            onReroll={() => attempt(run.whyCannotReroll(), { verb: 'reroll' }, () => run.reroll())}
             onContinue={() =>
-              attempt(run.whyCannotContinue(), () => {
+              attempt(run.whyCannotContinue(), { verb: 'continue' }, () => {
                 run.continueToNextRound();
                 setLastShift(null);
               })
@@ -233,8 +256,10 @@ export function ThroughputScreen({ seed, onQuit }: BrowserGameProps) {
           <DeckDrawer
             run={run}
             picking={mode.kind === 'contract' ? (run.offers[mode.offer]?.def.name ?? null) : null}
-            onPick={(deckCard) => mode.kind === 'contract' && attempt(run.whyCannotBuy(mode.offer, { deckCard }), () => run.buy(mode.offer, { deckCard }))}
-            onSell={(deckCard) => attempt(run.whyCannotSellCard(deckCard), () => run.sellCard(deckCard))}
+            onPick={(deckCard) =>
+              mode.kind === 'contract' && attempt(run.whyCannotBuy(mode.offer, { deckCard }), { verb: 'buy', offer: mode.offer, target: deckCard }, () => run.buy(mode.offer, { deckCard }))
+            }
+            onSell={(deckCard) => attempt(run.whyCannotSellCard(deckCard), { verb: 'sell', what: 'card', index: deckCard }, () => run.sellCard(deckCard))}
           />
         </>
       )}

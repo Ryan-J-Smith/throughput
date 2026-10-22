@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { BROWSER_GAMES } from '../../../browser-games';
+import { MemoryStore } from '../../../ui/storage';
 import { TUNED_TARGETS } from '../content';
 import { BomBrowserGame, BomScreen, NextRoundMemo, OvertimeBanner, ProductBoard, Shelf, ShipReceipt, ShredPanel, rulesSections } from '../browser';
 import { makePart } from '../model';
@@ -21,7 +22,7 @@ function shopBoard(run: BomRun, picking: boolean): string {
 
 describe('BoM browser screen', () => {
   it('opens on Q1 Small with the blueprint board, an empty Bench and the hand', () => {
-    const html = renderToStaticMarkup(<BomScreen seed={1} onQuit={() => {}} />);
+    const html = renderToStaticMarkup(<BomScreen seed={1} onQuit={() => {}} store={new MemoryStore()} resume={false} />);
     expect(html).toContain(`of $${TUNED_TARGETS[0]?.[0]} target`);
     expect(html).toContain('Small market');
     for (const name of ['Gizmo', 'Flatpack', 'Desk Fan', 'Motor']) expect(html).toContain(name);

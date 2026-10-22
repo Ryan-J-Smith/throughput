@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { BrowserGame } from '../games';
 import type { BrowserGameProps } from '../games';
 import { GamePicker } from '../screens';
+import { MemoryStore } from '../storage';
 import { Launcher } from './Launcher';
 
 class FakeGame extends BrowserGame {
@@ -29,7 +30,7 @@ describe('game picker', () => {
   });
 
   it('the launcher opens on the picker', () => {
-    const html = renderToStaticMarkup(<Launcher games={[new FakeGame('a')]} nextSeed={() => 7} />);
+    const html = renderToStaticMarkup(<Launcher games={[new FakeGame('a')]} nextSeed={() => 7} store={new MemoryStore()} />);
     expect(html).toContain('Pick a business to run');
     expect(html).not.toContain('playing');
   });

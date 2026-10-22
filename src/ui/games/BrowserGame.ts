@@ -1,10 +1,15 @@
 import type { ComponentType } from 'react';
+import type { KeyValueStore } from '../storage';
 
 export type BrowserGameProps = {
   /** Seed for this session's first run. */
   readonly seed: number;
   /** Returns to the game picker. */
   readonly onQuit: () => void;
+  /** Where the game keeps its autosave and preferences. */
+  readonly store: KeyValueStore;
+  /** True to continue the autosaved run (see `BrowserGame.savedRun`) instead of starting one from `seed`. */
+  readonly resume: boolean;
 };
 
 /**
@@ -23,4 +28,9 @@ export abstract class BrowserGame {
   readonly accent: string = 'neutral';
   /** The whole game UI for one session; mounted fresh for each launch. */
   abstract readonly Screen: ComponentType<BrowserGameProps>;
+
+  /** A short description of the autosaved run that `resume` would continue, or null if there is none. */
+  savedRun(_store: KeyValueStore): string | null {
+    return null;
+  }
 }

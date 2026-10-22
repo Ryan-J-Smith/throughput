@@ -82,3 +82,11 @@ export function offerView(offer: Offer, id: string): CardView {
       return { id, title: offer.def.name, description: offer.def.text, tags: ['Contract'], accent: 'red' };
   }
 }
+
+/** Where an unfinished run stands, for the title's Continue button, e.g. "Year 2 Q1, Shift 3: $410 of $900". */
+export function runProgressLabel(run: ThroughputRun): string {
+  const inShop = run.phase === 'shop';
+  const q = run.quarterOf(inShop ? run.round + 1 : run.round);
+  const quarter = `Year ${q.year} ${q.isBoard ? 'Board' : `Q${q.quarter}`}`;
+  return inShop ? `${quarter}, in the shop` : `${quarter}, Shift ${run.shift}: $${run.sales} of $${run.target}`;
+}
