@@ -6,6 +6,8 @@ export { Hud } from './Hud';
 export type { HudProps } from './Hud';
 export { ModifierRow } from './ModifierRow';
 export type { ModifierRowProps } from './ModifierRow';
+export { NextRoundPanel } from './NextRoundPanel';
+export type { NextRoundPanelProps } from './NextRoundPanel';
 export { RoundSummary } from './RoundSummary';
 export type { RoundSummaryProps } from './RoundSummary';
 export { ScoreTally } from './ScoreTally';

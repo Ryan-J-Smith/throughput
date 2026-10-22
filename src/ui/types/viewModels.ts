@@ -89,6 +89,11 @@ export type ToastView = {
   message: string;
 };
 
+export type BossView = {
+  name: string;
+  description: string;
+};
+
 export type HudView = {
   round: number;
   targetScore: number;
@@ -96,6 +101,23 @@ export type HudView = {
   playsLeft: number;
   discardsLeft: number;
   cash: number;
+  /** The rule in force this round, when it is a boss round. */
+  boss?: BossView;
+};
+
+export type RuleChangeView = {
+  label: string;
+  from: number;
+  to: number;
+};
+
+/** Preview of the round after the shop. */
+export type NextRoundView = {
+  round: number;
+  target: number;
+  boss?: BossView;
+  /** Only rules that differ from the usual values. */
+  ruleChanges: readonly RuleChangeView[];
 };
 
 export type ModifierRowView = {
@@ -124,6 +146,7 @@ export type ShellView =
       hud: HudView;
       modifierRow: ModifierRowView;
       offers: readonly ShopOfferView[];
+      nextRound?: NextRoundView;
       rerollCost: number;
       /** Styling hint only, like ShopOfferView.canBuy. */
       canReroll: boolean;

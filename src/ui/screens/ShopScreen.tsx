@@ -1,10 +1,11 @@
-import { Card, Hud, ModifierRow } from '../components';
-import type { HudView, ModifierRowView, ShopOfferView } from '../types';
+import { Card, Hud, ModifierRow, NextRoundPanel } from '../components';
+import type { HudView, ModifierRowView, NextRoundView, ShopOfferView } from '../types';
 
 export type ShopScreenProps = {
   hud: HudView;
   modifierRow: ModifierRowView;
   offers: readonly ShopOfferView[];
+  nextRound?: NextRoundView;
   rerollCost: number;
   canReroll: boolean;
   onBuy: (offerId: string) => void;
@@ -12,11 +13,22 @@ export type ShopScreenProps = {
   onContinue: () => void;
 };
 
-export function ShopScreen({ hud, modifierRow, offers, rerollCost, canReroll, onBuy, onReroll, onContinue }: ShopScreenProps) {
+export function ShopScreen({
+  hud,
+  modifierRow,
+  offers,
+  nextRound,
+  rerollCost,
+  canReroll,
+  onBuy,
+  onReroll,
+  onContinue,
+}: ShopScreenProps) {
   return (
     <main className="screen screen--shop">
       <Hud hud={hud} />
       <ModifierRow row={modifierRow} />
+      {nextRound && <NextRoundPanel next={nextRound} />}
       <section className="shop" aria-label="Shop">
         <div className="shop__header">
           <span className="section-label">Shop</span>

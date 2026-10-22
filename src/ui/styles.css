@@ -258,6 +258,105 @@ button {
   color: var(--accent-cash);
 }
 
+.hud__boss {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 14px;
+  background: rgb(255 77 109 / 0.12);
+  border: 1px solid var(--accent-mult);
+  border-radius: var(--radius);
+}
+
+.hud__boss-name {
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-mult);
+}
+
+.hud__boss-desc {
+  color: var(--ink);
+}
+
+/* ---------- Next round preview ---------- */
+
+.next-round {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.next-round--boss {
+  border-color: var(--accent-mult);
+}
+
+.next-round__header {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.next-round__number {
+  font-weight: 900;
+}
+
+.next-round__target {
+  margin-left: auto;
+  color: var(--ink-dim);
+}
+
+.next-round__target strong {
+  color: var(--accent-score);
+  font-size: 1.2rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.next-round__boss {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.next-round__boss-name {
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-mult);
+}
+
+.next-round__changes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.next-round__changes li {
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  background: #262b38;
+}
+
+.next-round__changes .is-worse {
+  color: var(--accent-discard);
+}
+
+.next-round__changes .is-better {
+  color: var(--accent-value);
+}
+
 /* ---------- Cards ---------- */
 
 .card-wrap {

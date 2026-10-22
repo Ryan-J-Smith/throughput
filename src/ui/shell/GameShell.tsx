@@ -52,6 +52,7 @@ function Screen({ view, actions, tallySpeed, onTallySpeedChange }: Omit<GameShel
           hud={view.hud}
           modifierRow={view.modifierRow}
           offers={view.offers}
+          nextRound={view.nextRound}
           rerollCost={view.rerollCost}
           canReroll={view.canReroll}
           onBuy={actions.onBuy}

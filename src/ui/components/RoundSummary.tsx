@@ -10,8 +10,8 @@ export function RoundSummary({ summary, onCashOut }: RoundSummaryProps) {
     <section className="summary" aria-label="Round summary">
       <h2 className="summary__heading">{summary.heading}</h2>
       <ul className="summary__lines">
-        {summary.lines.map((line) => (
-          <li key={line.label} className="summary__line">
+        {summary.lines.map((line, i) => (
+          <li key={`${i}-${line.label}`} className="summary__line">
             <span>{line.label}</span>
             <span className="summary__amount">${line.amount}</span>
           </li>
