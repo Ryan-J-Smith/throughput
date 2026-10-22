@@ -1,4 +1,5 @@
 import type { RunStats } from '../simulate';
+import { mean, median, pct, signedPct, table, toCsv } from './text';
 
 export type MarginPoint = {
   readonly round: number;
@@ -11,7 +12,8 @@ export type MarginPoint = {
 };
 
 export type SimReport = {
-  readonly bot: string;
+  /** What the runs were grouped by: a bot name or an archetype. */
+  readonly group: string;
   readonly runs: number;
   readonly winRate: number;
   readonly meanRoundReached: number;
@@ -20,7 +22,7 @@ export type SimReport = {
   readonly marginCurve: readonly MarginPoint[];
 };
 
-export function aggregate(bot: string, stats: readonly RunStats[]): SimReport {
+export function aggregate(group: string, stats: readonly RunStats[]): SimReport {
   const byRound = new Map<number, { margins: number[]; cleared: number }>();
   for (const run of stats) {
     for (const round of run.rounds) {
@@ -41,7 +43,7 @@ export function aggregate(bot: string, stats: readonly RunStats[]): SimReport {
     }));
   const reached = stats.map((s) => s.roundReached);
   return {
-    bot,
+    group,
     runs: stats.length,
     winRate: stats.length === 0 ? 0 : stats.filter((s) => s.won).length / stats.length,
     meanRoundReached: mean(reached),
@@ -50,14 +52,24 @@ export function aggregate(bot: string, stats: readonly RunStats[]): SimReport {
   };
 }
 
+/** One report per distinct `key(run)`, in order of first appearance. */
+export function aggregateBy(stats: readonly RunStats[], key: (run: RunStats) => string): SimReport[] {
+  const groups = new Map<string, RunStats[]>();
+  for (const run of stats) {
+    const k = key(run);
+    groups.set(k, [...(groups.get(k) ?? []), run]);
+  }
+  return [...groups].map(([group, runs]) => aggregate(group, runs));
+}
+
 /**
- * Compact text tables: one summary row per bot, then mean margin over target per round
+ * Compact text tables: one summary row per group, then mean margin over target per round
  * (with the number of runs that reached it) side by side, so strategy curves can be compared.
  */
-export function formatReport(reports: readonly SimReport[]): string {
+export function formatReport(reports: readonly SimReport[], groupName = 'bot'): string {
   const summary = table(
-    ['bot', 'runs', 'win%', 'reach mean', 'reach median'],
-    reports.map((r) => [r.bot, String(r.runs), pct(r.winRate), r.meanRoundReached.toFixed(2), r.medianRoundReached.toFixed(1)]),
+    [groupName, 'runs', 'win%', 'reach mean', 'reach median'],
+    reports.map((r) => [r.group, String(r.runs), pct(r.winRate), r.meanRoundReached.toFixed(2), r.medianRoundReached.toFixed(1)]),
   );
   const maxRound = Math.max(0, ...reports.flatMap((r) => r.marginCurve.map((p) => p.round)));
   const curveRows: string[][] = [];
@@ -70,26 +82,16 @@ export function formatReport(reports: readonly SimReport[]): string {
       }),
     ]);
   }
-  const curve = table(['round', ...reports.map((r) => r.bot)], curveRows);
+  const curve = table(['round', ...reports.map((r) => r.group)], curveRows);
   return `${summary}\n\nmean margin over target by round\n${curve}`;
 }
 
-function mean(values: readonly number[]): number {
-  return values.length === 0 ? 0 : values.reduce((a, b) => a + b, 0) / values.length;
-}
-
-function median(values: readonly number[]): number {
-  if (values.length === 0) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 1 ? (sorted[mid] as number) : ((sorted[mid - 1] as number) + (sorted[mid] as number)) / 2;
-}
-
-const pct = (x: number): string => `${(x * 100).toFixed(1)}%`;
-const signedPct = (x: number): string => `${x >= 0 ? '+' : ''}${(x * 100).toFixed(0)}%`;
-
-function table(header: readonly string[], rows: readonly (readonly string[])[]): string {
-  const widths = header.map((h, i) => Math.max(h.length, ...rows.map((row) => (row[i] ?? '').length)));
-  const line = (cells: readonly string[]): string => cells.map((c, i) => c.padEnd(widths[i] ?? 0)).join('  ').trimEnd();
-  return [line(header), line(widths.map((w) => '-'.repeat(w))), ...rows.map(line)].join('\n');
+/** Margin curves as CSV rows, one per (grouping, group, round), with the group's run totals repeated. */
+export function curvesCsv(groupings: readonly { readonly grouping: string; readonly reports: readonly SimReport[] }[]): string {
+  const rows = groupings.flatMap(({ grouping, reports }) =>
+    reports.flatMap((r) =>
+      r.marginCurve.map((p) => [grouping, r.group, r.runs, r.winRate, p.round, p.samples, p.meanMargin, p.medianMargin, p.clearRate]),
+    ),
+  );
+  return toCsv(['grouping', 'group', 'runs', 'win_rate', 'round', 'samples', 'mean_margin', 'median_margin', 'clear_rate'], rows);
 }

@@ -18,6 +18,20 @@ class DiscardThenPlayBot extends Bot<DemoCard> {
   }
 }
 
+/** Plays its five highest cards; rerolls once per shop visit when affordable, then leaves. */
+class RerollOnceBot extends Bot<DemoCard> {
+  readonly name = 'reroll-once';
+  private readonly rerolledAt = new Set<number>();
+  override playTurn(run: Run<DemoCard>): PlayDecision<DemoCard> {
+    return { action: 'play', cards: [...run.deck.hand].sort((a, b) => b.value - a.value).slice(0, 5) };
+  }
+  override shopTurn(run: Run<DemoCard>): ShopDecision<DemoCard> {
+    if (this.rerolledAt.has(run.round.number) || run.whyCannotReroll() !== null) return { action: 'leave' };
+    this.rerolledAt.add(run.round.number);
+    return { action: 'reroll' };
+  }
+}
+
 /** Plays a card that is not in hand. */
 class CheatingBot extends Bot<DemoCard> {
   readonly name = 'cheater';
@@ -64,5 +78,32 @@ describe('simulate', () => {
   it('guards against bots that take too many actions', () => {
     expect(() => simulate(demoRun, new DiscardThenPlayBot(), [1], { maxActionsPerPhase: 1 })).toThrow(/exceeded 1 round actions/);
     expect(() => simulate(demoRun, new DiscardThenPlayBot(), [1], { maxActionsPerPhase: 50 })).not.toThrow();
+  });
+
+  it('records every offer shown, the bot, the archetype and rounds cleared', () => {
+    const stats = simulate(demoRun, new GreedyBot(), [1, 2, 3]);
+    for (const run of stats) {
+      expect(run.bot).toBe('greedy');
+      expect(['greedy/tens', 'greedy/modifiers']).toContain(run.archetype);
+      expect(run.roundsCleared).toBe(run.won ? run.roundReached : run.roundReached - 1);
+      // Greedy never rerolls, so each shop visit shows at most the two restocked slots
+      // (fewer once owned modifiers are filtered out of the pool).
+      const shopRounds = [...new Set(run.offers.map((o) => o.round))];
+      expect(shopRounds).toEqual(Array.from({ length: run.roundsCleared - (run.won ? 1 : 0) }, (_, i) => i + 1));
+      for (const r of shopRounds) expect(run.offers.filter((o) => o.round === r).length).toBeLessThanOrEqual(2);
+      for (const p of run.purchases) {
+        expect(run.offers.some((o) => o.round === p.round && o.id === p.id)).toBe(true);
+      }
+    }
+  });
+
+  it('records offers again after each reroll', () => {
+    const [run] = simulate(demoRun, new RerollOnceBot(), [1]);
+    expect(run?.offers.filter((o) => o.round === 1)).toHaveLength(4);
+  });
+
+  it('uses the bot name as the default archetype', () => {
+    const [run] = simulate(demoRun, new RerollOnceBot(), [1]);
+    expect(run?.archetype).toBe('reroll-once');
   });
 });
