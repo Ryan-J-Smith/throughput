@@ -27,6 +27,29 @@
   align-self: stretch;
 }
 
+/* Below the grid layout the Line is often scrolled away by the time Run is tapped, so the replay
+   docks over the hand tray, right where the player's thumb is. */
+@media (max-width: 899px) {
+  .screen--tp-shift > .tp-replay {
+    position: fixed;
+    left: max(8px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
+    bottom: max(8px, env(safe-area-inset-bottom));
+    z-index: 30;
+    max-width: 720px;
+    margin-inline: auto;
+  }
+}
+
+/* The hand still shows the pre-run state while the replay plays; it waits in the background. */
+.screen--tp-shift[data-replay] .tp-hand {
+  opacity: 0.4;
+  filter: saturate(0.5);
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    filter var(--dur-fast) var(--ease-out);
+}
+
 @keyframes tp-replay-in {
   from {
     opacity: 0;
