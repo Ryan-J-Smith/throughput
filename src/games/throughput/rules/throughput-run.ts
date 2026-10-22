@@ -66,7 +66,7 @@ export function assignBosses(pool: readonly BoardBoss[], years: number, rng: Rng
     if (!unmet.some(allowed)) unmet = [...pool];
     const choices = unmet.filter(allowed);
     if (choices.length === 0) break;
-    const pick = rng.pick(choices);
+    const pick = rng.weightedPick(choices, (boss) => boss.drawWeight(year));
     out.push(pick);
     unmet = unmet.filter((boss) => boss !== pick);
   }

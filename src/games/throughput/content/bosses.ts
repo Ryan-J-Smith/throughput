@@ -1,5 +1,11 @@
 import { BoardBoss } from '../model';
 
+/**
+ * Draw weight in Years 3–4 of the three Boards that bite (playtest 3: Ethics Review, Bottleneck and Quota Cap
+ * changed play; the burst runs met 2 of them in 12 Boards).
+ */
+const BITING_WEIGHT = 3;
+
 class LineShift extends BoardBoss {
   readonly id = 'line-shift';
   readonly name = 'Line Shift';
@@ -29,6 +35,8 @@ class Turnover extends BoardBoss {
   readonly short = 'Designs dispatched';
   readonly text = 'Designs are dispatched after each Shift like every other card.';
   readonly pressures = 'Design-heavy builds (Skimmer, R&D Compounder): no standing Line';
+  // Playtest 3: free in Years 1–2 (0 of 3 and 1 of 3 Boards changed play).
+  override readonly earliestYear = 3;
 
   override designsStay(): boolean {
     return false;
@@ -73,6 +81,10 @@ class Bottleneck extends BoardBoss {
   override isWelded(slot: number): boolean {
     return slot === 2;
   }
+
+  override drawWeight(year: number): number {
+    return year >= 3 ? BITING_WEIGHT : 1;
+  }
 }
 
 class Recession extends BoardBoss {
@@ -99,6 +111,10 @@ class EthicsReview extends BoardBoss {
   override designMultipliers(): boolean {
     return false;
   }
+
+  override drawWeight(year: number): number {
+    return year >= 3 ? BITING_WEIGHT : 1;
+  }
 }
 
 class ShortWeek extends BoardBoss {
@@ -107,6 +123,8 @@ class ShortWeek extends BoardBoss {
   readonly short = 'Only 3 Shifts';
   readonly text = 'This round has 3 Shifts instead of 4.';
   readonly pressures = 'Slow setups: parked-Design and setup-Shift plays get one fewer Shift';
+  // Playtest 3: free in Years 1–2 (0 of 3 and 1 of 3 Boards changed play).
+  override readonly earliestYear = 3;
 
   override shiftsPerRound(normal: number): number {
     return normal - 1;
@@ -122,6 +140,10 @@ class QuotaCap extends BoardBoss {
 
   override shiftQuota(): number {
     return 0.6;
+  }
+
+  override drawWeight(year: number): number {
+    return year >= 3 ? BITING_WEIGHT : 1;
   }
 }
 

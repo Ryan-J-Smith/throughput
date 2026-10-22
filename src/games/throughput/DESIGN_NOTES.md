@@ -1010,3 +1010,42 @@ into Year 3 or later, at 12–14C, built on existing hooks:
   - R10–R12 ratios don't move: the premium items compete with each other and with the late spending the expert
     already does. So late shops gain real choices without softening the end.
 - Not done, since they're new features for the user: the paid boss mitigation and the reroll lock.
+
+### Boss Years and weights (round 3 §7 #4, with asst-a)
+
+Round 3: Short Week was free in Year 2 (0 of 3 changed play) and Turnover in Year 1 (1 of 3). The three Sonnet burst
+runs met 2 biting Boards in 12, and none drew Quota Cap.
+
+- **Short Week and Turnover wait for Year 3** (`earliestYear`). The expert cleared both on Shift 1 98–100% of the
+  time in Years 1–2.
+  - Year 1–2 Boards are now Bottleneck, JIT Auditor, Line Shift, Quota Cap and Supply Shock (about 20% each).
+- **Quota Cap, Ethics Review and Bottleneck weigh 3 in Years 3–4** (`BoardBoss.drawWeight(year)`).
+  - `assignBosses` uses a weighted pick. With every weight at 1 it draws exactly as before.
+  - Line Shift's rework needs the user, so it is unchanged.
+- **Simulation:** expert, 400 seeds per variant, on the build with items 1–5:
+
+  | | Expert wins | Late Board losses | Biting share of late Boards | Runs meeting a biting late Board |
+  |---|---|---|---|---|
+  | Before | 51.2% | 20% | 35% | about 58% |
+  | Short Week and Turnover in Year 3 | 53.5% | 19% | 32% | about 54% |
+  | … + weight 2 | 52.2% | 20% | 47% | – |
+  | **… + weight 3** | **49.2%** | 21% | **53%** | **about 79%** |
+
+- **Late Boards for the expert, after the change** (loss % and Shift-1 clear %):
+
+  | Board | Loss | Shift-1 clears |
+  |---|---|---|
+  | Supply Shock | 46% | 14% |
+  | Bottleneck | 39% | 14% |
+  | Recession | 26% | 21% |
+  | Line Shift | 20% | 49% |
+  | Ethics Review | 18% | 36% |
+  | Short Week | 15% | 47% |
+  | Quota Cap | 10% | 0% |
+  | JIT Auditor | 8% | 57% |
+  | Turnover | 5% | 66% |
+
+  - Quota Cap now always costs tempo but rarely kills (asst-a's sales-stop-at-the-cap rule).
+  - Bottleneck and Supply Shock are the lethal ones. That matches DH's "cliff" note, so it's passed to asst-a and the
+    orchestrator (boss rules are theirs).
+  - Turnover stays nearly free even late.

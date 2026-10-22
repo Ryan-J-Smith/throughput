@@ -355,9 +355,14 @@ describe('content wave 1 text', () => {
   });
 
   it('a Short Week Board shows 3 Shifts in the state and the run action', () => {
-    const config = easyConfig();
-    const seed = Array.from({ length: 300 }, (_, i) => i + 1).find((s) => new ThroughputRun(s, config).boardBosses[0]?.id === 'short-week');
-    if (seed === undefined) throw new Error('no seed opens with a Short Week Board');
+    // One round a Year, so round 3 is the Year-3 Board (Short Week's earliest); Years 1–2 skip the Boards this loop can't clear.
+    const config = easyConfig({ roundsPerYear: 1 });
+    const fits = (s: number) => {
+      const ids = new ThroughputRun(s, config).boardBosses.map((b) => b.id);
+      return ids[2] === 'short-week' && !ids.slice(0, 2).some((id) => id === 'supply-shock' || id === 'quota-cap');
+    };
+    const seed = Array.from({ length: 300 }, (_, i) => i + 1).find(fits);
+    if (seed === undefined) throw new Error('no seed has a Short Week Board in Year 3');
     const game = new ThroughputTextGame(config);
     let save = game.newSave(seed);
     while ((game.show(save).state as { round: number }).round < 3) {
