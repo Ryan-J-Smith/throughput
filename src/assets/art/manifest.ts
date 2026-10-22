@@ -316,6 +316,7 @@ export const ART_ASSETS = [
   { id: 'boss-recession', kind: 'boss', template: 'illustration', batch: 3, size: CARD, accent: 'ominous red and deep purple', subject: 'An empty shopping street with sale banners and a screen showing a falling red chart.' },
   { id: 'boss-ethics-review', kind: 'boss', template: 'illustration', batch: 3, size: CARD, accent: 'ominous red and deep purple', subject: 'A stern review panel at a long table examining a product, with a gavel.' },
   { id: 'boss-short-week', kind: 'boss', template: 'illustration', batch: 3, size: CARD, accent: 'ominous red and deep purple', subject: 'A wall calendar with the last day crossed out in red above a half-empty office.' },
+  { id: 'boss-quota-cap', kind: 'boss', template: 'illustration', batch: 5, size: CARD, accent: 'ominous red and deep purple', subject: 'A tall stack of gold coins pressed flat against a heavy red steel ceiling bar, the extra coins above it spilling off the sides and falling away.' },
 
   // ---- Batch 4 (art wave 2): the company growing Year by Year behind the Shift screen, the Board, the shop, and the run's end ----
   { id: 'bg-y1-garage', kind: 'bg', template: 'environment', batch: 4, size: 960, aspect: 'landscape', accent: 'warm tungsten amber with a little teal', subject: 'Year one: a cosy home garage where the company starts. A cluttered workbench under a warm desk lamp, a pegboard of tools, a small 3D printer, a few prototype robot toys and cardboard boxes, and a roll-up door half open onto a dusky driveway.' },

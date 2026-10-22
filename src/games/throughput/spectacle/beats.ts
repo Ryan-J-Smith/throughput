@@ -36,6 +36,8 @@ export type ShiftBeats = {
   readonly cleared: number;
   readonly overstockSales: number;
   readonly total: number;
+  /** Sales past a Board's Shift cap: already out of `total`, so the finale says where they went. */
+  readonly overCap: number;
 };
 
 /** Fixtures that make the card here resolve more than once. */
@@ -92,5 +94,6 @@ export function shiftBeats(result: ShiftResult, baseMargin = DEFAULT_CONFIG.base
     cleared: result.leftover,
     overstockSales: result.overstockSales,
     total: result.total,
+    overCap: result.overCap,
   };
 }

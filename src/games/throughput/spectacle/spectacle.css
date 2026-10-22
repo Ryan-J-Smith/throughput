@@ -485,6 +485,14 @@
   color: var(--chalk-dim);
 }
 
+/* Sales past a Board's Quota Cap: why the total lands below what the belt counted. */
+.tp-replay__capped {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--stamp-red);
+  font-variant-numeric: tabular-nums;
+}
+
 .tp-replay__total {
   font-family: var(--font-display);
   font-size: var(--text-2xl);
