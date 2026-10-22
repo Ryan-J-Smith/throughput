@@ -573,6 +573,8 @@ describe('rules and shop text', () => {
     // A Fixture whose × doesn't depend on the Shift is unchanged.
     expect(fixtureNow(fixture('flagship-store'), 2)).toBe(fixtureNow(fixture('flagship-store')));
     expect(fixtureNow(fixture('quality-lab'), 2)).toBe('');
+    // A fixed × (Global Brand) is already on its plate, so only a growing × gets "Now ×".
+    expect(fixtureNow(fixture('global-brand'))).toBe('');
   });
 
   it('a shop card offer names its Category and type, in the same words the deck uses', () => {

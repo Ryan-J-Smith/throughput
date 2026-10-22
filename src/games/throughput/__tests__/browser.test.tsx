@@ -185,6 +185,8 @@ describe('THROUGHPUT browser screen', () => {
     expect(shelf()).toContain('>Holding 25C → +5C interest (max)</span>');
     run.wallet.spend(run.wallet.cash);
     expect(items().map(([, afford]) => afford)).toEqual(run.offers.flatMap((o) => (o === null ? [] : [o.price > 0 ? 'no' : 'yes'])));
+    // An unaffordable Reroll says why rather than quoting the interest after a spend you can't make.
+    expect(shelf()).toContain(`title="Not enough Capital to reroll (${run.rerollCost}C)">Reroll ${run.rerollCost}C</button>`);
   });
 
   it('each shop offer has a free Lock toggle; the locked one says so, and Reroll says it stays', () => {

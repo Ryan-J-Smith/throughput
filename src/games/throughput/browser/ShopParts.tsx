@@ -83,7 +83,7 @@ export function Shelf({ run, pending, replacing, onBuy, onLock, onReroll, onCont
           <button
             type="button"
             className={`btn btn--reroll ${run.whyCannotReroll() === null ? '' : 'btn--unaffordable'}`}
-            title={`Reroll for ${run.rerollCost}C: ${interestTrade(run, run.rerollCost)}${lockedOffer == null ? '' : `. ${offerName(lockedOffer)} stays (locked)`}`}
+            title={run.whyCannotReroll() ?? `Reroll for ${run.rerollCost}C: ${interestTrade(run, run.rerollCost)}${lockedOffer == null ? '' : `. ${offerName(lockedOffer)} stays (locked)`}`}
             onClick={onReroll}
           >
             Reroll {run.rerollCost}C

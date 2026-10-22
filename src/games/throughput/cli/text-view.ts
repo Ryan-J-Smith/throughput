@@ -28,7 +28,8 @@ function freshCard(def: CardDef, category: Category): Card {
  */
 export function fixtureNow(fixture: Fixture, shift?: number): string {
   const standing = fixture.def.effect.saleMultiplier(freshCard(TRUCK, 'Food'), fixture);
-  if (standing !== 1) return `Now ×${formatAmount(standing)}.`;
+  const grows = fixture.def.effect.saleMultiplier(freshCard(TRUCK, 'Food'), { ...fixture, roundsOwned: fixture.roundsOwned + 1 }) !== standing;
+  if (standing !== 1 && grows) return `Now ×${formatAmount(standing)}.`;
   const first = shiftOneOnly(fixture);
   if (shift === undefined || first === null) return '';
   return shift === 1 ? `Now ×${formatAmount(first)} (Shift 1 only).` : `Shift 1 only: ×${formatAmount(first)}; idle now.`;
