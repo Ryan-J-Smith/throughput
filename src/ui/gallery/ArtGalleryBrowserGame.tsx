@@ -19,5 +19,6 @@ export class ArtGalleryBrowserGame extends BrowserGame {
   readonly title = 'Art gallery (dev)';
   readonly tagline = 'Every generated illustration and icon, for review between batches. Not in production builds.';
   override readonly accent = 'teal';
+  override readonly listing = 'dev';
   readonly Screen = ArtGalleryScreen;
 }

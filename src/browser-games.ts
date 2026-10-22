@@ -20,6 +20,6 @@ export const BROWSER_GAMES: readonly BrowserGame[] = [
     listing: 'dev',
     createGame: () => new DemoGame(),
   }),
-  // Dev server only: review generated art between batches. Vite drops this branch from builds.
+  // Dev server only: review generated art. Not even registered in builds, so its chunk isn't emitted.
   ...(import.meta.env.DEV ? [new ArtGalleryBrowserGame()] : []),
 ];
