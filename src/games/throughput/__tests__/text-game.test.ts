@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { SaveFile, TurnResult } from '../../../play/session';
-import { ThroughputTextGame, formatAction, formatView, interestTrade, legalActions, noShipNote, offerBlocker, offerText, parseAction, perksText, rulesText, shipsToDraw, soldOutNote, traceLines } from '../cli';
+import { ThroughputTextGame, formatAction, formatView, interestTrade, legalActions, noShipNote, offerBlocker, overkillNote, offerText, parseAction, perksText, rulesText, shipsToDraw, soldOutNote, traceLines } from '../cli';
 import { BOSSES, CONTRACTS, DEFAULT_CONFIG, INFLUENCER, TRUCK, WHOLESALE_CLUB, WORKSHOP } from '../content';
 import { CATEGORIES } from '../model';
 import type { Category, Perks } from '../model';
@@ -115,7 +115,9 @@ describe('ThroughputTextGame', () => {
     expect(view.text).toContain('  This Shift clears the target.');
     expect(view.legalActions).toContain(`run — run Shift 1 of 4 (makes $12; round reaches $12 of $${run.target}; clears the target)`);
     const big = new ThroughputTextGame(easyConfig({ targets: [5, 10, 10] }));
-    expect(big.show(play(big, 1, [`load ${numberOf(hand, 'make')}:1 ${numberOf(hand, 'ship')}:2`])).text).toContain(`  This Shift clears the target, +${DEFAULT_CONFIG.overkill.cap}C overkill (140% over).`);
+    expect(big.show(play(big, 1, [`load ${numberOf(hand, 'make')}:1 ${numberOf(hand, 'ship')}:2`])).text).toContain(`  This Shift clears the target, +${DEFAULT_CONFIG.overkill.cap}C overkill (sold 2.4× the target).`);
+    // The multiple rounds down: $323 of $130 is 2.4846×.
+    expect(overkillNote(new ThroughputRun(1), 323)).toBe('clears the target, +3C overkill (sold 2.48× the target)');
   });
 
   it('marks what stays on the Line for later Shifts and what this Shift uses up', () => {

@@ -82,12 +82,13 @@ export function traceLines(result: ShiftResult, indent = '  '): string[] {
   return lines;
 }
 
-/** "clears the target, +3C overkill (47% over)" if round Sales of `sales` would clear, else ''. */
+/** "clears the target, +3C overkill (sold 2.48× the target)" if round Sales of `sales` would clear, else ''. */
 export function overkillNote(run: ThroughputRun, sales: number): string {
   if (sales < run.target) return '';
   const pay = run.overkillPayFor(sales);
-  const over = Math.floor((100 * (sales - run.target)) / run.target);
-  return pay > 0 ? `clears the target, +${pay}C overkill (${over}% over)` : 'clears the target';
+  // Rounded down, so a ratio never reads past the overkill step it hasn't reached.
+  const times = Math.floor((100 * sales) / run.target) / 100;
+  return pay > 0 ? `clears the target, +${pay}C overkill (sold ${formatAmount(times)}× the target)` : 'clears the target';
 }
 
 /** "Showroom 5→1, Quality Lab 1→2" (1-based slots). */
