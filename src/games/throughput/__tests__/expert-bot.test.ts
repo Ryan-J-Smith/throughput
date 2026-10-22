@@ -26,7 +26,7 @@ describe('ExpertBot', () => {
 
   it('Retools a hand that cannot sell when the draw pile can fix it, and loads a hand that clears', () => {
     // No opener or refill guarantee, so some seed opens without a Ship; the target is out of reach either way.
-    const loose = easyConfig({ openingHandTypes: [], shipRefill: false, targets: [500, 500, 500] });
+    const loose = easyConfig({ openingHandTypes: [], hotOpener: false, shipRefill: false, targets: [500, 500, 500] });
     const seed = Array.from({ length: 200 }, (_, i) => i + 1).find((s) => !new ThroughputRun(s, loose).hand.some((c) => c.def.stage === 'ship'));
     if (seed === undefined) throw new Error('no seed opens without a Ship');
     const stuck = new ThroughputRun(seed, loose);

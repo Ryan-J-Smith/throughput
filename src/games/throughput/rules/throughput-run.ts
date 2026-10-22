@@ -3,7 +3,7 @@ import type { PayoutLine } from '../../../engine/economy';
 import { Rng } from '../../../engine/rng';
 import { BOSSES, DEFAULT_CONFIG, STARTER_CARDS } from '../content';
 import type { ThroughputConfig } from '../content';
-import { CATEGORIES, cardName } from '../model';
+import { CATEGORIES, cardName, shipCap } from '../model';
 import type { BoardBoss, Card, CardDef, Category, ContractDef, ContractEffect, Fixture, FixtureDef, GrantLevels, GrantOption, Perks, Stage } from '../model';
 import { trendSchedule } from './market';
 import { scoreLine } from './score-line';
@@ -415,11 +415,13 @@ export class ThroughputRun {
     return bosses[info.year - 1] ?? null;
   }
 
-  /** The next `count` Board Reviews from the current round on (bosses are telegraphed a Year ahead). */
+  /**
+   * The next `count` Board Reviews after the current round (bosses are telegraphed a Year ahead).
+   * A Board being played has its own header, and in the shop the current round is the one just cleared.
+   */
   upcomingBoards(count = 2): { readonly round: number; readonly year: number; readonly boss: BoardBoss }[] {
     const out: { round: number; year: number; boss: BoardBoss }[] = [];
-    // In the shop the current round is the one just cleared, so look from the next.
-    const from = this.phase_ === 'shop' ? this.round_ + 1 : this.round_;
+    const from = this.round_ + 1;
     const last = Math.min(this.lastPlannedRound, from + count * this.config.roundsPerYear);
     for (let round = from; round <= last && out.length < count; round++) {
       const boss = this.bossOf(round);
@@ -836,16 +838,45 @@ export class ThroughputRun {
       this.addToHand(this.draw_[next] as Card, pos);
       this.draw_[next] = out;
     }
+    if (this.config.hotOpener) this.fixHotShip();
   }
 
   /**
-   * Ship refill: when cards just drawn (a later Shift's refill or a Retool) leave no Ship in the
-   * hand or on the Line, the next Ship in the draw pile swaps in for the drawn card of the hand's
-   * most common type, which takes its place in the pile. Nothing changes if the pile has no Ship.
+   * Hot opener: when the opening hand has no Ship of this round's Hot Category that can sell, the
+   * next one in the draw pile swaps in for the last card of the hand's most common type, which
+   * takes its place in the pile. Nothing changes without a Hot pip, or if the pile has no such Ship.
+   */
+  private fixHotShip(): void {
+    const trends = this.trendsNow;
+    const hotShip = (card: Card) => trends[card.category] === 'hot' && this.canSell(card);
+    if (this.hotPips_ <= 0 || this.hand_.some(hotShip)) return;
+    let next = this.draw_.length - 1;
+    while (next >= 0 && !hotShip(this.draw_[next] as Card)) next--;
+    if (next < 0) return;
+    const count = (stage: Stage) => this.hand_.filter((c) => c.def.stage === stage).length;
+    const surplus = (['design', 'make', 'ship'] as const).reduce((a, b) => (count(b) > count(a) ? b : a));
+    // Never the hand's only card of a type, so the opener's types stay in hand.
+    if (count(surplus) < 2) return;
+    const out = [...this.hand_].reverse().find((c) => c.def.stage === surplus) as Card;
+    const pos = this.removeFromHand(out);
+    this.addToHand(this.draw_[next] as Card, pos);
+    this.draw_[next] = out;
+  }
+
+  /** A Ship that can sell this round: its Category has Demand left, or it ignores Demand. */
+  private canSell(card: Card): boolean {
+    return card.def.stage === 'ship' && (shipCap(card) === 'all' || this.demandLeft_[card.category] > 0);
+  }
+
+  /**
+   * Ship refill: when cards just drawn (a later Shift's refill or a Retool) leave no Ship that can
+   * sell (`canSell`) in the hand or on the Line, the next such Ship in the draw pile swaps in for the
+   * drawn card of the hand's most common type, which takes its place in the pile. Nothing changes if
+   * the pile has none.
    */
   private fixRefill(drawn: readonly Card[]): void {
     if (!this.config.shipRefill || drawn.length === 0) return;
-    const isShip = (card: Card) => card.def.stage === 'ship';
+    const isShip = (card: Card) => this.canSell(card);
     if (this.hand_.some(isShip) || this.slots_.some((slot, i) => slot.card !== null && isShip(slot.card.card) && !this.isWelded(i))) return;
     let next = this.draw_.length - 1;
     while (next >= 0 && !isShip(this.draw_[next] as Card)) next--;

@@ -36,7 +36,9 @@ export type ShiftBeats = {
   readonly cleared: number;
   readonly overstockSales: number;
   readonly total: number;
-  /** Sales past a Board's Shift cap: already out of `total`, so the finale says where they went. */
+  /** True if the Shift's Sales stopped at a Board's Shift cap (Quota Cap), so the finale can say so. */
+  readonly capped: boolean;
+  /** What the sale that hit the cap made past it; already out of `total`. */
   readonly overCap: number;
 };
 
@@ -94,6 +96,7 @@ export function shiftBeats(result: ShiftResult, baseMargin = DEFAULT_CONFIG.base
     cleared: result.leftover,
     overstockSales: result.overstockSales,
     total: result.total,
+    capped: result.capped,
     overCap: result.overCap,
   };
 }

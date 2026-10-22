@@ -1,6 +1,7 @@
-import { BOSSES, BOUTIQUE, CONTRACTS, FIXTURES, STARTER_CARDS } from '../content';
+import { interestCeiling } from '../../../engine/economy';
+import { BOSSES, BOUTIQUE, CONTRACTS, FIXTURES, SHOP_CARDS, STARTER_CARDS } from '../content';
 import type { ThroughputConfig } from '../content';
-import { CATEGORIES } from '../model';
+import { CATEGORIES, repeatRule } from '../model';
 import { designOnlyMod } from '../rules';
 
 /** Line Shift needs more than its one-line text to play well, so the rules spell it out. */
@@ -30,6 +31,11 @@ function wrap(text: string, indent: string): string {
 export function rulesText(config: ThroughputConfig): string {
   const c = config;
   const boutiqueCap = BOUTIQUE.stage === 'ship' ? String(BOUTIQUE.cap) : '?';
+  // Rebrand: a repeat this Shift (another copy, or the same card under Robot Arm) gets a smaller ×.
+  const repeatDesigns = SHOP_CARDS.flatMap((d) => {
+    const rule = repeatRule(d);
+    return rule === null ? [] : [`\n       ${wrap(rule, '       ')}`];
+  }).join('');
   const sellOutShare = c.demand.sellOutRate === 0.5 ? 'half' : `${Math.round(c.demand.sellOutRate * 100)}%`;
   const contracts = CONTRACTS.map((k) => `  - ${wrap(`${k.name}${k.targetsCard ? ' (pick a deck card)' : ''}: ${k.text}`, '    ')}`).join('\n');
   const bosses = BOSSES.map((b) => `  ${b.id === 'line-shift' ? LINE_SHIFT_RULES : wrap(`${b.name}: ${b.text}`, '    ')}`).join('\n');
@@ -38,7 +44,7 @@ export function rulesText(config: ThroughputConfig): string {
   const quarters = Array.from({ length: c.roundsPerYear - 1 }, (_, i) => `Q${i + 1}`).join(', ');
   const targets = Array.from({ length: years }, (_, y) => `Y${y + 1} ${c.targets.slice(y * c.roundsPerYear, (y + 1) * c.roundsPerYear).join('/')}`).join(' · ');
   const income = c.income.map((amount, i) => `${amount}C (${i === c.income.length - 1 ? 'Board Review' : `Q${i + 1}`})`).join(', ');
-  const interestFull = Math.ceil(c.interest.cap / c.interest.amount) * c.interest.per;
+  const interestFull = interestCeiling(c.interest);
   const last = c.unusedShiftBonus.length - 1;
   const unusedByYear = c.unusedShiftBonus.map((pay, i) => `${pay}C ${i === last ? 'from' : 'in'} Year ${i + 1}`).join(', ');
   const pips = `${c.hotPips} buzz pip${c.hotPips === 1 ? '' : 's'}`;
@@ -46,8 +52,9 @@ export function rulesText(config: ThroughputConfig): string {
   const opener = c.openingHandTypes.map((t) => `one ${typeName[t]}`).join(' and ');
   const designMods = FIXTURES.filter(designOnlyMod).map((f) => f.name);
   const shipRefill = c.shipRefill
-    ? `\n  ${wrap('After each later Shift\'s refill or a Retool, if neither your hand nor the Line has a Ship, the next Ship in the draw pile swaps in for one of the cards just drawn.', '  ')}`
+    ? `\n  ${wrap('After each later Shift\'s refill or a Retool, if neither your hand nor the Line has a Ship that can sell (its Category has Demand left), the next such Ship in the draw pile swaps in for one of the cards just drawn.', '  ')}`
     : '';
+  const hotOpener = c.hotOpener ? `\n  ${wrap(`${opener === '' ? 'The opening hand holds' : 'It also holds'} a Ship of this round's Hot Category, if your deck has one.`, '  ')}` : '';
   const designOpener =
     c.designOpener && !c.openingHandTypes.includes('design') && designMods.length > 0
       ? `\n  ${wrap(`It also holds a Design while a Mod that works only on Designs (${designMods.join(', ')}) is on the Line, outside a welded slot.`, '  ')}`
@@ -77,7 +84,7 @@ CARDS
   Starter deck (${STARTER_CARDS.length * CATEGORIES.length}): per Category 1 Sketch (Design +$2), 2 Workshops (Make +6 Units),
   1 Truck (Ship up to its Category's Demand).
   Each round starts with an empty Line, the whole deck shuffled and a hand of ${c.handSize}.${opener === '' ? '' : `
-  The opening hand always holds at least ${opener} (if your deck has them).${designOpener}`}${shipRefill}
+  The opening hand always holds at least ${opener} (if your deck has them).${designOpener}`}${hotOpener}${shipRefill}
 ${draws}
   Tip: "deck" shows exactly what is left to draw this round.
 
@@ -85,7 +92,7 @@ A SHIFT
   1. Load: put hand cards into empty Line slots (${c.startSlots} slots to start, up to ${c.maxSlots}).
   2. Run: a Batch starts at 0 Units and Margin $${c.baseMargin} and moves left to right through the
      slots (see HOW A SALE IS PRICED).
-  3. Leftover Units clear at $${c.overstockValue} each.
+  3. Leftover Units clear at $${c.overstockValue} each, and that counts toward Sales.
   4. Dispatch: Make and Ship cards are discarded. Designs stay in their slots.
   5. If Sales have reached the target, the round clears now. Otherwise draw back up to ${c.handSize}.
   Retool (${c.retoolsPerRound} per round): discard 1–${c.retoolMax} hand cards and draw as many into their places.
@@ -101,7 +108,7 @@ HOW A SALE IS PRICED
        Empty slots and Stations break the chain.
     b. The slot's Fixture applies.
     c. The card resolves. A Design adds its +$ and then applies its ×. A Make adds Units.
-       A Ship sells min(Units, its cap, its Category's Demand left); sold Units leave the Batch.
+       A Ship sells min(Units, its cap, its Category's Demand left); sold Units leave the Batch.${repeatDesigns}
   Every change to Margin (Handoffs, Fixtures, Designs, Factory Floor's -$1) carries on to all later
   slots. So order matters: Quality Lab's +$4 under an Influencer lands before the Influencer's ×1.5,
   and a Tooling Upgrade's +$1 on an Influencer is added before its ×1.5.
@@ -162,9 +169,12 @@ FIXTURES
     Overtime Crew and Automation: Makes; Showroom and Flagship Store: Ships). The trace marks a Mod
     "idle" when its card is the wrong type.
   - A Station fills the slot itself: no card goes there, and it breaks Handoffs.
-  - Warehouse (Mod): a Make card on it also copies its Units into stock, which builds up across
-    rounds. In a Board Review, when the Batch reaches it, the whole stock sells at the Batch's Margin
-    there ×2, ignoring Demand.
+  - Warehouse (Mod): a Make card on it also copies its own Units into stock (they stay in the Batch
+    too), and the stock builds up across rounds. In every Shift of a Board Review, when the Batch
+    reaches the Warehouse (even with no card there), the whole stock sells at the Margin reaching that
+    slot ×2, ignoring Demand, before that slot's card resolves. So a Make there in a Board Review is
+    stocked after the sale and sells at the next Board Shift. Only the card's own Units are copied:
+    Units from other Fixtures (Assembly Line, Robotics Cell and the like) are not.
 
 BOARD REVIEWS (bosses)
   The last round of each Year has a boss rule. A run meets ${Math.min(years, BOSSES.length)} of these ${BOSSES.length}, drawn at random; the next

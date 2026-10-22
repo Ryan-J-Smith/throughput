@@ -1,4 +1,4 @@
-import { computeInterest } from '../../../engine/economy';
+import { computeInterest, interestCeiling } from '../../../engine/economy';
 import { TRUCK } from '../content';
 import { CATEGORIES, cardEffect, cardName, formatAmount, growthText, shipCap } from '../model';
 import type { Card, CardDef, Category, Fixture, TrendStage } from '../model';
@@ -76,18 +76,19 @@ export function traceLines(result: ShiftResult, indent = '  '): string[] {
   const leftover: string[] = [];
   if (result.stockedUnits > 0) leftover.push(`${result.stockedUnits} Units copied into Warehouse stock`);
   const cleared = result.leftover;
-  if (cleared > 0) leftover.push(`${cleared} Units cleared for ${result.overstockSales < 0 ? '-' : ''}$${Math.abs(result.overstockSales)}`);
-  const capped = result.overCap > 0 ? ` (made $${result.total + result.overCap}, capped at $${result.total}: $${result.overCap} lost)` : '';
+  if (cleared > 0) leftover.push(`${cleared} Units cleared for ${result.overstockSales < 0 ? '-' : ''}$${Math.abs(result.overstockSales)}${result.capped ? ' (Sales had reached the Shift cap)' : ''}`);
+  const capped = result.capped ? ` (its sales stopped at the $${result.total} Shift cap; Units past it didn't sell)` : '';
   lines.push(`${indent}Leftover: ${leftover.length > 0 ? leftover.join(', ') : 'none'}. Shift total $${result.total}${capped}.`);
   return lines;
 }
 
-/** "clears the target, +3C overkill (47% over)" if round Sales of `sales` would clear, else ''. */
+/** "clears the target, +3C overkill (sold 2.48× the target)" if round Sales of `sales` would clear, else ''. */
 export function overkillNote(run: ThroughputRun, sales: number): string {
   if (sales < run.target) return '';
   const pay = run.overkillPayFor(sales);
-  const over = Math.floor((100 * (sales - run.target)) / run.target);
-  return pay > 0 ? `clears the target, +${pay}C overkill (${over}% over)` : 'clears the target';
+  // Rounded down, so a ratio never reads past the overkill step it hasn't reached.
+  const times = Math.floor((100 * sales) / run.target) / 100;
+  return pay > 0 ? `clears the target, +${pay}C overkill (sold ${formatAmount(times)}× the target)` : 'clears the target';
 }
 
 /** "Showroom 5→1, Quality Lab 1→2" (1-based slots). */
@@ -160,7 +161,7 @@ export function legalActions(run: ThroughputRun): string[] {
     const preview = run.preview();
     const after = Math.max(0, run.sales + preview.total);
     const clears = overkillNote(run, after);
-    const capped = preview.overCap > 0 ? `, capped from $${preview.total + preview.overCap}` : '';
+    const capped = preview.capped ? ', stopped at the Shift cap' : '';
     out.push(`run — run Shift ${run.shift} of ${run.shiftsThisRound} (makes $${preview.total}${capped}; round reaches $${after} of $${run.target}${clears === '' ? '' : `; ${clears}`})`);
   }
   if (run.phase === 'shop') {
@@ -207,11 +208,11 @@ export function legalActions(run: ThroughputRun): string[] {
   return out;
 }
 
-/** " · Restock ready" / " · Restocked 9 cards" for the Shift header ('' when the config has no Restock). */
+/** " · Restock ready" / " · Restock used (9 cards): …" for the Shift header ('' when the config has no Restock). */
 function restockText(run: ThroughputRun): string {
   if (run.config.restocksPerRound <= 0) return '';
   if (run.restocksLeft > 0) return run.restocked > 0 ? ` · Restocked ${run.restocked} cards, ${run.restocksLeft} Restock left` : ' · Restock ready';
-  return ` · Restocked ${run.restocked} cards (no Restock left)`;
+  return ` · Restock used (${run.restocked} cards): an empty draw pile stays empty this round`;
 }
 
 /** What happens to the card in a Line slot when the Shift runs, for the Line listing (worded as in the browser). */
@@ -255,7 +256,9 @@ export function formatView(run: ThroughputRun, context: ViewContext): string {
       if (run.storageNotice !== null) lines.push(run.storageNotice);
       const rule = run.interestRule;
       const interest = computeInterest(run.wallet.cash, rule);
-      lines.push(`Interest: holding ${run.wallet.cash}C when the next round clears pays +${interest}C (${rule.amount}C per full ${rule.per}C, at most +${rule.cap}C).`);
+      const ceiling = interestCeiling(rule);
+      const idle = run.wallet.cash >= ceiling ? ` Capital above ${ceiling}C earns nothing.` : '';
+      lines.push(`Interest: holding ${run.wallet.cash}C when the next round clears pays +${interest}C (${rule.amount}C per full ${rule.per}C, at most +${rule.cap}C).${idle}`);
       if (perksText(run) !== '') lines.push(perksText(run));
       break;
     }
@@ -280,12 +283,12 @@ export function formatView(run: ThroughputRun, context: ViewContext): string {
     const fixture = run.isWelded(i) && run.phase === 'shift' ? 'WELDED SHUT' : slot.fixture === null ? 'no Fixture' : fixtureText(slot.fixture);
     const card = slot.card?.card;
     const idle = card !== undefined && slot.fixture !== null && slot.fixture.def.kind === 'mod' && !slot.fixture.def.effect.appliesTo(card) ? ` (${slot.fixture.def.name} is idle for it)` : '';
-    const held = card === undefined ? '' : ` | ${cardText(card)}${soldOutNote(run, card)} ${lineCardNote(run, i)}${idle}`;
+    const held = card === undefined ? '' : ` | ${cardText(card)}${demandNote(run, card)} ${lineCardNote(run, i)}${idle}`;
     lines.push(`  ${i + 1}. ${fixture}${held}`);
   });
 
   if (run.phase === 'shift') {
-    const hand = run.handSlots.flatMap((card, i) => (card === null ? [] : [`  ${i + 1}. ${cardText(card)}${soldOutNote(run, card)}`]));
+    const hand = run.handSlots.flatMap((card, i) => (card === null ? [] : [`  ${i + 1}. ${cardText(card)}${demandNote(run, card)}`]));
     lines.push('', `Hand (${run.hand.length}; a card keeps its number until it leaves the hand):`, ...hand);
     const preview = run.preview();
     const clears = overkillNote(run, Math.max(0, run.sales + preview.total));
@@ -300,7 +303,7 @@ export function formatView(run: ThroughputRun, context: ViewContext): string {
     lines.push('', `Shop (reroll ${run.rerollCost}C; holding ${run.wallet.cash}C → +${computeInterest(run.wallet.cash, run.interestRule)}C interest):`);
     run.offers.forEach((offer, i) => {
       const blocker = offerBlocker(run, i);
-      lines.push(`  ${i + 1}. ${offer === null ? '(bought)' : offerText(offer)}${blocker === null ? '' : ` [can't buy: ${blocker}]`}`);
+      lines.push(`  ${i + 1}. ${offer === null ? '(bought; a reroll or the next shop refills it)' : offerText(offer)}${blocker === null ? '' : ` [can't buy: ${blocker}]`}`);
     });
     // Deck numbers matter in the shop only for a Contract that targets a card; otherwise keep the screen short.
     const picksCard = run.offers.some((o) => o?.kind === 'contract' && o.def.targetsCard);
@@ -385,10 +388,14 @@ export function demandUseText(result: ShiftResult, run: ThroughputRun): string {
   }).join(', ');
 }
 
-/** " (Gadgets sold out: sells 0)" for a Ship card whose Category has no Demand left this Shift, else ''. */
-export function soldOutNote(run: ThroughputRun, card: Card): string {
+/**
+ * During a Shift, a Ship card's Category Demand left: " (Home 2 left)", or " (Gadgets sold out:
+ * sells 0)" when none is left; '' for a Ship that ignores Demand, and for other cards.
+ */
+export function demandNote(run: ThroughputRun, card: Card): string {
   if (run.phase !== 'shift' || card.def.stage !== 'ship' || shipCap(card) === 'all') return '';
-  return run.demandLeft[card.category] === 0 ? ` (${card.category} sold out: sells 0)` : '';
+  const left = run.demandLeft[card.category];
+  return left === 0 ? ` (${card.category} sold out: sells 0)` : ` (${card.category} ${left} left)`;
 }
 
 /** Ship cards left in the draw pile. */
@@ -410,11 +417,14 @@ export function noShipNote(run: ThroughputRun): string | null {
     : `No Ship on the Line, so nothing sells, and under ${run.boss?.name ?? 'this boss'} each Unit left at the end costs $${-value}.`;
 }
 
-/** What spending `cost` does to next round's interest, e.g. "then holding 7C → +1C interest, now +1C". */
+/**
+ * What spending `cost` does to next round's interest, with one interest figure: "then holding 11C →
+ * +2C interest", or "then holding 9C → +1C interest, 1C less" when the spend lowers it.
+ */
 export function interestTrade(run: ThroughputRun, cost: number): string {
   const now = computeInterest(run.wallet.cash, run.interestRule);
   const after = computeInterest(Math.max(0, run.wallet.cash - cost), run.interestRule);
-  return `then holding ${run.wallet.cash - cost}C → +${after}C interest, now +${now}C`;
+  return `then holding ${run.wallet.cash - cost}C → +${after}C interest${after < now ? `, ${now - after}C less` : ''}`;
 }
 
 /** Free `deck` query: every card and what is left to draw this round. */
@@ -479,5 +489,5 @@ export function stateData(run: ThroughputRun, context: ViewContext): Record<stri
 }
 
 function previewData(result: ShiftResult) {
-  return { steps: result.steps, leftover: result.leftover, stockedUnits: result.stockedUnits, overstockSales: result.overstockSales, total: result.total, overCap: result.overCap };
+  return { steps: result.steps, leftover: result.leftover, stockedUnits: result.stockedUnits, overstockSales: result.overstockSales, total: result.total, capped: result.capped, overCap: result.overCap };
 }

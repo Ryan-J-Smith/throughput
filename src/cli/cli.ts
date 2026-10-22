@@ -19,11 +19,12 @@ export const EXIT_USAGE = 2;
 const USAGE = `usage:
   npm run -s cli -- new   --seed N --save FILE [--game NAME] [--force] [--json]
   npm run -s cli -- state --save FILE [--json]
-  npm run -s cli -- act   --save FILE "<action>" [--json]
+  npm run -s cli -- act   --save FILE "<action>" [--full] [--json]
   npm run -s cli -- rules --game NAME | --save FILE [--json]
   npm run -s cli -- deck  --save FILE [--json]
 actions are game-specific; every state printout ends with the legal ones (--game picks the game for new)
-free queries such as act "rules" or act "deck" print an answer and leave the save alone
+free queries such as act "state", act "rules" or act "deck" print an answer and leave the save alone
+after an act only the parts of the view that changed are printed, then the legal actions (--full or state: everything)
 exit codes: 0 ok, 1 illegal action (save unchanged), 2 usage or save-file error`;
 
 type Parsed = {
@@ -95,7 +96,17 @@ function commandAct(parsed: Parsed, io: CliIo, games: readonly TextGame[]): numb
   const text = parsed.positionals.join(' ').trim();
   if (text === '') throw new UsageError('act needs an action, e.g. act --save run.json "play 1 2 3"');
   const save = loadSave(parsed, io);
-  const result = findGame(games, save.game).take(save, text);
+  const game = findGame(games, save.game);
+  if (text.toLowerCase() === 'state') {
+    // The "state" command as a free query: the full view, and the save is left alone.
+    const view = game.show(save);
+    io.out(parsed.flags.has('json') ? JSON.stringify({ ok: true, action: 'state', recorded: false, log: [], state: view.state }) : view.text);
+    return EXIT_OK;
+  }
+  // The view before the action, to print only what it changed.
+  const brief = !parsed.flags.has('json') && !parsed.flags.has('full');
+  const before = brief ? game.show(save).text : null;
+  const result = game.take(save, text);
   if (!result.ok) {
     if (parsed.flags.has('json')) {
       io.out(JSON.stringify({ ok: false, action: text, error: result.reason, state: result.view.state }));
@@ -112,12 +123,29 @@ function commandAct(parsed: Parsed, io: CliIo, games: readonly TextGame[]): numb
   if (parsed.flags.has('json')) {
     io.out(JSON.stringify({ ok: true, action, recorded, log: result.log, state: result.view.state }));
   } else if (recorded) {
-    io.out([`> ${action}`, ...result.log, '', result.view.text].join('\n'));
+    io.out([`> ${action}`, ...result.log, '', before === null ? result.view.text : changedView(before, result.view.text, path)].join('\n'));
   } else {
     // The state can't have changed, so don't reprint it.
     io.out([`> ${action}`, ...result.log, `(state unchanged; reprint it with: npm run -s cli -- state --save ${path})`].join('\n'));
   }
   return EXIT_OK;
+}
+
+/**
+ * The parts of a view (blocks split by blank lines) that differ from `before`, in order, always
+ * with the block that lists the legal actions, and a line naming the blocks left out.
+ */
+function changedView(before: string, after: string, path: string): string {
+  const seen = new Set(before.split('\n\n'));
+  const blocks = after.split('\n\n');
+  const legal = (block: string) => block.split('\n').includes('Legal actions:');
+  const shown = blocks.filter((block) => !seen.has(block) || legal(block));
+  const omitted = blocks.filter((block) => !shown.includes(block)).map((block) => /^[^(:]*/.exec(block)?.[0].trim() ?? '');
+  if (omitted.length === 0) return after;
+  const note = `(unchanged, not shown: ${omitted.join(', ')}; full view: npm run -s cli -- state --save ${path})`;
+  // The note goes just before the legal actions, so they stay last.
+  const at = shown.findIndex(legal);
+  return [...shown.slice(0, at < 0 ? shown.length : at), note, ...(at < 0 ? [] : shown.slice(at))].join('\n\n');
 }
 
 /** Prints a game's rules (its free "rules" query), for --game or a save's game. Never writes the save. */
@@ -180,7 +208,7 @@ function parseArgs(args: readonly string[]): Parsed {
       const value = args[++i];
       if (value === undefined) throw new UsageError(`--${name} needs a value`);
       options.set(name, value);
-    } else if (name === 'json' || name === 'force') {
+    } else if (name === 'json' || name === 'force' || name === 'full') {
       flags.add(name);
     } else {
       throw new UsageError(`unknown option --${name}`);

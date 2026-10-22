@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { BOUTIQUE, DEFAULT_CONFIG, FACTORY_FLOOR, INFLUENCER, SKETCH, TRUCK, WHOLESALE_CLUB, WORKSHOP } from '../content';
+import { BOUTIQUE, DEFAULT_CONFIG, FACTORY_FLOOR, INFLUENCER, REBRAND, SKETCH, TRUCK, WHOLESALE_CLUB, WORKSHOP } from '../content';
 import type { Card } from '../model';
 import { scoreLine } from '../rules';
+import type { LineSlot } from '../rules';
 import { boss, card, context, demandLeft, fixture, grants, slot, trends } from './fixtures';
 
 /** seed-03 §2 worked example: six slots, the R&D Sketch already at +$5. */
@@ -98,6 +99,16 @@ describe('scoreLine: cards and fixtures', () => {
     expect(scoreLine(line, context()).steps[1]?.margin).toBe(4 * 2.25);
   });
 
+  it('a repeat Rebrand in one Shift gives its smaller × and names itself in the trace', () => {
+    // Robot Arm resolves one Rebrand twice: -$2 ×2, then -$2 ×1.5 as the "2nd Rebrand".
+    const armed = scoreLine([slot(null, card(SKETCH, 'Home')), slot(fixture('robot-arm'), card(REBRAND, 'Food'))], context()).steps[1];
+    expect(armed?.margin).toBe(((4 - 2) * 2 - 2) * 1.5);
+    expect(armed?.events).toEqual(['Design -$2', 'Design Margin ×2', 'Design -$2', '2nd Rebrand Margin ×1.5']);
+    // Three copies: the 3rd is counted on.
+    const three = scoreLine([slot(null, card(REBRAND, 'Home')), slot(null, card(REBRAND, 'Food')), slot(null, card(REBRAND, 'Gadgets'))], context());
+    expect(three.steps[2]?.events).toContain('3rd Rebrand Margin ×1.5');
+  });
+
   it('Brand Manager needs three same-Category cards in a row', () => {
     const chain = [slot(null, card(SKETCH, 'Home')), slot(null, card(WORKSHOP, 'Home')), slot(fixture('brand-manager'), card(TRUCK, 'Home'))];
     // Margin 2 +2 = 4, +1 handoff = 5, +1 handoff = 6, ×1.5 = 9; 6 Units sold at $9.
@@ -149,6 +160,10 @@ describe('scoreLine: cards and fixtures', () => {
     expect(result.steps[1]?.events).toContain('Warehouse sells 30 stored × $10 = $300');
     expect(result.storedAfter).toBe(6);
     expect(scoreLine(line, context({ stored: 30 })).storedAfter).toBe(36);
+    // It sells even with no card in its slot: Margin $2 + Sketch $2 (no Handoff into an empty slot).
+    const empty = scoreLine([line[0] as LineSlot, slot(fixture('warehouse'), null)], context({ stored: 30, boss: boss('turnover') }));
+    expect(empty.steps[1]?.events).toContain('Warehouse sells 30 stored × $8 = $240');
+    expect(empty.storedAfter).toBe(0);
   });
 });
 

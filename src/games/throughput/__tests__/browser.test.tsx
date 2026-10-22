@@ -1,12 +1,13 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { GrantPicker, HowToPlay, KEYS_HINT, LineView, MarketBoard, PayoutSlip, Shelf, ThroughputBrowserGame, ThroughputScreen, TpHud, TraceReceipt, cardView, demandBossCut, demandViews, fixtureView, lineNotice, nextBoardNotice, overkillHelp, plateText } from '../browser';
+import { GrantPicker, HowToPlay, KEYS_HINT, LineView, MarketBoard, PayoutSlip, Shelf, ThroughputBrowserGame, ThroughputScreen, TpHud, TraceReceipt, cardView, demandBossCut, demandViews, eventHelp, fixtureView, lineNotice, nextBoardNotice, overkillHelp, plateText } from '../browser';
 import { cardText, demandUseText, grownText } from '../cli';
 import { DEFAULT_CONFIG, REBRAND, SKETCH, TRUCK, WORKSHOP } from '../content';
 import type { BayState } from '../browser';
 import { CATEGORIES, cardEffect, cardName, growthText } from '../model';
 import type { Category, Stage } from '../model';
 import { ThroughputRun, scoreLine } from '../rules';
+import type { LineSlot } from '../rules';
 import { MemoryStore } from '../../../ui/storage';
 import { boss, card, context, easyConfig, fixture, quotaCapRun, shopWithFixture, slot } from './fixtures';
 
@@ -98,16 +99,18 @@ describe('THROUGHPUT browser screen', () => {
     );
   });
 
-  it('under Quota Cap the receipt takes off what is over the cap, and the HUD gives the cap in dollars', () => {
+  it("under Quota Cap the receipt says the Shift's sales stop at the cap, and the HUD gives the cap in dollars", () => {
     const run = quotaCapRun();
     const preview = run.preview();
-    expect(preview.overCap).toBeGreaterThan(0);
+    expect(preview.capped).toBe(true);
     const html = renderToStaticMarkup(<TraceReceipt result={preview} heading="If you run now" salesBefore={0} target={5} />);
     expect(html).toContain(
-      `<li class="tp-receipt__line tp-receipt__line--capped"><span class="tp-receipt__slot"></span><span class="tp-receipt__what">Shift cap $3<small>$${preview.overCap} over the cap doesn&#x27;t count</small></span><span class="tp-receipt__batch"></span><span class="tp-receipt__amount">-$${preview.overCap}</span></li>`,
+      `<li class="tp-receipt__line tp-receipt__line--capped"><span class="tp-receipt__slot"></span><span class="tp-receipt__what">Shift cap $3 reached<small>Sales stop here: later Units don&#x27;t sell or use Demand</small></span><span class="tp-receipt__batch"></span><span class="tp-receipt__amount">${preview.overCap > 0 ? `-$${preview.overCap}` : ''}</span></li>`,
     );
     expect(html).toContain('Round $3 of $5: $2 to go');
-    expect(renderToStaticMarkup(<TpHud run={run} />)).toContain('Sales past that are lost. This round: at most $3 a Shift.</span>');
+    expect(renderToStaticMarkup(<TpHud run={run} />)).toContain(`${boss('quota-cap').text.replace(/'/g, '&#x27;')} This round: at most $3 a Shift.</span>`);
+    // Uncapped, no cap line.
+    expect(renderToStaticMarkup(<TraceReceipt result={scoreLine([slot(null, card(WORKSHOP, 'Home'))], context())} heading="Shift" salesBefore={0} target={10} />)).not.toContain('tp-receipt__line--capped');
   });
 
   it('a receipt can carry a note under its slots, such as what a Shift with no Ship still earns', () => {
@@ -161,6 +164,9 @@ describe('THROUGHPUT browser screen', () => {
     const items = () => [...shelf().matchAll(/<div class="shop__item ?" data-kind="(\w+)" data-afford="(yes|no)"/g)].map((m) => [m[1], m[2]]);
     expect(items()).toEqual(run.offers.flatMap((o) => (o === null ? [] : [[o.kind, run.wallet.canAfford(o.price) ? 'yes' : 'no']])));
     expect(shelf()).toMatch(/<span class="tp-shop__interest"[^>]*>Holding \d+C → \+\d+C interest<\/span>/);
+    expect(shelf()).toContain('It tops out at +5C: Capital above 25C earns nothing.');
+    run.wallet.earn(25 - run.wallet.cash);
+    expect(shelf()).toContain('>Holding 25C → +5C interest (max)</span>');
     run.wallet.spend(run.wallet.cash);
     expect(items().map(([, afford]) => afford)).toEqual(run.offers.flatMap((o) => (o === null ? [] : [o.price > 0 ? 'no' : 'yes'])));
   });
@@ -179,7 +185,7 @@ describe('THROUGHPUT browser screen', () => {
     expect(offer(picked, 2)).not.toContain('shop__note');
     expect(shelf(null)).not.toContain('shop__note');
     // The bought offer's Sold plate can hold focus, so a keyboard buy doesn't drop focus to the page.
-    expect(shelf(null)).toContain('<div class="shop__item tp-shop__sold" tabindex="-1"');
+    expect(shelf(null)).toContain('<div class="shop__item tp-shop__sold" tabindex="-1" title="Bought. A reroll or the next shop refills this spot."');
     // Unpicked, the offer is still affordable: it can go over the Fixture in slot 1.
     expect(offer(shelf(null), 1)).toContain('data-afford="yes"');
     run.wallet.spend(1);
@@ -293,22 +299,22 @@ describe('THROUGHPUT browser screen', () => {
     expect(demandUseText({ ...both, soldOut: [], demandGrowth: { Home: emerging } }, notLast)).toBe(`Home 5 (Emerging sale: +${emerging} from next round)`);
   });
 
-  it('during a Shift a Ship card whose Category sold out says it sells nothing', () => {
+  it("during a Shift a Ship card stamps its Category's Demand left, or Sold out", () => {
     const truck = card(TRUCK, 'Home');
     const left = { Apparel: 5, Gadgets: 5, Home: 0, Food: 5 };
-    expect(cardView(truck, 'x', left).tags).toContain('Sold out: sells 0');
-    expect(cardView(truck, 'x', { ...left, Home: 3 }).tags).not.toContain('Sold out: sells 0');
-    expect(cardView(truck).tags).not.toContain('Sold out: sells 0');
+    expect(cardView(truck, 'x', left).tags).toEqual(['Home', 'Ship', 'Sold out']);
+    expect(cardView(truck, 'x', { ...left, Home: 3 }).tags).toEqual(['Home', 'Ship', '3 left']);
+    expect(cardView(truck).tags).toEqual(['Home', 'Ship']);
   });
 
   it('growth reads by card type: R&D Margin on a Design, Automation Units on a Make', () => {
     const sketch = card(SKETCH, 'Home', { growth: 2 });
     const workshop = card(WORKSHOP, 'Food', { growth: 3 });
     expect(growthText(sketch)).toBe('R&D +$2');
-    expect(growthText(workshop)).toBe('Automated +3 Units');
+    expect(growthText(workshop)).toBe('+3 grown on Automation');
     expect(growthText(card(WORKSHOP, 'Food'))).toBe('');
-    expect(cardView(workshop).tags).toContain('Automated +3 Units');
-    expect(cardText(workshop)).toBe('Workshop-F · Make: +9 Units (Automated +3 Units)');
+    expect(cardView(workshop).tags).toContain('+3 grown on Automation');
+    expect(cardText(workshop)).toBe('Workshop-F · Make: +9 Units (+3 grown on Automation)');
     expect(grownText([sketch, workshop, workshop, workshop])).toBe('Sketch-H +$1, Workshop-F +3 Units');
   });
 
@@ -316,6 +322,28 @@ describe('THROUGHPUT browser screen', () => {
     const rebrand = card(REBRAND, 'Home');
     expect(cardView(rebrand).valueLabel).toBe('-$2');
     expect(cardEffect(rebrand)).toBe('Design: -$2 Margin, then Margin ×2');
+  });
+
+  it('a Make after the last Ship says its Units reach no Ship, and why on hover', () => {
+    const line = [slot(null, card(WORKSHOP, 'Home')), slot(null, card(TRUCK, 'Home')), slot(fixture('automation'), card(WORKSHOP, 'Food'))];
+    const result = scoreLine(line, context());
+    expect(result.steps[0]?.events).not.toContain('Units reach no Ship');
+    expect(result.steps[2]?.events).toContain('Units reach no Ship');
+    expect(result.leftover).toBe(6);
+    const html = renderToStaticMarkup(<TraceReceipt result={result} heading="If you run now" salesBefore={0} target={100} />);
+    expect(html).toContain(`<abbr title="No Ship comes after this slot, so this Make&#x27;s Units don&#x27;t sell: they clear as leftovers at the end of the Shift.">Units reach no Ship</abbr>`);
+    // A Line with no Ship at all has its own note, so its Makes don't repeat it.
+    expect(scoreLine([line[0] as LineSlot], context()).steps[0]?.events).not.toContain('Units reach no Ship');
+  });
+
+  it('a repeat Rebrand on the receipt explains its smaller × on hover', () => {
+    const rule = 'A Rebrand that has already resolved this Shift (another copy, or the same card under Robot Arm) gives ×1.5 instead of ×2.';
+    expect(eventHelp('2nd Rebrand Margin ×1.5')).toBe(rule);
+    expect(eventHelp('3rd Rebrand Margin ×1.5')).toBe(rule);
+    expect(eventHelp('Design Margin ×2')).toBeUndefined();
+    const result = scoreLine([slot(fixture('robot-arm'), card(REBRAND, 'Food'))], context());
+    const html = renderToStaticMarkup(<TraceReceipt result={result} heading="If you run now" salesBefore={0} target={100} />);
+    expect(html).toContain(`<abbr title="${rule}">2nd Rebrand Margin ×1.5</abbr>`);
   });
 
   it('a plate shows the short gist (or the rule) and keeps what the Fixture does now', () => {

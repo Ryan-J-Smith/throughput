@@ -1,4 +1,4 @@
-export { scoreLine } from './score-line';
+export { NO_SHIP_AFTER, scoreLine } from './score-line';
 export type { LineSlot, ShiftContext, ShiftResult, SlotTrace, Trends } from './score-line';
 export { advanceTrends, initialTrends, trendSchedule } from './market';
 export { ThroughputShop } from './throughput-shop';

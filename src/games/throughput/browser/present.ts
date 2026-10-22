@@ -1,8 +1,10 @@
 import type { CardView } from '../../../ui/types';
 import { fixtureNow } from '../cli';
+import { SHOP_CARDS } from '../content';
 import type { ThroughputConfig } from '../content';
-import { CATEGORIES, cardEffect, designAdd, formatAmount, growthText, makeUnits, shipCap } from '../model';
+import { CATEGORIES, cardEffect, designAdd, formatAmount, growthText, makeUnits, repeatRule, shipCap } from '../model';
 import type { BoardBoss, Card, CardDef, Category, Fixture, FixtureDef, Stage, TrendStage } from '../model';
+import { NO_SHIP_AFTER } from '../rules';
 import type { Offer, ShiftResult, ThroughputRun } from '../rules';
 import { CATEGORY_ICON, cardArt, contractArt, fixtureArt } from './art';
 
@@ -36,9 +38,10 @@ function valueLabel(card: Card, demandLeft?: Readonly<Record<Category, number>>)
 
 /** `demandLeft` (during a Shift) lets a Demand-capped Ship show how much it can still sell. */
 export function cardView(card: Card, id = `card-${card.uid}`, demandLeft?: Readonly<Record<Category, number>>): CardView {
-  // During a Shift, a Ship whose Category has sold out says it will sell nothing.
-  const soldOut = demandLeft !== undefined && card.def.stage === 'ship' && shipCap(card) !== 'all' && demandLeft[card.category] === 0;
-  const extras = [card.upgrades > 0 ? `Tooled ×${card.upgrades}` : '', growthText(card), soldOut ? 'Sold out: sells 0' : ''].filter(Boolean);
+  // During a Shift, a Ship says its Category's Demand left, or that it has sold out (short, so the stamp fits one line).
+  const left = demandLeft !== undefined && card.def.stage === 'ship' && shipCap(card) !== 'all' ? demandLeft[card.category] : null;
+  const demand = left === null ? '' : left === 0 ? 'Sold out' : `${left} left`;
+  const extras = [card.upgrades > 0 ? `Tooled ×${card.upgrades}` : '', growthText(card), demand].filter(Boolean);
   return {
     id,
     title: card.def.name,
@@ -295,5 +298,9 @@ export function overkillHelp(config: ThroughputConfig): string {
 /** A hover explanation for a receipt event that names a rule rather than a card or Fixture; undefined otherwise. */
 export function eventHelp(event: string): string | undefined {
   if (event.startsWith('Handoff')) return 'Handoff: a card right after another card of the same Category adds +$1 Margin.';
-  return undefined;
+  if (event === NO_SHIP_AFTER) return "No Ship comes after this slot, so this Make's Units don't sell: they clear as leftovers at the end of the Shift.";
+  // A repeat Design names itself, e.g. "2nd Rebrand Margin ×1.5".
+  const repeat = /^\d+(?:st|nd|rd|th) (.+) Margin ×/.exec(event)?.[1];
+  const def = repeat === undefined ? undefined : SHOP_CARDS.find((d) => d.name === repeat);
+  return def === undefined ? undefined : (repeatRule(def) ?? undefined);
 }

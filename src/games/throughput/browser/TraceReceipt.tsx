@@ -86,15 +86,15 @@ export function TraceReceipt({ result, heading, salesBefore, target, overkillPay
               <span className="tp-receipt__amount">{result.overstockSales !== 0 ? `${result.overstockSales < 0 ? '-' : ''}$${Math.abs(result.overstockSales)}` : ''}</span>
             </li>
           )}
-          {result.overCap > 0 && (
+          {result.capped && (
             <li className="tp-receipt__line tp-receipt__line--capped">
               <span className="tp-receipt__slot" />
               <span className="tp-receipt__what">
-                Shift cap ${result.total}
-                <small>{`$${result.overCap} over the cap doesn't count`}</small>
+                Shift cap ${result.total} reached
+                <small>Sales stop here: later Units don't sell or use Demand</small>
               </span>
               <span className="tp-receipt__batch" />
-              <span className="tp-receipt__amount">-${result.overCap}</span>
+              <span className="tp-receipt__amount">{result.overCap > 0 ? `-$${result.overCap}` : ''}</span>
             </li>
           )}
         </ol>

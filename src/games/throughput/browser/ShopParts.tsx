@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { CSSProperties } from 'react';
-import { computeInterest } from '../../../engine/economy';
+import { computeInterest, interestCeiling } from '../../../engine/economy';
 import { Card } from '../../../ui/components';
 import { interestTrade, rulesText } from '../cli';
 import { CATEGORIES, cardName, formatAmount } from '../model';
@@ -69,8 +69,11 @@ export function Shelf({ run, pending, replacing, onBuy, onReroll, onContinue }: 
       <div className="shop__header">
         <span className="section-label">Shop</span>
         <div className="shop__actions">
-          <span className="tp-shop__interest" title="Interest is paid when the next round clears; spending lowers it">
-            Holding {run.wallet.cash}C → +{computeInterest(run.wallet.cash, run.interestRule)}C interest
+          <span
+            className="tp-shop__interest"
+            title={`Interest is paid when the next round clears; spending lowers it. It tops out at +${run.interestRule.cap}C: Capital above ${interestCeiling(run.interestRule)}C earns nothing.`}
+          >
+            Holding {run.wallet.cash}C → +{computeInterest(run.wallet.cash, run.interestRule)}C interest{run.wallet.cash >= interestCeiling(run.interestRule) && ' (max)'}
           </span>
           <button
             type="button"
@@ -113,7 +116,7 @@ function ShelfItem({
 }) {
   if (offer === null) {
     return (
-      <div className="shop__item tp-shop__sold" ref={soldRef} tabIndex={-1} style={{ '--i': index } as CSSProperties}>
+      <div className="shop__item tp-shop__sold" ref={soldRef} tabIndex={-1} title="Bought. A reroll or the next shop refills this spot." style={{ '--i': index } as CSSProperties}>
         <span className="stamp stamp--sold">Sold</span>
       </div>
     );

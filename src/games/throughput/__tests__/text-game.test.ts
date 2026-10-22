@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { SaveFile, TurnResult } from '../../../play/session';
-import { ThroughputTextGame, formatAction, formatView, legalActions, noShipNote, offerBlocker, offerText, parseAction, perksText, rulesText, shipsToDraw, soldOutNote, traceLines } from '../cli';
+import { ThroughputTextGame, cardText, demandNote, formatAction, formatView, interestTrade, legalActions, noShipNote, offerBlocker, overkillNote, offerText, parseAction, perksText, rulesText, shipsToDraw, traceLines } from '../cli';
 import { BOSSES, CONTRACTS, DEFAULT_CONFIG, INFLUENCER, TRUCK, WHOLESALE_CLUB, WORKSHOP } from '../content';
 import { CATEGORIES } from '../model';
-import type { Category, Perks } from '../model';
+import type { Card, Category, Perks } from '../model';
 import { ThroughputRun, scoreLine } from '../rules';
 import { boss, card, context, easyConfig, quotaCapRun, shopWithFixture, slot } from './fixtures';
 
@@ -115,7 +115,9 @@ describe('ThroughputTextGame', () => {
     expect(view.text).toContain('  This Shift clears the target.');
     expect(view.legalActions).toContain(`run — run Shift 1 of 4 (makes $12; round reaches $12 of $${run.target}; clears the target)`);
     const big = new ThroughputTextGame(easyConfig({ targets: [5, 10, 10] }));
-    expect(big.show(play(big, 1, [`load ${numberOf(hand, 'make')}:1 ${numberOf(hand, 'ship')}:2`])).text).toContain(`  This Shift clears the target, +${DEFAULT_CONFIG.overkill.cap}C overkill (140% over).`);
+    expect(big.show(play(big, 1, [`load ${numberOf(hand, 'make')}:1 ${numberOf(hand, 'ship')}:2`])).text).toContain(`  This Shift clears the target, +${DEFAULT_CONFIG.overkill.cap}C overkill (sold 2.4× the target).`);
+    // The multiple rounds down: $323 of $130 is 2.4846×.
+    expect(overkillNote(new ThroughputRun(1, easyConfig({ targets: [130, 130, 130] })), 323)).toBe('clears the target, +3C overkill (sold 2.48× the target)');
   });
 
   it('marks what stays on the Line for later Shifts and what this Shift uses up', () => {
@@ -159,6 +161,23 @@ describe('ThroughputTextGame', () => {
     expect(ok(shiftGame.take(parked.save, 'unload 4')).log).toEqual([`Back in hand: ${design.name}.`]);
   });
 
+  it('the shop says when Capital past the interest ceiling earns nothing', () => {
+    const run = new ThroughputRun(1, easyConfig({ targets: [0, 0, 0] }));
+    run.runShift();
+    const view = () => formatView(run, { game: 'throughput', seed: 1, actionsTaken: 1 });
+    run.wallet.spend(run.wallet.cash);
+    run.wallet.earn(24);
+    expect(view()).toContain('Interest: holding 24C when the next round clears pays +4C (1C per full 5C, at most +5C).\n');
+    run.wallet.earn(1);
+    expect(view()).toContain('pays +5C (1C per full 5C, at most +5C). Capital above 25C earns nothing.\n');
+  });
+
+  it('a spend shows one interest figure, saying how much less when it lowers the interest', () => {
+    const run = new ThroughputRun(1, easyConfig({ startingCapital: 13 }));
+    expect(interestTrade(run, 2)).toBe('then holding 11C → +2C interest');
+    expect(interestTrade(run, 4)).toBe('then holding 9C → +1C interest, 1C less');
+  });
+
   it('plays from a Shift into the shop and on into round 2', () => {
     const hand = handOf(game, game.newSave(1));
     const make = numberOf(hand, 'make');
@@ -166,7 +185,7 @@ describe('ThroughputTextGame', () => {
     const shop = ok(game.take(play(game, 1, [`load ${make}:1 ${ship}:2`]), 'run'));
     expect(shop.log.at(-1)).toMatch(/^Target hit! Y1 Q1 cleared\. Payout: Q1 cleared 4C, 3 unused Shifts 6C\.$/);
     expect(shop.view.text).toMatch(/Shop \(reroll 2C; holding \d+C → \+\d+C interest\):/);
-    expect(shop.view.text).toMatch(/reroll — new offers for 2C \(then holding \d+C → \+\d+C interest, now \+\d+C\)/);
+    expect(shop.view.text).toMatch(/reroll — new offers for 2C \(then holding \d+C → \+\d+C interest(, \dC less)?\)/);
     expect(shop.view.text).toMatch(/Interest: holding \d+C when the next round clears pays \+\d+C/);
     expect(shop.view.legalActions.at(-3)).toBe('continue — start Y1 Q2 (round 2, target $10)');
     expect(ok(game.take(shop.save, 'reroll')).log).toEqual([expect.stringMatching(/^Rerolled for 2C \(Capital (\d+)C → \d+C\)\. Next reroll 3C\.$/)]);
@@ -219,6 +238,17 @@ describe('Demand text', () => {
 
 /** A run with Contract perks already bought. */
 /** A run whose `soldOut` Category has no Demand left this round. */
+/** A run whose Restock this round is already used, on 9 cards. */
+class RestockedRun extends ThroughputRun {
+  override get restocksLeft(): number {
+    return 0;
+  }
+
+  override get restocked(): number {
+    return 9;
+  }
+}
+
 class SoldOutRun extends ThroughputRun {
   private readonly soldOut: Category;
 
@@ -242,14 +272,31 @@ describe('playtest-2 clarity', () => {
     expect(legalActions(run)).toContain('retool <hand> … — discard 1–2 hand cards (up to 3; you hold 2) and draw as many into their places (2 left this round)');
   });
 
-  it('flags a Ship card whose Category has sold out', () => {
+  it('the Shift header says when the Restock is used and what that means', () => {
+    const view = (run: ThroughputRun) => formatView(run, { game: 'throughput', seed: 1, actionsTaken: 0 });
+    expect(view(new ThroughputRun(1))).toContain(' · Restock ready');
+    expect(view(new RestockedRun(1))).toContain(' · Restock used (9 cards): an empty draw pile stays empty this round');
+  });
+
+  it('a bought shop offer says what refills it', () => {
+    const run = new ThroughputRun(1, easyConfig({ targets: [0, 0, 0], startingCapital: 100 }));
+    run.runShift();
+    const offer = run.offers.findIndex((o) => o?.kind === 'card');
+    run.buy(offer);
+    expect(formatView(run, { game: 'throughput', seed: 1, actionsTaken: 2 })).toContain(`  ${offer + 1}. (bought; a reroll or the next shop refills it)`);
+  });
+
+  it("gives each Ship card its Category's Demand left, and flags one that has sold out", () => {
     const run = new SoldOutRun('Gadgets');
     const ship = run.hand.find((c) => c.def.stage === 'ship');
     if (ship === undefined) throw new Error('no Ship in the opening hand');
     const other = CATEGORIES.find((c) => c !== ship.category) as Category;
-    expect(soldOutNote(new SoldOutRun(ship.category), ship)).toBe(` (${ship.category} sold out: sells 0)`);
-    expect(soldOutNote(new SoldOutRun(other), ship)).toBe('');
-    expect(soldOutNote(new SoldOutRun(ship.category), { ...ship, def: WHOLESALE_CLUB })).toBe('');
+    expect(demandNote(new SoldOutRun(ship.category), ship)).toBe(` (${ship.category} sold out: sells 0)`);
+    const open = new SoldOutRun(other);
+    expect(demandNote(open, ship)).toBe(` (${ship.category} ${open.demandLeft[ship.category]} left)`);
+    expect(formatView(open, { game: 'throughput', seed: 1, actionsTaken: 0 })).toContain(`${cardText(ship)} (${ship.category} ${open.demandLeft[ship.category]} left)`);
+    expect(demandNote(new SoldOutRun(ship.category), { ...ship, def: WHOLESALE_CLUB })).toBe('');
+    expect(demandNote(open, run.hand.find((c) => c.def.stage !== 'ship') as Card)).toBe('');
   });
 });
 
@@ -314,21 +361,23 @@ describe('Fixture replace text', () => {
 });
 
 describe('Quota Cap text', () => {
-  it('the trace says what a capped Shift made and what it lost', () => {
+  it("the trace says where a capped Shift's sales stopped", () => {
     const line = [slot(null, card(WORKSHOP, 'Home')), slot(null, card(TRUCK, 'Home'))];
     const made = scoreLine(line, context()).total;
     const capped = traceLines(scoreLine(line, context({ boss: boss('quota-cap'), shiftCap: 5 })));
-    expect(capped.at(-1)).toMatch(new RegExp(`Shift total \\$5 \\(made \\$${made}, capped at \\$5: \\$${made - 5} lost\\)\\.$`));
+    expect(capped.at(-1)).toMatch(/Shift total \$5 \(its sales stopped at the \$5 Shift cap; Units past it didn't sell\)\.$/);
+    expect(capped.join('\n')).toMatch(/Ship sells \d+ × \$[\d.]+ = \$\d+.*, reaching the \$5 Shift cap; \d+ Units unsold/);
+    expect(capped.at(-1)).toMatch(/Leftover: \d+ Units cleared for \$0 \(Sales had reached the Shift cap\)\./);
     expect(traceLines(scoreLine(line, context())).at(-1)).toMatch(new RegExp(`Shift total \\$${made}\\.$`));
   });
 
-  it('the Board line gives the cap in dollars, and run says what the Shift counts', () => {
+  it('the Board line gives the cap in dollars, and run says the Shift stops at it', () => {
     const run = quotaCapRun();
-    const made = run.preview().total + run.preview().overCap;
     expect(formatView(run, { game: 'throughput', seed: run.seed, actionsTaken: 0 })).toContain(
-      'BOARD REVIEW: Quota Cap: No single Shift counts more than 60% of the target. Sales past that are lost. This round: at most $3 a Shift.',
+      `BOARD REVIEW: Quota Cap: ${boss('quota-cap').text} This round: at most $3 a Shift.`,
     );
-    expect(legalActions(run)).toContain(`run — run Shift 1 of ${run.shiftsThisRound} (makes $3, capped from $${made}; round reaches $3 of $5)`);
+    expect(boss('quota-cap').text).toContain("past that, Units don't sell, so they use no Demand or Hot boost");
+    expect(legalActions(run)).toContain(`run — run Shift 1 of ${run.shiftsThisRound} (makes $3, stopped at the Shift cap; round reaches $3 of $5)`);
   });
 });
 
@@ -386,12 +435,18 @@ describe('rules and shop text', () => {
     expect(text).toContain('A Shift in which a Hot Ship card sells at least\n    1 Unit spends 1 pip');
     expect(text).not.toContain('first 2 Shifts');
     expect(text).toContain('HOW A SALE IS PRICED');
+    expect(text).toContain('  3. Leftover Units clear at $1 each, and that counts toward Sales.');
+    expect(text).toContain('In every Shift of a Board Review, when the Batch\n    reaches the Warehouse (even with no card there), the whole stock sells');
+    expect(text).toContain('A Rebrand that has already resolved this Shift (another copy, or the same card under Robot Arm)\n       gives ×1.5 instead of ×2.');
     expect(text).toContain('Revenue is rounded down once per sale');
     expect(text).toContain('Line Shift: Shift 1 runs on your layout. From Shift 2 on');
     expect(text).toContain('The opening hand always holds at least one Make and one Ship');
     expect(text).toContain('It also holds a Design while a Mod that works only on Designs (Quality Lab, Design Studio, R&D');
     expect(rulesText({ ...DEFAULT_CONFIG, designOpener: false })).not.toContain('It also holds a Design');
-    expect(text).toContain("After each later Shift's refill or a Retool, if neither your hand nor the Line has a Ship, the");
+    expect(text).toContain("It also holds a Ship of this round's Hot Category, if your deck has one.");
+    expect(rulesText({ ...DEFAULT_CONFIG, hotOpener: false })).not.toContain('Hot Category, if your deck');
+    expect(rulesText({ ...DEFAULT_CONFIG, openingHandTypes: [] })).toContain("The opening hand holds a Ship of this round's Hot Category");
+    expect(text).toContain("After each later Shift's refill or a Retool, if neither your hand nor the Line has a Ship that can\n  sell (its Category has Demand left), the next such Ship");
     expect(rulesText({ ...DEFAULT_CONFIG, shipRefill: false })).not.toContain("later Shift's refill");
     expect(text).toContain("1 Truck (Ship up to its Category's Demand)");
     expect(text).toContain('Restock: Once per round, when you would draw from an empty draw pile');

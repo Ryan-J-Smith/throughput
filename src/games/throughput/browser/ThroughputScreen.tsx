@@ -342,9 +342,11 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
   };
 
   const preview = inShift ? run.preview() : null;
-  const restockNote = run.config.restocksPerRound === 0 ? null : run.restocksLeft > 0 ? 'Restock ready' : 'Restocked';
+  const restockNote = run.config.restocksPerRound === 0 ? null : run.restocksLeft > 0 ? 'Restock ready' : 'Restock used';
   const restockHelp =
-    run.restocksLeft > 0 ? 'Restock: once a round, when the draw pile runs out, your discards are shuffled into a new draw pile.' : "This round's Restock is used; it comes back next round.";
+    run.restocksLeft > 0
+      ? 'Restock: once a round, when the draw pile runs out, your discards are shuffled into a new draw pile.'
+      : "This round's Restock is used: an empty draw pile stays empty until next round.";
   const tip = currentTip(run, preview, tips.done);
   const tipFor = (id: TipId) =>
     tip === id && (
@@ -460,10 +462,10 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
                 type="button"
                 className="btn btn--play"
                 onClick={runShift}
-                title={`${preview.overCap > 0 ? `Makes $${preview.total + preview.overCap}; the Shift cap counts $${preview.total}. ` : ''}Keys: ${KEYS_HINT}`}
+                title={`${preview.capped ? `Sales stop at the $${preview.total} Shift cap; Units past it don't sell. ` : ''}Keys: ${KEYS_HINT}`}
               >
                 Run Shift {run.shift}: ${preview.total}
-                {preview.overCap > 0 && ' (capped)'}
+                {preview.capped && ' (capped)'}
               </button>
             </div>
           </section>

@@ -99,10 +99,15 @@ class Warehouse extends FixtureEffect {
     }
     if (batch.boardReview && batch.stored > 0) {
       const price = Math.max(0, batch.margin) * WAREHOUSE_BOARD_MUL;
-      const revenue = Math.floor(batch.stored * price);
-      batch.sales += revenue;
-      batch.note(`Warehouse sells ${batch.stored} stored × $${formatAmount(price)} = $${revenue}`);
-      batch.stored = 0;
+      // A Shift cap (Quota Cap) stops this sale like any other; unsold stock stays stored.
+      const { units, revenue } = batch.sell(batch.stored, price);
+      const unsold = batch.stored - units;
+      batch.note(
+        unsold === 0
+          ? `Warehouse sells ${units} stored × $${formatAmount(price)} = $${revenue}`
+          : `Warehouse sells ${units} stored × $${formatAmount(price)}, $${revenue} up to the $${batch.salesCap} Shift cap; ${unsold} stay in stock`,
+      );
+      batch.stored = unsold;
     }
   }
 
@@ -272,7 +277,7 @@ export const FIXTURES: readonly FixtureDef[] = [
     kind: 'mod',
     rarity: 'common',
     price: 4,
-    text: 'A Design here gets +$2, or +$4 if the slot before holds a Design.',
+    text: 'A Design here gets +$2 more (+$4 if the slot before holds a Design), on top of its own +$.',
     short: 'Design +$2 (+$4 stacked)',
     effect: new DesignStudio(),
   },
@@ -346,7 +351,7 @@ export const FIXTURES: readonly FixtureDef[] = [
     kind: 'mod',
     rarity: 'uncommon',
     price: 5,
-    text: 'A Make here also stocks its Units, sold here on Boards at Margin ×2.',
+    text: 'A Make here also stocks its Units. Every Board Review Shift, the stock sells here at Margin ×2.',
     short: 'Stock sells at Boards',
     effect: new Warehouse(),
   },
@@ -356,7 +361,7 @@ export const FIXTURES: readonly FixtureDef[] = [
     kind: 'mod',
     rarity: 'common',
     price: 4,
-    text: '+$1 Margin for every 10 Units in the Batch here (at most +$5).',
+    text: '+$1 Margin per 10 Units in the Batch reaching this slot, before its card adds any (at most +$5).',
     short: '+$1/10 Units, max +$5',
     effect: new LogisticsHub(),
   },
@@ -382,7 +387,7 @@ export const FIXTURES: readonly FixtureDef[] = [
     effect: new LeanCell(),
   },
   { id: 'megafactory', name: 'Megafactory', kind: 'station', rarity: 'uncommon', price: 5, text: 'Station. Units ×3, -$1 Margin.', short: 'Units ×3, -$1', effect: new Megafactory() },
-  { id: 'robot-arm', name: 'Robot Arm', kind: 'mod', rarity: 'rare', price: 8, text: 'The card here resolves twice.', short: 'Card resolves twice', effect: new RobotArm() },
+  { id: 'robot-arm', name: 'Robot Arm', kind: 'mod', rarity: 'rare', price: 8, text: 'The card here resolves twice (a Ship sells twice, a Make adds twice; a 2nd Rebrand gets ×1.5).', short: 'Card resolves twice', effect: new RobotArm() },
   {
     id: 'flagship-store',
     name: 'Flagship Store',

@@ -144,7 +144,7 @@ export function ShiftReplay({ result, shift, baseMargin, faces, onBeat, holdAfte
             {data.cleared > 0 && `, ${data.cleared} cleared`}
             {data.overstockSales !== 0 && ` (${data.overstockSales < 0 ? '-' : '+'}$${Math.abs(data.overstockSales)})`}
           </span>
-          {data.overCap > 0 && <span className="tp-replay__capped">{`Quota Cap: -$${data.overCap}`}</span>}
+          {data.capped && <span className="tp-replay__capped">{`Quota Cap: Sales stop at $${data.total}`}</span>}
           <span className="tp-replay__total">${data.total}</span>
         </footer>
       )}

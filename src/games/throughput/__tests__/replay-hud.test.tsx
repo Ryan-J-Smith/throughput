@@ -49,13 +49,13 @@ describe('THROUGHPUT replay HUD', () => {
     });
   });
 
-  it('under Quota Cap the HUD banks no more than the Shift cap', () => {
+  it('under Quota Cap the HUD banks no more than the Shift cap, since the sale itself stops there', () => {
     const run = quotaCapRun();
     const cap = run.shiftCap ?? 0;
     const result = run.preview();
     const beat = shiftBeats(result).beats.find((b) => b.earned > 0);
     if (beat === undefined) throw new Error('no sale in the Quota Cap Shift');
-    expect(beat.sales).toBeGreaterThan(cap);
+    expect(beat.sales).toBe(cap);
     expect(beatReveal(run, beat, 0, 560)?.to).toBe(cap);
   });
 

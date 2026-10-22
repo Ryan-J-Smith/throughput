@@ -117,7 +117,7 @@ class QuotaCap extends BoardBoss {
   readonly id = 'quota-cap';
   readonly name = 'Quota Cap';
   readonly short = '60% cap per Shift';
-  readonly text = 'No single Shift counts more than 60% of the target. Sales past that are lost.';
+  readonly text = "A Shift's Sales stop at 60% of the target: past that, Units don't sell, so they use no Demand or Hot boost.";
   readonly pressures = 'Shift-1 burst engines: one big Shift can no longer clear the round';
 
   override shiftQuota(): number {
