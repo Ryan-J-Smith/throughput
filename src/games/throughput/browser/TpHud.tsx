@@ -5,6 +5,7 @@ import { bossArt } from './art';
 import type { ThroughputRun } from '../rules';
 import './art-slots.css';
 import './hud-reveal.css';
+import './hud-pending.css';
 
 /** Round Sales before and after a Shift whose total is landing, shown before the Run is applied. */
 export type SalesReveal = { readonly from: number; readonly to: number };
@@ -13,13 +14,15 @@ export type TpHudProps = {
   run: ThroughputRun;
   /** Count Sales up from `from` to `to` (the bar fills with it and flashes at the target). */
   reveal?: SalesReveal | null;
+  /** What running the loaded Line now would add to Sales (the preview's total), shown apart from the banked Sales. */
+  pending?: number | null;
 };
 
 /** How long Sales takes to count up at normal speed. */
 const REVEAL_MS = 700;
 
 /** The quarterly-report header: quarter, Sales against target, Shift, Retools, Capital, perks, and the Board rule. */
-export function TpHud({ run, reveal = null }: TpHudProps) {
+export function TpHud({ run, reveal = null, pending = null }: TpHudProps) {
   const inShop = run.phase === 'shop';
   const round = inShop ? run.round + 1 : run.round;
   const quarter = run.quarterOf(round);
@@ -29,6 +32,8 @@ export function TpHud({ run, reveal = null }: TpHudProps) {
   // Only a reveal counts; anything else (a new round, an applied Run) shows at once.
   const shown = useTickingNumber(sales, revealing && !prefersReducedMotion() ? REVEAL_MS * speedScale() : 0);
   const progress = target > 0 ? Math.min(1, shown / target) : 0;
+  const pendingNow = inShop || revealing || pending === null || pending === 0 ? null : pending;
+  const ghost = pendingNow !== null && pendingNow > 0 && target > 0 ? Math.min(1, (sales + pendingNow) / target) - progress : 0;
   const boss = run.phase === 'shift' ? run.boss : null;
 
   return (
@@ -46,6 +51,11 @@ export function TpHud({ run, reveal = null }: TpHudProps) {
         <span className="hud__value">
           {inShop ? `$${target}` : `$${shown}`}
           <span className="hud__target">{inShop ? ' target' : ` of $${target} target`}</span>
+          {pendingNow !== null && (
+            <span className="tp-hud__pending" data-sign={pendingNow > 0 ? 'up' : 'down'} title="Not banked yet: what this Shift adds to Sales if you run it now">
+              {pendingNow > 0 ? '+' : '−'}${Math.abs(pendingNow)} if you run
+            </span>
+          )}
         </span>
         <div
           className="hud__bar"
@@ -56,6 +66,7 @@ export function TpHud({ run, reveal = null }: TpHudProps) {
           aria-valuenow={Math.min(sales, target)}
         >
           <div className="hud__bar-fill" style={{ width: `${progress * 100}%` }} />
+          {ghost > 0 && <div className="tp-hud__bar-pending" style={{ left: `${progress * 100}%`, width: `${ghost * 100}%` }} />}
         </div>
       </div>
       <div className="hud__stat">

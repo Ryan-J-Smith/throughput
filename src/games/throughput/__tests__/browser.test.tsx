@@ -191,6 +191,26 @@ describe('THROUGHPUT browser screen', () => {
     expect(hit).toContain('style="width:100%"');
   });
 
+  it('the HUD shows what running now would add as pending, apart from the banked Sales', () => {
+    const run = new ThroughputRun(1, easyConfig({ targets: [100, 100, 100] }));
+    const pending = renderToStaticMarkup(<TpHud run={run} pending={40} />);
+    expect(pending).toContain(
+      '$0<span class="hud__target"> of $100 target</span><span class="tp-hud__pending" data-sign="up" title="Not banked yet: what this Shift adds to Sales if you run it now">+$40 if you run</span>',
+    );
+    expect(pending).toContain('aria-valuenow="0"');
+    expect(pending).toContain('<div class="tp-hud__bar-pending" style="left:0%;width:40%"></div>');
+    // Past the target the ghost stops at the end of the bar; a Shift that costs money has no ghost.
+    expect(renderToStaticMarkup(<TpHud run={run} pending={250} />)).toContain('style="left:0%;width:100%"');
+    const costs = renderToStaticMarkup(<TpHud run={run} pending={-6} />);
+    expect(costs).toContain('data-sign="down"');
+    expect(costs).toContain('−$6 if you run');
+    expect(costs).not.toContain('tp-hud__bar-pending');
+    // Nothing pending, or a reveal landing: no pending label.
+    for (const html of [renderToStaticMarkup(<TpHud run={run} pending={0} />), renderToStaticMarkup(<TpHud run={run} pending={40} reveal={{ from: 0, to: 40 }} />)]) {
+      expect(html).not.toContain('tp-hud__pending');
+    }
+  });
+
   it('the last round shows no Demand growth "from next round"', () => {
     const last = new ThroughputRun(1, easyConfig({ targets: [100_000] }));
     const notLast = new ThroughputRun(1, easyConfig({ targets: [100_000, 100_000] }));

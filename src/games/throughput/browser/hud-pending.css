@@ -1,0 +1,33 @@
+/*
+ * What running the loaded Line now would add (TpHud `pending`): a striped ghost on the Sales bar
+ * past the banked fill, and a small "+$N if you run" beside the target, so banked and pending
+ * Sales never read as two contradictory totals. Hooks: .tp-hud__pending[data-sign], .tp-hud__bar-pending.
+ */
+
+.tp-hud__pending {
+  margin-left: 0.6em;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--dept-teal);
+  white-space: nowrap;
+}
+
+.tp-hud__pending[data-sign='down'] {
+  color: var(--stamp-red);
+}
+
+.tp-hud__bar-pending {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--dept-teal) 50%, transparent) 0 4px,
+    color-mix(in srgb, var(--dept-teal) 22%, transparent) 4px 8px
+  );
+  transition:
+    left var(--dur-slow) var(--ease-out),
+    width var(--dur-slow) var(--ease-out);
+}

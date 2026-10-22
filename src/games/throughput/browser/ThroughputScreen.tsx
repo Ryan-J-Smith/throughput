@@ -266,7 +266,7 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
       onClickCapture={replay !== null ? tapDuringReplay : undefined}
     >
       <ToastStack toasts={toasts} onDismiss={dismiss} />
-      <TpHud run={run} reveal={reveal} />
+      <TpHud run={run} reveal={reveal} pending={replay === null ? (preview?.total ?? null) : null} />
       {!inShift && <PayoutSlip run={run} />}
       <MarketBoard run={run} preview={preview} />
       <LineView run={run} bayState={bayState} onBay={inShift ? tapBayInShift : tapBayInShop} onScrap={inShift ? (s) => attempt(run.whyCannotScrap([s]), { verb: 'scrap', slots: [s] }, () => run.scrap([s])) : undefined} bayLabel={bayLabel} />
