@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_CONFIG, STARTER_CARDS } from '../content';
+import { DEFAULT_CONFIG, STARTER_CARDS, fixtureById } from '../content';
 import type { ThroughputConfig } from '../content';
 import { BoardBoss, CATEGORIES, makeUnits } from '../model';
 import type { Card, Category, Stage } from '../model';
-import { ThroughputRun, assignBosses } from '../rules';
+import { ThroughputRun, assignBosses, designOnlyMod } from '../rules';
 import { easyConfig } from './fixtures';
 
 function handIndex(run: ThroughputRun, stage: Stage): number {
@@ -190,6 +190,41 @@ describe('ThroughputRun: a Shift', () => {
     const moved = fixed.hand.filter((c) => !uids(plain.hand).includes(c.uid));
     expect(moved.length).toBeGreaterThan(0);
     expect(moved.every((c) => uids(plain.drawPile).includes(c.uid) && c.def.stage !== 'design')).toBe(true);
+  });
+
+  it('a Design-only Mod on the Line adds a Design to the opening hand', () => {
+    const config = (designOpener: boolean) => easyConfig({ startingCapital: 5000, targets: [0, 0, 0], designOpener });
+    /** Round 2 of `seed` after buying the Fixture `id` into slot 1 in the first shop, rerolling until it is offered. */
+    const withFixture = (seed: number, id: string, designOpener = true): ThroughputRun => {
+      const run = new ThroughputRun(seed, config(designOpener));
+      run.runShift();
+      for (let i = 0; i < 100; i++) {
+        const offer = run.offers.findIndex((o) => o?.kind === 'fixture' && o.def.id === id);
+        if (offer >= 0) {
+          run.buy(offer, { slot: 0 });
+          run.continueToNextRound();
+          return run;
+        }
+        run.reroll();
+      }
+      throw new Error(`${id} never offered`);
+    };
+    const hasDesign = (run: ThroughputRun) => run.hand.some((c) => c.def.stage === 'design');
+    let seed = 1;
+    while (hasDesign(withFixture(seed, 'quality-lab', false))) seed++;
+
+    const fixed = withFixture(seed, 'quality-lab');
+    expect(hasDesign(fixed)).toBe(true);
+    expect(fixed.hand).toHaveLength(7);
+    expect(fixed.hand.some((c) => c.def.stage === 'make') && fixed.hand.some((c) => c.def.stage === 'ship')).toBe(true);
+    // A Mod that works on any card (Robot Arm) is not Design-only.
+    expect(hasDesign(withFixture(seed, 'robot-arm'))).toBe(false);
+  });
+
+  it('Design-only Mods are the ones that work on Designs and nothing else', () => {
+    const designOnly = ['quality-lab', 'design-studio', 'rnd-lab', 'patent-office'];
+    for (const id of designOnly) expect(designOnlyMod(fixtureById(id)), id).toBe(true);
+    for (const id of ['robot-arm', 'overtime-crew', 'showroom', 'signature-line', 'assembly-line']) expect(designOnlyMod(fixtureById(id)), id).toBe(false);
   });
 
   it('refuses bad loads without changing anything', () => {

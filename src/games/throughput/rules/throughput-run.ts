@@ -71,6 +71,20 @@ export function assignBosses(order: readonly BoardBoss[], years: number): BoardB
   return out;
 }
 
+/** One card of each type, to ask a Fixture which types it works on. */
+const SAMPLE_CARDS: Readonly<Record<Stage, Card>> = Object.fromEntries(
+  (['design', 'make', 'ship'] as const).map((stage) => {
+    const def = STARTER_CARDS.find((d) => d.stage === stage) as CardDef;
+    return [stage, { uid: 0, def, category: CATEGORIES[0], paid: 0, upgrades: 0, growth: 0 }];
+  }),
+) as Record<Stage, Card>;
+
+/** True for a Mod that works on Designs and on no other card type (Quality Lab, R&D Lab and the like). */
+export function designOnlyMod(def: FixtureDef): boolean {
+  const { effect } = def;
+  return def.kind === 'mod' && effect.appliesTo(SAMPLE_CARDS.design) && !effect.appliesTo(SAMPLE_CARDS.make) && !effect.appliesTo(SAMPLE_CARDS.ship);
+}
+
 /** Capital per unused Shift in a non-Board round of `year` (the config's last entry holds for later Years). */
 export function unusedShiftPay(config: ThroughputConfig, year: number): number {
   const table = config.unusedShiftBonus;
@@ -717,14 +731,22 @@ export class ThroughputRun {
     return this.draw_.pop();
   }
 
+  /** Card types the opening hand must hold: the config's, and a Design while a Design-only Mod works on the Line. */
+  private openingTypes(): readonly Stage[] {
+    const types = this.config.openingHandTypes;
+    if (!this.config.designOpener || types.includes('design')) return types;
+    const designMod = this.slots_.some((slot, i) => slot.fixture !== null && !this.isWelded(i) && designOnlyMod(slot.fixture.def));
+    return designMod ? [...types, 'design'] : types;
+  }
+
   /**
-   * Gives the opening hand at least one card of each `openingHandTypes` type: a missing type swaps
+   * Gives the opening hand at least one card of each `openingTypes` type: a missing type swaps
    * the next such card in the draw pile for a card of the hand's most common type, which takes its
    * place in the pile. Nothing changes if the pile has none of that type.
    */
   private fixOpeningHand(): void {
     const count = (stage: Stage) => this.hand_.filter((c) => c.def.stage === stage).length;
-    for (const stage of this.config.openingHandTypes) {
+    for (const stage of this.openingTypes()) {
       if (count(stage) > 0) continue;
       // The draw pile is drawn from its end, so the next card of a type is its last index.
       let next = this.draw_.length - 1;

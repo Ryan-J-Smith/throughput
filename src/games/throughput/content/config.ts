@@ -15,6 +15,8 @@ export type ThroughputConfig = {
   readonly handSize: number;
   /** Card types the opening hand of each round always holds at least one of, if the deck has them. */
   readonly openingHandTypes: readonly Stage[];
+  /** Also give the opening hand a Design while a Mod that works only on Designs is on the Line (outside a welded slot). */
+  readonly designOpener: boolean;
   readonly startSlots: number;
   readonly maxSlots: number;
   readonly baseMargin: number;
@@ -74,6 +76,7 @@ export const DEFAULT_CONFIG: ThroughputConfig = {
   restocksPerRound: 1,
   handSize: 7,
   openingHandTypes: ['make', 'ship'],
+  designOpener: true,
   startSlots: 5,
   maxSlots: 7,
   baseMargin: 2,
