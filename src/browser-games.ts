@@ -4,7 +4,10 @@ import { BomBrowserGame } from './games/bom/browser';
 import { ThroughputBrowserGame } from './games/throughput/browser';
 import type { BrowserGame } from './ui/games';
 
-/** Games on the title screen's picker, in display order. Register a new game with one line here. */
+/**
+ * Games on the title, in display order: the first `featured` game is the headline, the rest are
+ * listed under More games (`dev` ones only in dev builds). Register a new game with one line here.
+ */
 export const BROWSER_GAMES: readonly BrowserGame[] = [
   new ThroughputBrowserGame(),
   new BomBrowserGame(),
@@ -13,6 +16,7 @@ export const BROWSER_GAMES: readonly BrowserGame[] = [
     title: 'Card demo',
     tagline: 'The original engine demo: play cards, chain modifiers, beat the target.',
     accent: 'teal',
+    listing: 'dev',
     createGame: () => new DemoGame(),
   }),
 ];

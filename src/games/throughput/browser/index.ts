@@ -1,3 +1,5 @@
+export { HowToPlay } from './HowToPlay';
+export type { HowToPlayProps } from './HowToPlay';
 export { LineView } from './LineView';
 export type { BayState, LineViewProps } from './LineView';
 export { ThroughputBrowserGame } from './ThroughputBrowserGame';

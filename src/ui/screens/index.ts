@@ -1,6 +1,6 @@
 export { EndScreen } from './EndScreen';
-export { GamePicker } from './GamePicker';
-export type { GamePickerProps } from './GamePicker';
+export { HomeScreen, gameLabel, parseSeed } from './HomeScreen';
+export type { HomeScreenProps } from './HomeScreen';
 export type { EndScreenProps } from './EndScreen';
 export { RoundScreen } from './RoundScreen';
 export type { RoundScreenProps } from './RoundScreen';

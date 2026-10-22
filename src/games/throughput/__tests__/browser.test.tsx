@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { LineView, ThroughputBrowserGame, ThroughputScreen, TraceReceipt, lineNotice } from '../browser';
+import { HowToPlay, LineView, ThroughputBrowserGame, ThroughputScreen, TraceReceipt, lineNotice } from '../browser';
 import type { BayState } from '../browser';
 import type { Stage } from '../model';
 import { ThroughputRun } from '../rules';
@@ -26,6 +26,15 @@ function renderLine(run: ThroughputRun, bayState: (slot: number) => BayState = (
 }
 
 describe('THROUGHPUT browser screen', () => {
+  it('has a short How to play for the title, with numbers from the config', () => {
+    expect(new ThroughputBrowserGame().HowToPlay).toBe(HowToPlay);
+    const html = renderToStaticMarkup(<HowToPlay config={{ ...easyConfig(), shiftsPerRound: 5, retoolsPerRound: 3, handSize: 8, restocksPerRound: 0 }} />);
+    expect(html).toContain('up to 5 Shifts');
+    expect(html).toContain('Retool (3 per round)');
+    expect(html).toContain('draw back up to 8');
+    expect(html).not.toContain('refilled from your discards');
+  });
+
   it('opens on Shift 1 with the Line, the Market board and an empty preview receipt', () => {
     const html = renderToStaticMarkup(<ThroughputScreen seed={1} onQuit={() => {}} store={new MemoryStore()} resume={false} />);
     expect(html).toContain('Run Shift 1: $0');

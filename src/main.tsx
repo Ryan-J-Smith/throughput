@@ -12,6 +12,6 @@ if (!root) throw new Error('#root element missing from index.html');
 // The clock only picks which seed a launch gets; everything after that is deterministic.
 createRoot(root).render(
   <StrictMode>
-    <Launcher games={BROWSER_GAMES} nextSeed={() => Date.now()} store={new BrowserStore()} />
+    <Launcher games={BROWSER_GAMES} nextSeed={() => Date.now()} store={new BrowserStore()} showDevGames={import.meta.env.DEV} />
   </StrictMode>,
 );

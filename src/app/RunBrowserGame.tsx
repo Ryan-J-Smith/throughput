@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { ComponentType } from 'react';
 import { BrowserGame } from '../ui/games';
-import type { BrowserGameProps } from '../ui/games';
+import type { BrowserGameProps, GameListing } from '../ui/games';
 import { App } from '../ui/shell';
 import { GameController } from './GameController';
 import type { GameDefinition } from './GameDefinition';
@@ -11,6 +11,7 @@ export type RunBrowserGameSpec<TCard extends object> = {
   readonly title: string;
   readonly tagline: string;
   readonly accent?: string;
+  readonly listing?: GameListing;
   /** A fresh game definition per launch. */
   readonly createGame: () => GameDefinition<TCard>;
 };
@@ -24,6 +25,7 @@ export class RunBrowserGame<TCard extends object> extends BrowserGame {
   readonly title: string;
   readonly tagline: string;
   override readonly accent: string;
+  override readonly listing: GameListing;
   readonly Screen: ComponentType<BrowserGameProps>;
 
   constructor(spec: RunBrowserGameSpec<TCard>) {
@@ -32,6 +34,7 @@ export class RunBrowserGame<TCard extends object> extends BrowserGame {
     this.title = spec.title;
     this.tagline = spec.tagline;
     this.accent = spec.accent ?? 'neutral';
+    this.listing = spec.listing ?? 'featured';
     this.Screen = function RunGameScreen({ seed }: BrowserGameProps) {
       const [controller] = useState(() => {
         let first = true;

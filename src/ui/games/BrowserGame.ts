@@ -12,6 +12,9 @@ export type BrowserGameProps = {
   readonly resume: boolean;
 };
 
+/** Where the title lists a game: the headline game, a "Prototype:" entry under More games, or dev builds only. */
+export type GameListing = 'featured' | 'prototype' | 'dev';
+
 /**
  * A game the browser can launch from the title's game picker. Each game renders all of its own
  * screens; the launcher only picks the game and the seed, and draws an "All games" bar above it.
@@ -26,6 +29,10 @@ export abstract class BrowserGame {
   abstract readonly tagline: string;
   /** Department colour key from theme/tokens.css (red, blue, mustard, green, teal, violet, orange). */
   readonly accent: string = 'neutral';
+  /** Where the title lists this game. */
+  readonly listing: GameListing = 'featured';
+  /** A short how-to-play the title can show before a run; null if the game has none. */
+  readonly HowToPlay: ComponentType | null = null;
   /** The whole game UI for one session; mounted fresh for each launch. */
   abstract readonly Screen: ComponentType<BrowserGameProps>;
 
