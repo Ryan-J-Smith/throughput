@@ -702,7 +702,7 @@ body:has(.screen--tp-shop[data-year])::before {
  * and the receipt are grid items of the screen. Narrower: the receipt rail stays and the Market
  * drops below; phones stack and dock the hand at the bottom.
  */
-.app:has(.screen--tp-shift) {
+.app:has(.screen--tp-shift, .screen--tp-shop) {
   max-width: 1480px;
   padding-inline: 20px;
 }
@@ -770,20 +770,20 @@ body:has(.screen--tp-shop[data-year])::before {
   }
 
   /* The Market as a compact rail: icon chips, the current quarter first and brightest. */
-  .screen--tp-shift > .tp-market {
+  :is(.screen--tp-shift, .screen--tp-shop) > .tp-market {
     gap: 8px;
     padding: 12px;
   }
 
-  .screen--tp-shift .tp-market__grid {
+  :is(.screen--tp-shift, .screen--tp-shop) .tp-market__grid {
     gap: 5px 5px;
   }
 
-  .screen--tp-shift .tp-market__corner {
+  :is(.screen--tp-shift, .screen--tp-shop) .tp-market__corner {
     font-size: var(--text-md);
   }
 
-  .screen--tp-shift .tp-market__quarter {
+  :is(.screen--tp-shift, .screen--tp-shop) .tp-market__quarter {
     overflow: hidden;
     font-size: 0.5625rem;
     letter-spacing: -0.01em;
@@ -791,14 +791,14 @@ body:has(.screen--tp-shop[data-year])::before {
     text-overflow: clip;
   }
 
-  .screen--tp-shift .tp-market__stage {
+  :is(.screen--tp-shift, .screen--tp-shop) .tp-market__stage {
     padding: 2px 5px;
     font-size: 0.5625rem;
     letter-spacing: 0.02em;
   }
 
   /* The current column is already marked by its underline and brighter chips. */
-  .screen--tp-shift .tp-market__quarter em {
+  :is(.screen--tp-shift, .screen--tp-shop) .tp-market__quarter em {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -806,32 +806,33 @@ body:has(.screen--tp-shop[data-year])::before {
     clip-path: inset(50%);
   }
 
-  .screen--tp-shift .tp-market__cell[data-col]:not([data-col='0']) {
+  :is(.screen--tp-shift, .screen--tp-shop) .tp-market__cell[data-col]:not([data-col='0']) {
     opacity: 0.7;
   }
 
-  .screen--tp-shift .tp-market .tp-demand__row {
+  :is(.screen--tp-shift, .screen--tp-shop) .tp-market .tp-demand__row {
     grid-template-columns: 3.9rem minmax(0, 1fr) auto;
     font-size: var(--text-xs);
   }
 
-  .screen--tp-shift .tp-market__boards {
+  :is(.screen--tp-shift, .screen--tp-shop) .tp-market__boards {
     font-size: var(--text-xs);
   }
 }
 
-/* Icon-only chips wherever the Market is narrow; the name stays for screen readers and the title. */
+/* Icon-only chips wherever the Market is narrow (the rail in a Shift or the shop, phones); the name
+   stays for screen readers and the title. */
 @media (min-width: 1200px), (max-width: 640px) {
-  .screen--tp-shift .tp-chip {
+  :is(.screen--tp-shift, .screen--tp-shop) .tp-chip {
     padding: 3px;
   }
 
-  .screen--tp-shift .tp-chip__icon {
+  :is(.screen--tp-shift, .screen--tp-shop) .tp-chip__icon {
     width: 15px;
     height: 15px;
   }
 
-  .screen--tp-shift .tp-chip__name {
+  :is(.screen--tp-shift, .screen--tp-shop) .tp-chip__name {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -839,6 +840,71 @@ body:has(.screen--tp-shop[data-year])::before {
     clip-path: inset(50%);
     white-space: nowrap;
   }
+}
+
+/* ---------- Shop layout: payout and Market rail | the shelf over the Line ---------- */
+
+/*
+ * The shelf is what the shop is for, so it leads the centre column with the Line it installs into
+ * right under it; the payout and the Market sit in a rail. Narrower screens keep that order in one
+ * column: shelf, Line, then the Market.
+ */
+.screen--tp-shop > .tp-line {
+  order: 1;
+}
+
+.screen--tp-shop > .tp-market {
+  order: 2;
+}
+
+.screen--tp-shop > :is(.tp-deck, .tp-last, .tp-rules) {
+  order: 3;
+}
+
+@media (min-width: 1200px) {
+  .screen.screen--tp-shop {
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+    /* The last rail row is flexible, so a tall Market never spreads the centre panels apart. */
+    grid-template-rows: auto auto repeat(5, auto) 1fr;
+    align-items: start;
+    gap: 12px 16px;
+  }
+
+  /* Everything else stacks in the centre column, in order. */
+  .screen--tp-shop > * {
+    grid-column: 2;
+  }
+
+  .screen--tp-shop > .tp-hud {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .screen--tp-shop > .tp-payout {
+    grid-column: 1;
+    grid-row: 2;
+    width: 100%;
+  }
+
+  .screen--tp-shop > .tp-market {
+    grid-column: 1;
+    grid-row: 3 / 9;
+  }
+
+  .screen--tp-shop > :is(.tp-deck, .tp-last, .tp-rules) {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Every Buy button on one line, however long each card's text runs. */
+.tp-shop .shop__item > .card-wrap {
+  display: flex;
+  flex: 1 1 auto;
+}
+
+.tp-shop .shop__item > .card-wrap > .card {
+  flex: 1 1 auto;
 }
 
 /* The Line in the centre column: bays share the width, cards show title, art, value and stage. */
@@ -1443,6 +1509,51 @@ body:has(.screen--tp-shop[data-year])::before {
 .tp-summary .tp-summary__empty {
   border-color: rgb(255 255 255 / 0.14);
   background: rgb(0 0 0 / 0.2);
+}
+
+/* "Your Line" reads like the bays it was: numbered, equal art tiles with the plate's gist. */
+.tp-summary .tp-summary__line {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.25rem, 1fr));
+  gap: 14px 12px;
+}
+
+.tp-summary .tp-summary__line > li {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.tp-summary .tp-summary__line > li::before {
+  content: 'Bay ' attr(data-slot);
+  color: var(--chalk-dim);
+  font: 700 0.625rem / 1 var(--font-display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* An empty bay already says which it is. */
+.tp-summary .tp-summary__line > li[data-empty]::before {
+  visibility: hidden;
+}
+
+.tp-summary .tp-summary__line > li > .card-wrap {
+  display: flex;
+  flex: 1 1 auto;
+}
+
+.tp-summary .tp-summary__line .card {
+  flex: 1 1 auto;
+}
+
+.tp-summary .tp-summary__line .card__art {
+  aspect-ratio: 16 / 9;
+}
+
+.tp-summary .tp-summary__line .card__desc {
+  color: var(--chalk);
+  font-weight: 600;
 }
 
 .tp-summary .tp-summary__seed-value {
