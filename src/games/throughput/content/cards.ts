@@ -31,16 +31,6 @@ export const BOUTIQUE: CardDef = {
   marginMul: 2,
   text: 'Ship 8 at Margin ×2 (this sale only)',
 };
-/** No longer sold (playtest 3: Export Deal does its job better); kept as the half-Margin sell-all in tests. */
-export const WHOLESALE_CLUB: CardDef = {
-  id: 'wholesale-club',
-  name: 'Wholesale Club',
-  stage: 'ship',
-  price: 4,
-  cap: 'all',
-  marginMul: 0.5,
-  text: 'Ship all Units at half Margin, no Demand',
-};
 
 export const PROTOTYPE: CardDef = { id: 'prototype', name: 'Prototype', stage: 'design', price: 3, marginAdd: 3, marginMul: 1, text: '+$3 Margin' };
 export const REBRAND: CardDef = {

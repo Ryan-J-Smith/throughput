@@ -243,9 +243,9 @@ export function preferredSlot(def: FixtureDef, run: ThroughputRun): number | nul
 }
 
 const VOLUME_FIXTURES: readonly string[] = ['overtime-crew', 'assembly-line', 'automation', 'megafactory', 'logistics-hub', 'superstore', 'robotics-cell', 'conveyor-belt'];
-const VOLUME_CARDS: readonly string[] = ['factory-floor', 'wholesale-club', 'contract-manufacturer', 'export-deal'];
+const VOLUME_CARDS: readonly string[] = ['factory-floor', 'contract-manufacturer', 'export-deal'];
 const UNIT_MULTIPLIERS: readonly string[] = ['megafactory', 'assembly-line', 'robotics-cell'];
-const SELL_ALL_CARDS: readonly string[] = ['export-deal', 'wholesale-club'];
+const SELL_ALL_CARDS: readonly string[] = ['export-deal'];
 
 /** What a run ended up building, for archetype breakdowns. */
 export function classifyBuild(run: ThroughputRun): string {

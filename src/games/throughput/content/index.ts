@@ -14,7 +14,6 @@ export {
   STARTER_CARDS,
   SUBSCRIPTION_BOX,
   TRUCK,
-  WHOLESALE_CLUB,
   WORKSHOP,
 } from './cards';
 export { EXPRESS_LANE_MUL, FIXTURES, REPEAT_STATION_MUL, fixtureById, flagshipMultiplier } from './fixtures';
