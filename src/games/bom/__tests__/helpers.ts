@@ -1,12 +1,20 @@
 // Shared test helpers for BoM rules: build configured runs and play simple moves.
-import { defaultBomConfig } from '../content';
+import { BLUEPRINTS, defaultBomConfig } from '../content';
 import { makePart } from '../model';
-import type { Part } from '../model';
+import type { BlueprintDef, Part } from '../model';
 import { BomRun, findRecipeParts } from '../rules';
 import type { BomConfig } from '../rules';
 
+/** The doc's Gizmo and Flatpack stats: rules tests keep their arithmetic when tuning moves the starters. */
+const DOC_STARTERS: Readonly<Record<string, Partial<BlueprintDef>>> = {
+  gizmo: { units: 8, price: 2, demand: 30 },
+  flatpack: { units: 12, price: 2, demand: 40 },
+};
+
+export const FIXTURE_BLUEPRINTS: readonly BlueprintDef[] = BLUEPRINTS.map((b) => ({ ...b, ...(DOC_STARTERS[b.id] ?? {}) }) as BlueprintDef);
+
 export function config(overrides: Partial<BomConfig> = {}): BomConfig {
-  return { ...defaultBomConfig(), ...overrides };
+  return { ...defaultBomConfig(), blueprints: FIXTURE_BLUEPRINTS, ...overrides };
 }
 
 /** Every target is `target`, so tests can clear rounds with any Ship. */

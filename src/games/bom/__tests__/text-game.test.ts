@@ -98,7 +98,7 @@ describe('BomTextGame', () => {
     const shipped = easy.take(save, 'ship Flatpack 1 5 6');
     expect(shipped.ok && shipped.save.actions).toEqual(['ship flatpack 1 5 6']);
     expect(shipped.ok && shipped.log[0]).toMatch(/^Shipped Flatpack: \$\d+ \(revenue \d+\/100\)$/);
-    expect(shipped.ok && shipped.log[1]).toMatch(/^ {2}Flatpack base: 12 Units, \$2, 40 Demand$/);
+    expect(shipped.ok && shipped.log[1]).toMatch(/^ {2}Flatpack base: 18 Units, \$2, 50 Demand$/);
   });
 
   it('refusals carry the rules reason and leave the save alone', () => {

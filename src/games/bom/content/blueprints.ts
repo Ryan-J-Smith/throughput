@@ -7,8 +7,10 @@ export const FRAME = 'frame';
 
 /** The 12 blueprints from the design doc (§3). */
 export const BLUEPRINTS: readonly BlueprintDef[] = [
-  { id: 'gizmo', name: 'Gizmo', kind: 'product', rarity: 'starter', cost: 0, recipe: [SHELL, CHIP], units: 8, price: 2, demand: 30 },
-  { id: 'flatpack', name: 'Flatpack', kind: 'product', rarity: 'starter', cost: 0, recipe: [SHELL, BOLT, BOLT], units: 12, price: 2, demand: 40 },
+  // Tuned (DESIGN_NOTES "Tuning", starter niches): Gizmo was 8 Units · $2 · Demand 30 and Flatpack 12 Units ·
+  // Demand 40. Gizmo is now a small-Demand Price product that sells out easily, and Flatpack a volume product.
+  { id: 'gizmo', name: 'Gizmo', kind: 'product', rarity: 'starter', cost: 0, recipe: [SHELL, CHIP], units: 6, price: 4, demand: 20 },
+  { id: 'flatpack', name: 'Flatpack', kind: 'product', rarity: 'starter', cost: 0, recipe: [SHELL, BOLT, BOLT], units: 18, price: 2, demand: 50 },
   { id: 'motor', name: 'Motor', kind: 'sub', rarity: 'starter', cost: 0, recipe: [CHIP, BOLT], output: MOTOR },
   { id: 'desk-fan', name: 'Desk Fan', kind: 'product', rarity: 'starter', cost: 0, recipe: [MOTOR, SHELL], units: 15, price: 4, demand: 50 },
   { id: 'frame', name: 'Frame', kind: 'sub', rarity: 'common', cost: 3, recipe: [BOLT, BOLT], output: FRAME },
