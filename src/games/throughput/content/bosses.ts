@@ -3,12 +3,22 @@ import { BoardBoss } from '../model';
 class LineShift extends BoardBoss {
   readonly id = 'line-shift';
   readonly name = 'Line Shift';
-  readonly text = 'Before every Shift, including Shift 1, all Fixtures move one slot right (the last wraps to slot 1). Cards stay put. Your layout comes back after the round.';
+  readonly text =
+    'From Shift 2 on, all Fixtures move one slot right before each Shift (the last wraps to slot 1). Cards stay put, but you may unload parked cards back to your hand. Your layout comes back after the round.';
   readonly pressures = 'R&D Compounder and Skimmer: parked Designs drift off their Mods';
 
-  override shiftFixtures<T>(fixtures: readonly T[]): T[] {
-    if (fixtures.length === 0) return [];
+  // Shift 1 runs on the player's layout; the drift starts at Shift 2 (approved rework, see DESIGN_NOTES).
+  override shiftFixtures<T>(fixtures: readonly T[], shift: number): T[] {
+    if (shift < 2 || fixtures.length === 0) return [...fixtures];
     return [fixtures[fixtures.length - 1] as T, ...fixtures.slice(0, -1)];
+  }
+
+  override movesFixtures(): boolean {
+    return true;
+  }
+
+  override recallsParked(): boolean {
+    return true;
   }
 }
 

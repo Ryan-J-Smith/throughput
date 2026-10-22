@@ -120,6 +120,40 @@ describe('ThroughputRun: a Shift', () => {
     expect([0, 1, 2].map((s) => run.staysAfterShift(s))).toEqual([true, false, false]);
   });
 
+  it('Restock: once per round an empty draw pile takes the shuffled discards', () => {
+    const run = new ThroughputRun(1, easyConfig({ targets: [10_000], retoolsPerRound: 20 }));
+    // 13 cards to draw; each Retool of 3 draws 3, so the fifth runs the pile dry partway.
+    for (let i = 0; i < 4; i++) run.retool([0, 1, 2]);
+    expect([run.drawPile.length, run.discardPile.length, run.restocksLeft]).toEqual([1, 12, 1]);
+    run.retool([0, 1, 2]);
+    expect(run.restocked).toBe(15);
+    expect(run.restocksLeft).toBe(0);
+    expect(run.hand).toHaveLength(7);
+    expect([run.drawPile.length, run.discardPile.length]).toEqual([13, 0]);
+    for (let i = 0; i < 5; i++) run.retool([0, 1, 2]);
+    expect(run.drawPile).toHaveLength(0);
+    expect(run.hand.length).toBeLessThan(7);
+    expect(run.restocked).toBe(15);
+    expect(run.drawPile.length + run.hand.length + run.discardPile.length).toBe(20);
+  });
+
+  it('the opening hand always holds a Make and a Ship, swapped in from the top of the draw pile', () => {
+    const without = easyConfig({ openingHandTypes: [] });
+    const has = (run: ThroughputRun, stage: Stage) => run.hand.some((c) => c.def.stage === stage);
+    let seed = 1;
+    while (has(new ThroughputRun(seed, without), 'ship') && has(new ThroughputRun(seed, without), 'make')) seed++;
+    const plain = new ThroughputRun(seed, without);
+    const fixed = new ThroughputRun(seed, easyConfig());
+    expect(has(fixed, 'make') && has(fixed, 'ship')).toBe(true);
+    expect(fixed.hand).toHaveLength(7);
+    expect(fixed.drawPile).toHaveLength(13);
+    // The two runs deal the same cards (same uids); only the missing types came in from the draw pile.
+    const uids = (cards: readonly { uid: number }[]) => cards.map((c) => c.uid);
+    const moved = fixed.hand.filter((c) => !uids(plain.hand).includes(c.uid));
+    expect(moved.length).toBeGreaterThan(0);
+    expect(moved.every((c) => uids(plain.drawPile).includes(c.uid) && c.def.stage !== 'design')).toBe(true);
+  });
+
   it('refuses bad loads without changing anything', () => {
     const run = new ThroughputRun(1);
     expect(run.whyCannotLoad([{ hand: 9, slot: 0 }])).toBe('No hand card 10');
@@ -258,21 +292,43 @@ describe('ThroughputRun: payout and shop', () => {
 describe('ThroughputRun: bosses', () => {
   const config = easyConfig({ roundsPerYear: 2, targets: [10, 10, 10, 10], startingCapital: 100 });
 
-  it('Line Shift moves Fixtures right each Shift and restores the layout after the round', () => {
+  it('Line Shift leaves Shift 1 on your layout, moves Fixtures right from Shift 2, and restores the layout after the round', () => {
     const run = new ThroughputRun(seedWithFirstBoss('line-shift'), { ...config, targets: [10, 10_000, 10, 10] });
     makeAndShip(run);
     const fixture = run.buy(0, { slot: 0 });
     run.continueToNextRound();
     expect(run.boss?.id).toBe('line-shift');
-    const owned = run.line[1]?.fixture;
+    const owned = run.line[0]?.fixture;
     expect(owned?.def).toBe(fixture.def);
+    expect(run.fixtureMoves).toEqual([]);
+    run.runShift();
+    expect(run.line[1]?.fixture).toBe(owned);
     expect(run.fixtureMoves).toEqual([{ fixture: owned, from: 0, to: 1 }]);
     run.runShift();
-    expect(run.line[2]?.fixture?.def).toBe(fixture.def);
     expect(run.fixtureMoves).toEqual([{ fixture: owned, from: 1, to: 2 }]);
-    for (let i = 0; i < 3; i++) run.runShift();
+    for (let i = 0; i < 2; i++) run.runShift();
     expect(run.phase).toBe('lost');
     expect(run.line[0]?.fixture?.def).toBe(fixture.def);
+  });
+
+  it('in a Line Shift round parked cards can be unloaded back to hand; in other rounds only scrapped', () => {
+    const designFirst = (r: ThroughputRun) => {
+      makeAndShip(r);
+      r.continueToNextRound();
+    };
+    const run = findRun({ ...config, targets: [10, 10_000, 10, 10] }, designFirst, (r) => r.boss?.id === 'line-shift' && r.hand.some((c) => c.def.stage === 'design'));
+    const design = run.hand[handIndex(run, 'design')];
+    run.load([{ hand: handIndex(run, 'design'), slot: 0 }]);
+    run.runShift();
+    expect(run.whyCannotUnload([0])).toBeNull();
+    run.unload([0]);
+    expect(run.hand).toContain(design);
+    expect(run.line[0]?.card).toBeNull();
+
+    const plain = new ThroughputRun(1, easyConfig({ targets: [10_000] }));
+    plain.load([{ hand: handIndex(plain, 'design'), slot: 0 }]);
+    plain.runShift();
+    expect(plain.whyCannotUnload([0])).toMatch(/scrap it instead/);
   });
 
   it('Turnover dispatches Designs', () => {

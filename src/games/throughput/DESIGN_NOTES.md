@@ -23,7 +23,8 @@ These notes record where the docs were silent or ambiguous, and what was chosen.
   - `FixtureEffect` has hooks `onSlot`, `resolveCount`, `saleMultiplier`, `afterResolve`,
     `keepsOnLine` and `appliesTo`. `appliesTo` is for display only: traces and the Line tag a Mod "idle"
     under a card it never acts on (Quality Lab under a Truck).
-  - `BoardBoss` has `isWelded`, `designsStay`, `overstockValue`, `warehouseOpen` and `shiftFixtures`.
+  - `BoardBoss` has `isWelded`, `designsStay`, `overstockValue`, `warehouseOpen`, `shiftFixtures(fixtures, shift)`,
+    `movesFixtures` (for notices) and `recallsParked`.
   - Cards and Contracts are plain data records.
 
 ## Rules decisions
@@ -32,7 +33,7 @@ These notes record where the docs were silent or ambiguous, and what was chosen.
 |---|---|---|
 | Starting Capital | 4C | Doc is silent; Balatro's $4. |
 | Expediter | Cut (doc allows it as "next cut"). | Its flip from the deck would make the exact preview leak the hidden top card. |
-| Scrap vs Unload | `unload` returns cards loaded this Shift to hand; `scrap` discards only cards parked from earlier Shifts. | Scrapping fresh cards and then drawing back to 7 would be a free, unlimited Retool. |
+| Scrap vs Unload | `unload` returns cards loaded this Shift to hand; `scrap` discards only cards parked from earlier Shifts. In a round whose boss `recallsParked` (Line Shift), `unload` also takes parked cards back to hand. | Scrapping fresh cards and then drawing back to 7 would be a free, unlimited Retool. A recalled card goes to hand, not the discards, so recall is no free Retool either. |
 | Handoff, Showroom | Change the Batch's Margin, which carries on. | Matches the worked example's Margin column ($30 → $33). |
 | Equity | +$1 per point on that Category's *sale only*, before multipliers. | Spec says "on that Category's Ship cards"; a persistent bump would leak into other Categories. |
 | Sale price | `(Margin + Equity) × card ×(Boutique/Wholesale) × Hot ×2 × Flagship`, revenue floored per sale. | Multipliers are sale-only like Boutique; flooring once per sale keeps traces exact. |
@@ -55,6 +56,8 @@ These notes record where the docs were silent or ambiguous, and what was chosen.
 | Shop cards | Each of the 4 shop cards comes in a random Category (16 offer ids); no duplicates within a stock. | Cards have Categories; this also lets the shop feed trend plays. |
 | Fixture rarity | 70/25/5 by tier, split evenly within each tier. | Doc's odds are per tier, not per item. |
 | Floor Expansion | Not offered once the Line has 7 slots. | Max 7. |
+| Restock | `restocksPerRound` (1): the first draw of a round that finds the draw pile empty first shuffles the discard pile (dispatched, scrapped and retooled cards, including those just retooled) into a new draw pile. After that an empty pile stays empty. | Approved 2026-10-22 (`docs/ai_docs/throughput-mechanics-writeups.md` §1). Testers: 31 of 110 Shift-2+ starts had ≤3 cards left, and 2 of 5 losses ended on an empty pile. Sims: lost rounds that end on an empty pile −60%, wins +0.5pp. "Every time" sims the same as "once". |
+| Opening hand | `openingHandTypes` (Make, Ship): after the round's first draw, each missing type swaps in the next card of that type from the draw pile for the last hand card of the hand's most common other type, which takes its place in the pile. Skipped if the pile has none. | Same write-up §1: 4 of 7 tester dead starts were Shift-1 openers; sims −20% dead starts at no measurable balance cost. A third Retool and a full mulligan were simmed and rejected. |
 | Hand positions | A card keeps its hand position while it is in hand. The next Shift's draws fill the lowest gaps, a Retool's draws go into the retooled positions, and an unloaded card returns to its old position if it is free. `hand` stays dense (Placements, Retools and the bots index it); `handSlots` gives the positions for display. | Playtest round 1: renumbering after each load caused misloads (4/7). Presentation only: the draw order is unchanged. |
 
 ## Trend conveyor
@@ -76,7 +79,7 @@ These notes record where the docs were silent or ambiguous, and what was chosen.
 
 | Boss | Pressures | Notes |
 |---|---|---|
-| Line Shift | R&D Compounder, Skimmer (Designs drift off their Mods) | Fires at the start of every Shift, including Shift 1. The player's layout is restored after the round. |
+| Line Shift | R&D Compounder, Skimmer (Designs drift off their Mods) | Shift 1 runs on the player's layout; from Shift 2 on, Fixtures move one slot right before each Shift. Parked cards may be unloaded back to hand that round. The layout is restored after the round. Approved rework (write-up §2): it was the only boss that ended tester runs; bot clears 76.6% → 88.7%, level with Turnover and JIT. General recall of parked cards was rejected (§3: +4pp wins, and it removes the parked-Design stack's one cost). |
 | Turnover | Design-heavy builds (Skimmer, R&D Compounder) | Dispatches Designs only; Automation still keeps Make cards. |
 | Supply Shock | Brand Chain, long layouts | Slot 1's card *and* Fixture are inactive; loading there is refused. |
 | JIT Auditor | Mass Market, Stockpile (overproduction) | Leftover Units cost $2 each; Warehouse closed (stored Units stay stored). A Shift can lower round Sales, floored at 0. |

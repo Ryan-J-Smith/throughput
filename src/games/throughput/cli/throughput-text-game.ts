@@ -128,9 +128,10 @@ function apply(run: ThroughputRun, action: ThroughputAction): string[] {
       const hand = handIndexes(run, action.hand) as number[];
       const names = hand.map((h) => nameOf(run.hand[h]));
       const before = new Set(run.hand);
+      const restocked = run.restocked;
       run.retool(hand);
       const drawn = drawnText(run, before);
-      return [`Retooled ${names.join(', ')}; drew ${drawn === '' ? 'nothing (the draw pile is empty)' : drawn}.`];
+      return [...restockLog(run, restocked), `Retooled ${names.join(', ')}; drew ${drawn === '' ? 'nothing (the draw pile is empty)' : drawn}.`];
     }
     case 'run':
       return runLog(run);
@@ -165,6 +166,7 @@ function apply(run: ThroughputRun, action: ThroughputAction): string[] {
 
 function runLog(run: ThroughputRun): string[] {
   const before = new Set(run.hand);
+  const restocked = run.restocked;
   const round = run.round;
   const shift = run.shift;
   const target = run.target;
@@ -189,12 +191,19 @@ function runLog(run: ThroughputRun): string[] {
     case 'shift': {
       const drawn = drawnText(run, before);
       lines.push(`Make and Ship cards dispatched${run.boss?.designsStay() === false ? ' (Turnover: Designs too)' : '; Designs stay'}.`);
+      lines.push(...restockLog(run, restocked));
       lines.push(drawn === '' ? `Drew nothing (the draw pile is empty); ${run.hand.length} cards in hand.` : `Drew ${drawn}.`);
       lines.push(...movesLog(run));
       break;
     }
   }
   return lines;
+}
+
+/** A log line if a Restock happened since the round's Restock count was `before`. */
+function restockLog(run: ThroughputRun, before: number): string[] {
+  const cards = run.restocked - before;
+  return cards > 0 ? [`Restock: the draw pile ran out, so ${cards} discards were shuffled into a new draw pile.`] : [];
 }
 
 /** The cards now in hand that weren't in `before`, with their hand numbers: "Truck-G (3), Sketch-A (5)". */

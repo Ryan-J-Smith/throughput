@@ -129,7 +129,8 @@ export function legalActions(run: ThroughputRun): string[] {
       out.push(`load <hand>:<slot> … — put ${cards} into open slots (${list(open)})`);
     }
     const loaded = slots.filter((i) => run.whyCannotUnload([i]) === null);
-    if (loaded.length > 0) out.push(`unload <slot> … — take back cards loaded this Shift (slots ${list(loaded)})`);
+    const recall = run.boss?.recallsParked() === true ? `, or parked ones (${run.boss.name})` : '';
+    if (loaded.length > 0) out.push(`unload <slot> … — take back cards loaded this Shift${recall} (slots ${list(loaded)})`);
     const parked = slots.filter((i) => run.whyCannotScrap([i]) === null);
     if (parked.length > 0) out.push(`scrap <slot> … — discard parked cards to free their slots (slots ${list(parked)})`);
     if (run.whyCannotRetool([0]) === null) {
@@ -173,12 +174,21 @@ export function legalActions(run: ThroughputRun): string[] {
   return out;
 }
 
+/** " · Restock ready" / " · Restocked 9 cards" for the Shift header ('' when the config has no Restock). */
+function restockText(run: ThroughputRun): string {
+  if (run.config.restocksPerRound <= 0) return '';
+  if (run.restocksLeft > 0) return run.restocked > 0 ? ` · Restocked ${run.restocked} cards, ${run.restocksLeft} Restock left` : ' · Restock ready';
+  return ` · Restocked ${run.restocked} cards (no Restock left)`;
+}
+
 /** What happens to the card in a Line slot after the run, for the Line listing. */
 function lineCardNote(run: ThroughputRun, slot: number): string {
   const held = run.line[slot]?.card;
   if (held == null) return '';
-  const since = held.loadedShift < run.shift ? `parked since Shift ${held.loadedShift}` : 'loaded this Shift';
-  return `[${since}; ${run.staysAfterShift(slot) ? 'stays after the run' : 'dispatched after the run'}]`;
+  const parked = held.loadedShift < run.shift;
+  const since = parked ? `parked since Shift ${held.loadedShift}` : 'loaded this Shift';
+  const recall = parked && run.whyCannotUnload([slot]) === null ? `; ${run.boss?.name ?? 'the boss'} lets you unload it` : '';
+  return `[${since}; ${run.staysAfterShift(slot) ? 'stays after the run' : 'dispatched after the run'}${recall}]`;
 }
 
 export function formatView(run: ThroughputRun, context: ViewContext): string {
@@ -188,7 +198,7 @@ export function formatView(run: ThroughputRun, context: ViewContext): string {
     case 'shift':
       lines.push(
         `${where} · Shift ${run.shift} of ${run.config.shiftsPerRound} · Sales $${run.sales} of $${run.target} target · Capital ${run.wallet.cash}C`,
-        `Retools left ${run.retoolsLeft} · Draw pile ${run.drawPile.length} · Discard pile ${run.discardPile.length}${run.stored > 0 ? ` · Stored ${run.stored} Units` : ''}`,
+        `Retools left ${run.retoolsLeft} · Draw pile ${run.drawPile.length} · Discard pile ${run.discardPile.length}${restockText(run)}${run.stored > 0 ? ` · Stored ${run.stored} Units` : ''}`,
       );
       if (run.boss !== null) lines.push(`BOARD REVIEW: ${run.boss.name}: ${run.boss.text}`);
       if (run.fixtureMoves.length > 0) lines.push(`${run.boss?.name ?? 'The boss'} moved your Fixtures before this Shift: ${movesText(run.fixtureMoves)}.`);
@@ -249,15 +259,15 @@ export function formatView(run: ThroughputRun, context: ViewContext): string {
   return lines.join('\n');
 }
 
-/** In the shop before a Board whose boss moves Fixtures: where they will sit for Shift 1. */
+/** In the shop before a Board whose boss moves Fixtures: the layout for Shift 1 and for the first move. */
 function nextBoardLayout(run: ThroughputRun): string[] {
   const boss = run.bossOf(run.round + 1);
-  if (boss === null) return [];
+  if (boss === null || !boss.movesFixtures()) return [];
   const before = run.line.map((s) => s.fixture);
-  const after = boss.shiftFixtures(before);
-  if (after.every((f, i) => f === before[i])) return [];
-  const layout = after.map((f, i) => `${i + 1}. ${f?.def.name ?? '-'}`).join(' · ');
-  return [`${boss.name} next round: before Shift 1 your Fixtures will sit at ${layout}.`];
+  const layout = (fixtures: readonly (Fixture | null)[]) => fixtures.map((f, i) => `${i + 1}. ${f?.def.name ?? '-'}`).join(' · ');
+  const first = boss.shiftFixtures(before, 1);
+  const second = boss.shiftFixtures(first, 2);
+  return [`${boss.name} next round: Shift 1 runs on ${layout(first)}; before Shift 2 they move to ${layout(second)}.`];
 }
 
 function marketLines(run: ThroughputRun): string[] {
@@ -286,6 +296,7 @@ export function deckText(run: ThroughputRun): string[] {
     for (const card of run.drawPile) counts.set(cardName(card), (counts.get(cardName(card)) ?? 0) + 1);
     const pile = [...counts.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([name, n]) => (n > 1 ? `${name} ×${n}` : name));
     lines.push(`Left to draw this round (${run.drawPile.length}, order hidden): ${pile.join(', ') || 'nothing'}`);
+    if (run.restocksLeft > 0) lines.push(`Restock: when the pile runs out, your ${run.discardPile.length} discards (and any discarded later) are shuffled into a new pile (${run.restocksLeft === 1 ? 'once' : `${run.restocksLeft} times`}).`);
   }
   return lines;
 }

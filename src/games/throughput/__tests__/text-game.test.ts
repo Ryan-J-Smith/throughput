@@ -121,19 +121,38 @@ describe('ThroughputTextGame', () => {
     expect(view).toMatch(/2\. no Fixture \| Workshop-\w · .* \[loaded this Shift; dispatched after the run\]/);
   });
 
-  it('Line Shift: the shop shows the Shift 1 layout, and the log and state list each move', () => {
+  it('Line Shift: the shop shows the Shift 1 and Shift 2 layouts, the log and state list each move, and parked cards can be unloaded', () => {
     const config = easyConfig({ roundsPerYear: 2, targets: [10, 10_000, 10, 10], startingCapital: 100 });
-    let seed = 1;
-    while (new ThroughputRun(seed, config).boardBosses[0]?.id !== 'line-shift') seed++;
     const shiftGame = new ThroughputTextGame(config);
-    const hand = handOf(shiftGame, shiftGame.newSave(seed));
-    const shop = play(shiftGame, seed, [`load ${numberOf(hand, 'make')}:1 ${numberOf(hand, 'ship')}:2`, 'run', 'buy 1 1']);
+    const toShop = (seed: number) => {
+      const hand = handOf(shiftGame, shiftGame.newSave(seed));
+      return play(shiftGame, seed, [`load ${numberOf(hand, 'make')}:1 ${numberOf(hand, 'ship')}:2`, 'run', 'buy 1 1']);
+    };
+    // First seed whose Board is Line Shift and whose Line Shift opening hand holds a Design.
+    let seed = 1;
+    const fits = (s: number) =>
+      new ThroughputRun(s, config).boardBosses[0]?.id === 'line-shift' && handOf(shiftGame, ok(shiftGame.take(toShop(s), 'continue')).save).some((c) => c.stage === 'design');
+    while (!fits(seed)) seed++;
+    const shop = toShop(seed);
     const name = (shiftGame.show(shop).state as { line: { fixture: { name: string } | null }[] }).line[0]?.fixture?.name ?? '';
-    expect(shiftGame.show(shop).text).toContain(`Line Shift next round: before Shift 1 your Fixtures will sit at 1. - · 2. ${name} · 3. - · 4. - · 5. -.`);
+    expect(shiftGame.show(shop).text).toContain(
+      `Line Shift next round: Shift 1 runs on 1. ${name} · 2. - · 3. - · 4. - · 5. -; before Shift 2 they move to 1. - · 2. ${name} · 3. - · 4. - · 5. -.`,
+    );
     const next = ok(shiftGame.take(shop, 'continue'));
-    expect(next.log).toContain(`Line Shift: Fixtures moved before Shift 1: ${name} 1→2.`);
-    expect(next.view.text).toContain(`Line Shift moved your Fixtures before this Shift: ${name} 1→2.`);
-    expect(next.view.state).toMatchObject({ fixtureMoves: [{ fixture: name, from: 1, to: 2 }] });
+    expect(next.log).toEqual([expect.stringMatching(/ begins: target \$10000\.$/)]);
+    const shift1 = handOf(shiftGame, next.save);
+    const loaded = ok(shiftGame.take(next.save, `load ${numberOf(shift1, 'make')}:3`));
+    const ran = ok(shiftGame.take(loaded.save, 'run'));
+    expect(ran.log).toContain(`Line Shift: Fixtures moved before Shift 2: ${name} 1→2.`);
+    expect(ran.view.text).toContain(`Line Shift moved your Fixtures before this Shift: ${name} 1→2.`);
+    expect(ran.view.state).toMatchObject({ fixtureMoves: [{ fixture: name, from: 1, to: 2 }] });
+    // A Design parked in Shift 1 can come back to hand in a Line Shift round.
+    const design = shift1.find((c) => c.stage === 'design');
+    if (design === undefined) throw new Error('no Design in the Line Shift opening hand');
+    const parked = ok(shiftGame.take(ok(shiftGame.take(next.save, `load ${design.n}:4`)).save, 'run'));
+    expect(parked.view.text).toContain('[parked since Shift 1; stays after the run; Line Shift lets you unload it]');
+    expect(parked.view.legalActions).toContain('unload <slot> … — take back cards loaded this Shift, or parked ones (Line Shift) (slots 4)');
+    expect(ok(shiftGame.take(parked.save, 'unload 4')).log).toEqual([`Back in hand: ${design.name}.`]);
   });
 
   it('plays from a Shift into the shop and on into round 2', () => {
@@ -157,7 +176,10 @@ describe('rules and shop text', () => {
     expect(text).not.toContain('first 2 Shifts');
     expect(text).toContain('HOW A SALE IS PRICED');
     expect(text).toContain('Revenue is rounded down once per sale');
-    expect(text).toContain('Line Shift: before every Shift, including Shift 1');
+    expect(text).toContain('Line Shift: Shift 1 runs on your layout. From Shift 2 on');
+    expect(text).toContain('The opening hand always holds at least one Make and one Ship');
+    expect(text).toContain('Restock: Once per round, when you would draw from an empty draw pile');
+    expect(rulesText({ ...DEFAULT_CONFIG, restocksPerRound: 0, openingHandTypes: [] })).toContain('The deck does NOT reshuffle during a round');
     expect(text).toContain(`Targets: Y1 ${DEFAULT_CONFIG.targets.slice(0, 3).join('/')}`);
     expect(rulesText({ ...DEFAULT_CONFIG, handSize: 8 })).toContain('a hand of 8');
     expect(text).toContain(`each full ${DEFAULT_CONFIG.overkill.step * 100}% of the target you sold beyond it pays +1C`);

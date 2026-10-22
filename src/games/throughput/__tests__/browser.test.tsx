@@ -92,9 +92,12 @@ describe('THROUGHPUT browser screen', () => {
     ]);
     run.runShift();
     const fixture = run.buy(0, { slot: 0 });
-    expect(renderLine(run)).toContain('Next round, Line Shift moves your Fixtures before every Shift, starting before Shift 1.');
+    expect(renderLine(run)).toContain('Next round, Line Shift moves your Fixtures one bay right before each Shift from Shift 2 on.');
     run.continueToNextRound();
-    expect(lineNotice(run)).toBe(`Line Shift moved your Fixtures before this Shift: ${fixture.def.name} 1→2. Cards stay put.`);
+    expect(lineNotice(run)).toBe('Line Shift: from Shift 2, your Fixtures move one bay right before each Shift. Tap a parked card to take it back to your hand.');
+    run.load([{ hand: handIndex(run, run.hand.some((c) => c.def.stage === 'design') ? 'design' : 'make'), slot: 2 }]);
+    run.runShift();
+    expect(lineNotice(run)).toBe(`Line Shift moved your Fixtures before this Shift: ${fixture.def.name} 1→2. Cards stay put. Tap a parked card to take it back to your hand.`);
     const html = renderLine(run);
     expect(html).toContain('class="tp-line__notice"');
     expect(html).toContain('moved from bay 1');

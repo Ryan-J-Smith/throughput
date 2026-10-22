@@ -1,3 +1,5 @@
+import type { Stage } from '../model';
+
 /** Every tunable number of a THROUGHPUT run. Defaults follow seed-03; see DESIGN_NOTES for the gaps it left. */
 export type ThroughputConfig = {
   /** Sales target per round; its length is the number of rounds. */
@@ -8,7 +10,11 @@ export type ThroughputConfig = {
   readonly retoolsPerRound: number;
   /** Most cards one Retool may discard. */
   readonly retoolMax: number;
+  /** Times per round an empty draw pile takes the shuffled discards when you would draw (Restock). */
+  readonly restocksPerRound: number;
   readonly handSize: number;
+  /** Card types the opening hand of each round always holds at least one of, if the deck has them. */
+  readonly openingHandTypes: readonly Stage[];
   readonly startSlots: number;
   readonly maxSlots: number;
   readonly baseMargin: number;
@@ -48,7 +54,9 @@ export const DEFAULT_CONFIG: ThroughputConfig = {
   shiftsPerRound: 4,
   retoolsPerRound: 2,
   retoolMax: 3,
+  restocksPerRound: 1,
   handSize: 7,
+  openingHandTypes: ['make', 'ship'],
   startSlots: 5,
   maxSlots: 7,
   baseMargin: 2,

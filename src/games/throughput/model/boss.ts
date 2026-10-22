@@ -28,8 +28,18 @@ export abstract class BoardBoss {
     return true;
   }
 
-  /** Rearranges the fixtures (by slot) at the start of each Shift. */
-  shiftFixtures<T>(fixtures: readonly T[]): T[] {
+  /** Rearranges the fixtures (by slot) at the start of Shift `shift` (1-based). */
+  shiftFixtures<T>(fixtures: readonly T[], _shift: number): T[] {
     return [...fixtures];
+  }
+
+  /** True if this boss moves Fixtures during the round (for notices; `shiftFixtures` does the moving). */
+  movesFixtures(): boolean {
+    return false;
+  }
+
+  /** True if cards parked from earlier Shifts may be unloaded back to hand this round. */
+  recallsParked(): boolean {
+    return false;
   }
 }

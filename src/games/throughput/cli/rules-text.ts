@@ -13,6 +13,14 @@ export function rulesText(config: ThroughputConfig): string {
   const income = c.income.map((amount, i) => `${amount}C (${i === c.income.length - 1 ? 'Board Review' : `Q${i + 1}`})`).join(', ');
   const interestFull = Math.ceil(c.interest.cap / c.interest.amount) * c.interest.per;
   const pips = `${c.hotPips} buzz pip${c.hotPips === 1 ? '' : 's'}`;
+  const typeName = { design: 'Design', make: 'Make', ship: 'Ship' } as const;
+  const opener = c.openingHandTypes.map((t) => `one ${typeName[t]}`).join(' and ');
+  const restockTimes = c.restocksPerRound === 1 ? 'Once per round' : `${c.restocksPerRound} times per round`;
+  const draws =
+    c.restocksPerRound > 0
+      ? `  Restock: ${restockTimes}, when you would draw from an empty draw pile, your discards are shuffled
+  into a new draw pile. After that an empty pile stays empty for the round.`
+      : `  The deck does NOT reshuffle during a round: once the draw pile is empty you draw nothing more.`;
 
   return `THROUGHPUT — rules
 
@@ -31,8 +39,9 @@ CARDS
   - Ship: sells Units at the current Margin. Dispatched after the Shift, even if it sold nothing.
   Starter deck (20): per Category 1 Sketch (Design +$2), 2 Workshops (Make +6 Units),
   2 Trucks (Ship up to 20 Units).
-  Each round starts with an empty Line, the whole deck shuffled and a hand of ${c.handSize}.
-  The deck does NOT reshuffle during a round: once the draw pile is empty you draw nothing more.
+  Each round starts with an empty Line, the whole deck shuffled and a hand of ${c.handSize}.${opener === '' ? '' : `
+  The opening hand always holds at least ${opener} (if your deck has them).`}
+${draws}
   Tip: "deck" shows exactly what is left to draw this round.
 
 A SHIFT
@@ -44,7 +53,7 @@ A SHIFT
   5. If Sales have reached the target, the round clears now. Otherwise draw back up to ${c.handSize}.
   Retool (${c.retoolsPerRound} per round): discard 1–${c.retoolMax} hand cards and draw as many into their places.
   Unload takes back a card you loaded this Shift. Scrap discards a card parked from an earlier
-  Shift to free its slot. A parked card can't move to another slot.
+  Shift to free its slot. A parked card can't move to another slot (except in a Line Shift round).
   The state shows the exact result of running the current Line ("If you run now") and, for each
   card on the Line, whether it stays or is dispatched after the run.
 
@@ -101,10 +110,11 @@ FIXTURES
 
 BOARD REVIEWS (bosses)
   The last round of each Year has a boss rule. The next two Board bosses are always shown.
-  Line Shift: before every Shift, including Shift 1, all Fixtures move one slot right (the last
-    wraps to slot 1). Cards on the Line do NOT move, so parked Designs end up over other Fixtures,
-    and one that lands on a Station sits idle. The state lists each move. Your shop layout comes
-    back after the round.
+  Line Shift: Shift 1 runs on your layout. From Shift 2 on, all Fixtures move one slot right before
+    each Shift (the last wraps to slot 1). Cards on the Line do NOT move, so parked Designs end up
+    over other Fixtures, and one that lands on a Station sits idle; but this round you may unload
+    parked cards back to your hand and load them again. The state lists each move. Your shop
+    layout comes back after the round.
   Turnover: Designs are dispatched after each Shift like every other card.
   Supply Shock: slot 1 is welded shut: no card, and its Fixture does nothing.
   JIT Auditor: leftover Units cost $2 each instead of selling, and the Warehouse is closed (stored
@@ -114,7 +124,7 @@ COMMANDS
   Numbers are as listed in the state: hand cards, slots, shop offers, deck cards.
   Hand numbers stay put: a card keeps its number until it leaves the hand, and new cards fill the gaps.
   load <hand>:<slot> …   e.g. "load 3:1 5:4" puts hand card 3 in slot 1 and hand card 5 in slot 4
-  unload <slot> …        take back cards loaded this Shift
+  unload <slot> …        take back cards loaded this Shift (in a Line Shift round, parked ones too)
   scrap <slot> …         discard parked cards
   retool <hand> …        discard 1–${c.retoolMax} hand cards and draw as many
   run                    run the Shift

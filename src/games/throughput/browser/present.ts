@@ -56,18 +56,20 @@ export function fixtureView(def: FixtureDef, id: string): CardView {
 
 /**
  * What a boss is doing to the Line's Fixtures, for a notice above the bays: the moves before this
- * Shift, or (in the shop) a warning that next round's boss will move them before Shift 1.
+ * Shift (or that they start next Shift), or in the shop a warning about next round's boss.
  */
 export function lineNotice(run: ThroughputRun): string | null {
+  const recall = 'Tap a parked card to take it back to your hand.';
   if (run.phase === 'shift') {
-    if (run.fixtureMoves.length === 0) return null;
-    return `${run.boss?.name ?? 'The boss'} moved your Fixtures before this Shift: ${run.fixtureMoves.map((m) => `${m.fixture.def.name} ${m.from + 1}→${m.to + 1}`).join(', ')}. Cards stay put.`;
+    const boss = run.boss;
+    if (boss === null || !boss.movesFixtures()) return null;
+    if (run.fixtureMoves.length === 0) return `${boss.name}: from Shift 2, your Fixtures move one bay right before each Shift. ${boss.recallsParked() ? recall : ''}`.trim();
+    const moves = run.fixtureMoves.map((m) => `${m.fixture.def.name} ${m.from + 1}→${m.to + 1}`).join(', ');
+    return `${boss.name} moved your Fixtures before this Shift: ${moves}. Cards stay put. ${boss.recallsParked() ? recall : ''}`.trim();
   }
   const boss = run.phase === 'shop' ? run.bossOf(run.round + 1) : null;
-  if (boss === null) return null;
-  const before = run.line.map((s) => s.fixture);
-  if (boss.shiftFixtures(before).every((f, i) => f === before[i])) return null;
-  return `Next round, ${boss.name} moves your Fixtures before every Shift, starting before Shift 1. Your layout comes back after the round.`;
+  if (boss === null || !boss.movesFixtures()) return null;
+  return `Next round, ${boss.name} moves your Fixtures one bay right before each Shift from Shift 2 on. Your layout comes back after the round.`;
 }
 
 export function offerView(offer: Offer, id: string): CardView {

@@ -66,7 +66,11 @@ export function LineView({ run, bayState, onBay, onScrap, bayLabel }: LineViewPr
               </button>
               {held !== null && inShift && (
                 <span className={`tp-bay__status ${parked ? 'is-parked' : 'is-new'}`}>
-                  {parked ? `Parked since Shift ${held.loadedShift}` : run.staysAfterShift(i) ? 'Loaded, stays after the run' : 'Loaded, used up by the run'}
+                  {parked
+                    ? `Parked since Shift ${held.loadedShift}${run.whyCannotUnload([i]) === null ? ', tap to take back' : ''}`
+                    : run.staysAfterShift(i)
+                      ? 'Loaded, stays after the run'
+                      : 'Loaded, used up by the run'}
                 </span>
               )}
               {parked && onScrap !== undefined && (

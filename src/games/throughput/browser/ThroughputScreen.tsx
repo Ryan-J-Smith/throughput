@@ -77,20 +77,27 @@ export function ThroughputScreen({ seed, onQuit }: BrowserGameProps) {
     if (mode.kind === 'place') {
       const placement = [{ hand: handIndex(mode.uid), slot }];
       attempt(run.whyCannotLoad(placement), () => run.load(placement));
-    } else if (held != null && held.loadedShift === run.shift) {
+    } else if (held != null && run.whyCannotUnload([slot]) === null) {
       attempt(run.whyCannotUnload([slot]), () => run.unload([slot]));
     } else if (held == null) {
       notify('info', 'Tap a card in your hand first, then a bay');
     }
   };
 
+  /** Toast when a draw just Restocked the empty pile from the discards. */
+  const announceRestock = (before: number) => {
+    if (run.restocked > before) notify('info', `Restock: ${run.restocked - before} discards shuffled into a new draw pile`);
+  };
+
   const runShift = () => {
     const before = { salesBefore: run.sales, target: run.target, heading: `Round ${run.round}, Shift ${run.shift}` };
+    const restocked = run.restocked;
     attempt(run.whyCannotRun(), () => {
       const result = run.runShift();
       setLastShift({ result, ...before });
       if (run.phase === 'shop') notify('success', `Target hit! Shift made $${result.total}`);
       else if (run.phase === 'shift') notify('info', `Shift made $${result.total}`);
+      if (run.phase === 'shift') announceRestock(restocked);
     });
   };
 
@@ -156,7 +163,11 @@ export function ThroughputScreen({ seed, onQuit }: BrowserGameProps) {
                     disabled={mode.uids.length === 0}
                     onClick={() => {
                       const hand = mode.uids.map(handIndex);
-                      attempt(run.whyCannotRetool(hand), () => run.retool(hand));
+                      const restocked = run.restocked;
+                      attempt(run.whyCannotRetool(hand), () => {
+                        run.retool(hand);
+                        announceRestock(restocked);
+                      });
                     }}
                   >
                     Retool {mode.uids.length}
@@ -170,7 +181,10 @@ export function ThroughputScreen({ seed, onQuit }: BrowserGameProps) {
                   Retool ({run.retoolsLeft} left)
                 </button>
               )}
-              <span className="hand__count">Draw pile {run.drawPile.length}</span>
+              <span className="hand__count">
+                Draw pile {run.drawPile.length}
+                {run.config.restocksPerRound > 0 && (run.restocksLeft > 0 ? ', Restock ready' : ', Restocked')}
+              </span>
               <button type="button" className="btn btn--play" onClick={runShift}>
                 Run Shift {run.shift}: ${preview.total}
               </button>

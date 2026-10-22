@@ -4,7 +4,7 @@ import { Rng } from '../../../engine/rng';
 import { BOSSES, DEFAULT_CONFIG, STARTER_CARDS } from '../content';
 import type { ThroughputConfig } from '../content';
 import { CATEGORIES, cardName } from '../model';
-import type { BoardBoss, Card, CardDef, Category, Fixture, FixtureDef } from '../model';
+import type { BoardBoss, Card, CardDef, Category, Fixture, FixtureDef, Stage } from '../model';
 import { trendSchedule } from './market';
 import { scoreLine } from './score-line';
 import type { LineSlot, ShiftContext, ShiftResult, Trends } from './score-line';
@@ -94,6 +94,8 @@ export class ThroughputRun {
   private layout: (Fixture | null)[] = [];
   private lastShift_: ShiftResult | null = null;
   private fixtureMoves_: readonly FixtureMove[] = [];
+  private restocksLeft_ = 0;
+  private restocked_ = 0;
   private lastPayout_: readonly PayoutLine[] | null = null;
   private storageNotice_: string | null = null;
   private nextUid = 1;
@@ -220,6 +222,16 @@ export class ThroughputRun {
   }
 
   /** Fixtures the boss moved at the start of the current Shift (Line Shift); empty otherwise. */
+  /** Restocks left this round: an empty draw pile takes the shuffled discards when you would draw. */
+  get restocksLeft(): number {
+    return this.restocksLeft_;
+  }
+
+  /** Cards the Restocks shuffled back into the draw pile this round (0 if none happened). */
+  get restocked(): number {
+    return this.restocked_;
+  }
+
   get fixtureMoves(): readonly FixtureMove[] {
     return this.fixtureMoves_;
   }
@@ -325,12 +337,14 @@ export class ThroughputRun {
     for (const slot of slots) {
       const held = this.slots_[slot]?.card;
       if (held == null) return `Slot ${slot + 1} has no card`;
-      if (held.loadedShift !== this.shift_) return `${cardName(held.card)} in slot ${slot + 1} is parked from an earlier Shift; scrap it instead`;
+      if (held.loadedShift !== this.shift_ && !(this.boss?.recallsParked() ?? false)) {
+        return `${cardName(held.card)} in slot ${slot + 1} is parked from an earlier Shift; scrap it instead`;
+      }
     }
     return null;
   }
 
-  /** Returns cards loaded this Shift to the hand. */
+  /** Returns cards loaded this Shift to the hand (and parked ones, when the boss allows it: Line Shift). */
   unload(slots: readonly number[]): void {
     this.assert(this.whyCannotUnload(slots));
     for (const slot of slots) {
@@ -381,7 +395,7 @@ export class ThroughputRun {
     this.discard_.push(...cards);
     this.retools_--;
     for (const pos of freed) {
-      const drawn = this.draw_.pop();
+      const drawn = this.drawOne();
       if (drawn === undefined) break;
       this.addToHand(drawn, pos);
     }
@@ -536,7 +550,10 @@ export class ThroughputRun {
     this.hand_ = [];
     this.handPos_.clear();
     this.discard_ = [];
+    this.restocksLeft_ = this.config.restocksPerRound;
+    this.restocked_ = 0;
     this.beginShift();
+    this.fixOpeningHand();
   }
 
   private beginShift(): void {
@@ -544,14 +561,51 @@ export class ThroughputRun {
     this.fixtureMoves_ = [];
     if (boss !== null) {
       const before = this.slots_.map((s) => s.fixture);
-      const moved = boss.shiftFixtures(before);
+      const moved = boss.shiftFixtures(before, this.shift_);
       this.slots_.forEach((slot, i) => (slot.fixture = moved[i] ?? null));
       this.fixtureMoves_ = moved.flatMap((fixture, to) => {
         const from = fixture === null ? to : before.indexOf(fixture);
         return fixture === null || from === to ? [] : [{ fixture, from, to }];
       });
     }
-    while (this.hand_.length < this.config.handSize && this.draw_.length > 0) this.addToHand(this.draw_.pop() as Card);
+    while (this.hand_.length < this.config.handSize) {
+      const card = this.drawOne();
+      if (card === undefined) break;
+      this.addToHand(card);
+    }
+  }
+
+  /** The top card of the draw pile. An empty pile first Restocks from the discards, if a Restock is left. */
+  private drawOne(): Card | undefined {
+    if (this.draw_.length === 0 && this.discard_.length > 0 && this.restocksLeft_ > 0) {
+      this.restocksLeft_--;
+      this.restocked_ += this.discard_.length;
+      this.draw_ = this.deckRng.shuffle(this.discard_);
+      this.discard_ = [];
+    }
+    return this.draw_.pop();
+  }
+
+  /**
+   * Gives the opening hand at least one card of each `openingHandTypes` type: a missing type swaps
+   * the next such card in the draw pile for a card of the hand's most common type, which takes its
+   * place in the pile. Nothing changes if the pile has none of that type.
+   */
+  private fixOpeningHand(): void {
+    const count = (stage: Stage) => this.hand_.filter((c) => c.def.stage === stage).length;
+    for (const stage of this.config.openingHandTypes) {
+      if (count(stage) > 0) continue;
+      // The draw pile is drawn from its end, so the next card of a type is its last index.
+      let next = this.draw_.length - 1;
+      while (next >= 0 && this.draw_[next]?.def.stage !== stage) next--;
+      if (next < 0) continue;
+      const surplus = (['design', 'make', 'ship'] as const).filter((s) => s !== stage).reduce((a, b) => (count(b) > count(a) ? b : a));
+      const out = [...this.hand_].reverse().find((c) => c.def.stage === surplus);
+      if (out === undefined) continue;
+      const pos = this.removeFromHand(out);
+      this.addToHand(this.draw_[next] as Card, pos);
+      this.draw_[next] = out;
+    }
   }
 
   /** Puts a card in the hand at `pos` if that position is free, else at the lowest free one. */
