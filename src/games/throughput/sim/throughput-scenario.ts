@@ -9,17 +9,24 @@ import type { Offer } from '../rules';
 import { throughputBots } from './bots';
 import type { ThroughputBot } from './throughput-bot';
 
-/** `npm run sim -- --scenario throughput`: each bot plays full THROUGHPUT runs. */
+const DESCRIPTION = 'THROUGHPUT + Trends (seed-03): factory Line, trend conveyor, Board bosses';
+
+/**
+ * `npm run sim -- --scenario throughput`: each bot plays full THROUGHPUT runs. Other rosters (the
+ * expert bot) register under their own name so the default roster's reports stay comparable.
+ */
 export class ThroughputScenario extends Scenario {
-  readonly name = 'throughput';
-  readonly description = 'THROUGHPUT + Trends (seed-03): factory Line, trend conveyor, Board bosses';
+  readonly name: string;
+  readonly description: string;
   readonly botNames: readonly string[];
   private readonly bots: readonly ThroughputBot[];
   private readonly config: ThroughputConfig;
   private readonly maxActionsPerPhase: number;
 
-  constructor(bots: readonly ThroughputBot[] = throughputBots(), config: ThroughputConfig = DEFAULT_CONFIG, maxActionsPerPhase = 500) {
+  constructor(bots: readonly ThroughputBot[] = throughputBots(), config: ThroughputConfig = DEFAULT_CONFIG, maxActionsPerPhase = 500, name = 'throughput', description = DESCRIPTION) {
     super();
+    this.name = name;
+    this.description = description;
     this.bots = bots;
     this.botNames = bots.map((b) => b.name);
     this.config = config;

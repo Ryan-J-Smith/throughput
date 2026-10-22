@@ -1,7 +1,7 @@
 import { designAdd } from '../model';
 import type { Card, FixtureDef, Stage } from '../model';
 import { scoreLine } from '../rules';
-import type { LineSlot, Placement, ThroughputRun } from '../rules';
+import type { LineSlot, Placement, ShiftContext, ThroughputRun } from '../rules';
 
 const STAGES: readonly Stage[] = ['design', 'make', 'ship'];
 
@@ -43,46 +43,90 @@ export function scrapChoice(run: ThroughputRun): number[] {
 }
 
 /**
+ * One Shift's loading problem, detached from the run so a bot can also plan hypothetical hands and
+ * Lines (the expert bot values shop offers this way).
+ */
+export type LoadProblem = {
+  /** The Line before loading: its Fixtures and any parked cards. */
+  readonly base: readonly LineSlot[];
+  readonly hand: readonly Card[];
+  /** Slots that can take a hand card. */
+  readonly open: readonly number[];
+  readonly ctx: ShiftContext;
+  /** Sales still needed to clear the round. */
+  readonly needed: number;
+  /** Shifts left in the round after this one. */
+  readonly shiftsAfter: number;
+  /** Most Designs the Line can hold (parked or loaded) and still make and ship. */
+  readonly maxDesigns: number;
+  readonly designPersistence: number;
+  /** Extra value of putting `card` into `slot`, on top of this Shift's sales. */
+  readonly bias?: (card: Card, slot: number) => number;
+};
+
+/** A slot → hand-index assignment, its Shift total, and that total plus the planner's bonuses. */
+export type LoadPlan = { readonly assign: ReadonlyMap<number, number>; readonly total: number; readonly value: number };
+
+/**
  * Plans this Shift's loads by hill-climbing over slot assignments (add, remove, move, swap,
  * replace), scoring each with the exact preview plus the strategy's bonuses. Arrangement matters
  * (Designs before Ships, Makes on Overtime Crews, Ships after the Gun), which one-card-at-a-time
  * greedy insertion can't see. Returns placements for one `load`, hand indexes into the current hand.
  */
 export function planLoad(run: ThroughputRun, options: PlanOptions): Placement[] {
-  const ctx = run.shiftContext();
-  const base: LineSlot[] = run.line.map((s) => ({ fixture: s.fixture, card: s.card?.card ?? null }));
-  const open = run.hand.length === 0 ? [] : run.line.map((_, i) => i).filter((i) => run.whyCannotLoad([{ hand: 0, slot: i }]) === null);
-  const shiftsAfter = run.shiftsThisRound - run.shift;
-  const needed = run.target - run.sales;
-  // A parked Design takes its slot all round; past this many, the Line can't both make and ship.
-  const maxDesigns = cardSlots(run) - MAKE_AND_SHIP_SLOTS;
+  const plan = planAssignment(loadProblem(run, options));
+  return [...plan.assign].map(([slot, hand]) => ({ hand, slot }));
+}
+
+/** The run's current Shift as a `LoadProblem`. */
+export function loadProblem(run: ThroughputRun, options: PlanOptions): LoadProblem {
+  return {
+    base: run.line.map((s) => ({ fixture: s.fixture, card: s.card?.card ?? null })),
+    hand: run.hand,
+    open: run.hand.length === 0 ? [] : run.line.map((_, i) => i).filter((i) => run.whyCannotLoad([{ hand: 0, slot: i }]) === null),
+    ctx: run.shiftContext(),
+    needed: run.target - run.sales,
+    shiftsAfter: run.shiftsThisRound - run.shift,
+    // A parked Design takes its slot all round; past this many, the Line can't both make and ship.
+    maxDesigns: cardSlots(run) - MAKE_AND_SHIP_SLOTS,
+    designPersistence: options.designPersistence,
+    ...(options.bias === undefined ? {} : { bias: (card: Card, slot: number) => options.bias?.(card, slot, run) ?? 0 }),
+  };
+}
+
+/**
+ * Solves a `LoadProblem` (see `planLoad`). `quick` climbs only from the best canonical fill (about
+ * half the work), for callers that value many hypothetical hands.
+ */
+export function planAssignment(problem: LoadProblem, quick = false): LoadPlan {
+  const { base, hand, open, ctx, needed, shiftsAfter, maxDesigns } = problem;
   const parkedDesigns = base.filter((slot) => slot.card?.def.stage === 'design').length;
 
-  const value = (assign: ReadonlyMap<number, number>): number => {
+  const score = (assign: ReadonlyMap<number, number>): { total: number; value: number } => {
     const line = base.map((slot, i) => {
-      const hand = assign.get(i);
-      return hand === undefined ? slot : { fixture: slot.fixture, card: run.hand[hand] as Card };
+      const index = assign.get(i);
+      return index === undefined ? slot : { fixture: slot.fixture, card: hand[index] as Card };
     });
     const total = scoreLine(line, ctx, { trace: false }).total;
     let designs = parkedDesigns;
-    for (const hand of assign.values()) if (run.hand[hand]?.def.stage === 'design') designs++;
+    for (const index of assign.values()) if (hand[index]?.def.stage === 'design') designs++;
     const persists = total < needed && designs <= maxDesigns;
     let bonus = 0;
-    for (const [slot, hand] of assign) {
-      const card = run.hand[hand] as Card;
-      bonus += options.bias?.(card, slot, run) ?? 0;
-      if (card.def.stage === 'design' && persists) bonus += futureDesignValue(card) * options.designPersistence * shiftsAfter;
+    for (const [slot, index] of assign) {
+      const card = hand[index] as Card;
+      bonus += problem.bias?.(card, slot) ?? 0;
+      if (card.def.stage === 'design' && persists) bonus += futureDesignValue(card) * problem.designPersistence * shiftsAfter;
     }
-    return total + bonus;
+    return { total, value: total + bonus };
   };
 
-  const climb = (start: Map<number, number>): { assign: Map<number, number>; value: number } => {
-    let current = { assign: start, value: value(start) };
+  const climb = (start: Map<number, number>): { assign: Map<number, number>; total: number; value: number } => {
+    let current = { assign: start, ...score(start) };
     for (let step = 0; step < 40; step++) {
-      let next: { assign: Map<number, number>; value: number } | null = null;
-      for (const candidate of neighbours(current.assign, open, run.hand.length)) {
-        const v = value(candidate);
-        if (v > current.value + 1e-9 && (next === null || v > next.value)) next = { assign: candidate, value: v };
+      let next: { assign: Map<number, number>; total: number; value: number } | null = null;
+      for (const candidate of neighbours(current.assign, open, hand.length)) {
+        const s = score(candidate);
+        if (s.value > current.value + 1e-9 && (next === null || s.value > next.value)) next = { assign: candidate, ...s };
       }
       if (next === null) break;
       current = next;
@@ -93,18 +137,17 @@ export function planLoad(run: ThroughputRun, options: PlanOptions): Placement[] 
   // Two starts: empty, and the best canonical Designs → Makes → Ships fill. One-move climbs from
   // empty stall when a lone Make loses money (JIT Auditor) and a lone Ship has nothing to sell.
   let canonical: { assign: Map<number, number>; value: number } | null = null;
-  for (const start of canonicalStarts(run, open)) {
-    const v = value(start);
+  for (const start of canonicalStarts(hand, open)) {
+    const v = score(start).value;
     if (canonical === null || v > canonical.value) canonical = { assign: start, value: v };
   }
-  const results = [climb(new Map()), ...(canonical === null ? [] : [climb(canonical.assign)])];
-  const best = results.reduce((a, b) => (b.value > a.value ? b : a));
-  return [...best.assign].map(([slot, hand]) => ({ hand, slot }));
+  const results = quick && canonical !== null ? [climb(canonical.assign)] : [climb(new Map()), ...(canonical === null ? [] : [climb(canonical.assign)])];
+  return results.reduce((a, b) => (b.value > a.value ? b : a));
 }
 
 /** Fills open slots left to right with d Designs, then m Makes, then s Ships, for every count mix. */
-function* canonicalStarts(run: ThroughputRun, open: readonly number[]): Generator<Map<number, number>> {
-  const byStage = (stage: Stage) => run.hand.map((c, i) => (c.def.stage === stage ? i : -1)).filter((i) => i >= 0);
+function* canonicalStarts(hand: readonly Card[], open: readonly number[]): Generator<Map<number, number>> {
+  const byStage = (stage: Stage) => hand.map((c, i) => (c.def.stage === stage ? i : -1)).filter((i) => i >= 0);
   const [designs, makes, ships] = [byStage('design'), byStage('make'), byStage('ship')];
   for (let d = 0; d <= designs.length; d++) {
     for (let m = 1; m <= makes.length; m++) {
