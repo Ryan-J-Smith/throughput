@@ -38,6 +38,7 @@ describe('THROUGHPUT browser screen', () => {
     expect(html).toContain('draw back up to 8');
     expect(html).not.toContain('refilled from your discards');
     expect(html).toContain('or drag it onto a bay, or double-click it to fill the first empty bay');
+    expect(html).toContain('to win, then keep going if you like: targets keep climbing until you miss one.');
     expect(html).toContain(`<li data-step="keys"><strong>Keys.</strong> ${KEYS_HINT}</li></ol>`);
   });
 
@@ -298,14 +299,15 @@ describe('THROUGHPUT browser screen', () => {
     expect(renderToStaticMarkup(<MarketBoard run={run} preview={emerging} />)).toContain('this Shift grows Demand +10 next round');
   });
 
-  it('the last round shows no Demand growth "from next round"', () => {
+  it('the last planned round shows Demand growth as counting only if you keep going', () => {
     const last = new ThroughputRun(1, easyConfig({ targets: [100_000] }));
     const notLast = new ThroughputRun(1, easyConfig({ targets: [100_000, 100_000] }));
     const preview = { ...last.preview(), demandSold: { Home: 5 }, demandGrowth: { Home: 10 }, soldOut: ['Home'] as Category[] };
     expect(demandUseText(preview, notLast)).toBe('Home 5 (sells out: +10 from next round)');
-    expect(demandUseText(preview, last)).toBe('Home 5');
-    expect(demandViews(last, preview).find((v) => v.category === 'Home')).toMatchObject({ earned: 0, wouldEarn: 0, sellsOut: true });
-    expect(demandViews(notLast, preview).find((v) => v.category === 'Home')?.wouldEarn).toBe(10);
+    expect(demandUseText(preview, last)).toBe('Home 5 (sells out: +10 from next round if you keep going)');
+    expect(demandViews(last, preview).find((v) => v.category === 'Home')).toMatchObject({ wouldEarn: 10, sellsOut: true, ifKeepGoing: true });
+    expect(demandViews(notLast, preview).find((v) => v.category === 'Home')).toMatchObject({ wouldEarn: 10, ifKeepGoing: false });
+    expect(renderToStaticMarkup(<MarketBoard run={last} preview={preview} />)).toContain('this Shift sells it out, growing Demand +10 next round if you keep going');
 
     // Both causes at once are split, so a sell-out's share can be checked.
     const emerging = notLast.config.demand.emergingGrowth;

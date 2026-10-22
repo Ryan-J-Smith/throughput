@@ -10,7 +10,7 @@ import type { ThroughputAction } from './actions';
 
 type BuyAction = Extract<ThroughputAction, { verb: 'buy' }>;
 import { rulesText } from './rules-text';
-import { deckText, demandUseText, formatView, grownText, legalActions, movesText, quarterLabel, stateData, traceLines } from './text-view';
+import { deckText, demandUseText, endlessNote, formatView, grownText, legalActions, movesText, quarterLabel, stateData, traceLines } from './text-view';
 
 /** THROUGHPUT for the text CLI: `npm run -s cli -- new --game throughput --seed N --save FILE`. */
 export class ThroughputTextGame extends ReplayTextGame<ThroughputRun> {
@@ -106,6 +106,8 @@ function whyCannot(run: ThroughputRun, action: ThroughputAction): string | null 
       return run.whyCannotReroll();
     case 'continue':
       return run.whyCannotContinue();
+    case 'keep going':
+      return run.whyCannotKeepGoing();
     case 'rules':
     case 'deck':
       return null;
@@ -177,6 +179,13 @@ function apply(run: ThroughputRun, action: ThroughputAction): string[] {
     case 'continue':
       run.continueToNextRound();
       return [`${quarterLabel(run, run.round)} begins: target $${run.target}.`, ...movesLog(run)];
+    case 'keep going': {
+      run.keepGoing();
+      const next = run.round + 1;
+      return [
+        `You keep going past the win. After this shop comes ${quarterLabel(run, next)} (target $${run.targetFor(next)}); targets keep climbing ×${run.config.endlessGrowth} a round, a Board Review still ends every Year, and the run ends at the first missed target.`,
+      ];
+    }
     case 'rules':
       return [rulesText(run.config)];
     case 'deck':
@@ -204,10 +213,10 @@ function runLog(run: ThroughputRun): string[] {
       lines.push(`Target hit! ${quarterLabel(run, round)} cleared. Payout: ${(run.lastPayout ?? []).map((l) => `${l.source} ${l.amount}C`).join(', ')}.`);
       break;
     case 'won':
-      lines.push('Target hit on the final round. You win!');
+      lines.push('Target hit on the final round. You win! "keep going" plays on past it.');
       break;
     case 'lost':
-      lines.push('Missed the target after the last Shift. The run is over.');
+      lines.push(`Missed the target after the last Shift. The run is over${endlessNote(run)}.`);
       break;
     case 'shift': {
       const drawn = drawnText(run, before);

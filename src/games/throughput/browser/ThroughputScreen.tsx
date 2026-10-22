@@ -112,7 +112,8 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
     action();
     if (entry.verb === 'load') sound.play('load');
     if (entry.verb === 'buy') sound.play('buy');
-    if (run.phase === 'won' || run.phase === 'lost') autosave.clear();
+    // A won run stays saved: it can still keep going (endless). A lost one is over.
+    if (run.phase === 'lost') autosave.clear();
     else autosave.record(entry);
     // Doing what a tip explains retires it.
     if (entry.verb === 'load') tips.finish('load');
@@ -132,8 +133,20 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
     setReveal(null);
   };
 
+  const keepGoing = () => {
+    attempt(run.whyCannotKeepGoing(), { verb: 'keep going' }, () => run.keepGoing());
+    if (!run.endless) return;
+    // The summary's buttons sit below its build; the shop starts at the top.
+    window.scrollTo?.({ top: 0 });
+    const next = run.round + 1;
+    notify(
+      'info',
+      `Endless: targets climb ×${run.config.endlessGrowth} a round (Year ${run.quarterOf(next).year} Q1: $${run.targetFor(next)}). A Board still ends every Year; the first missed target ends the run.`,
+    );
+  };
+
   onKey.current = () => {};
-  if (run.phase === 'won' || run.phase === 'lost') return <RunSummaryView run={run} onNewRun={newRun} onQuit={onQuit} />;
+  if (run.phase === 'won' || run.phase === 'lost') return <RunSummaryView run={run} onNewRun={newRun} onQuit={onQuit} {...(run.canKeepGoing ? { onKeepGoing: keepGoing } : {})} />;
 
   const handIndex = (uid: number) => run.hand.findIndex((c) => c.uid === uid);
   /** Picks up (or puts down) a card, offer or Fixture. */
@@ -364,6 +377,7 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
       className={`screen screen--tp ${inShift ? 'screen--tp-shift' : 'screen--tp-shop'}`}
       data-year={run.quarter.year}
       data-board={run.quarter.isBoard || undefined}
+      data-endless={run.endless || undefined}
       data-replay={replay !== null || undefined}
       onClickCapture={replay !== null ? tapDuringReplay : undefined}
     >

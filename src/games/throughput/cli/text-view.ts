@@ -216,9 +216,15 @@ export function legalActions(run: ThroughputRun): string[] {
       out.push(`move <from> <to> — move a Fixture for ${run.config.moveCost}C, swapping with any Fixture there (Fixtures in ${list(movable)})`);
     }
     if (run.whyCannotReroll() === null) out.push(`reroll — new offers for ${run.rerollCost}C (${interestTrade(run, run.rerollCost)})`);
-    out.push(`continue — start ${quarterLabel(run, run.round + 1)} (round ${run.round + 1}, target $${run.config.targets[run.round] ?? 0})`);
+    out.push(`continue — start ${quarterLabel(run, run.round + 1)} (round ${run.round + 1}, target $${run.targetFor(run.round + 1)})`);
   }
   if (run.phase === 'shift' || run.phase === 'shop') out.push('deck — list your cards and what is left to draw (free)');
+  if (run.canKeepGoing) {
+    const next = run.round + 1;
+    out.push(
+      `keep going — play on past the win: a shop, then ${quarterLabel(run, next)} (round ${next}, target $${run.targetFor(next)}); targets climb ×${run.config.endlessGrowth} a round and the run ends at the first missed target`,
+    );
+  }
   out.push('rules — show the full rules (free)');
   return out;
 }
@@ -254,7 +260,7 @@ export function perksText(run: ThroughputRun): string {
 
 export function formatView(run: ThroughputRun, context: ViewContext): string {
   const lines = [`THROUGHPUT · seed ${context.seed} · ${context.actionsTaken} actions`];
-  const where = `${quarterLabel(run, run.round)} (round ${run.round} of ${run.rounds})`;
+  const where = `${quarterLabel(run, run.round)} (${roundOf(run, run.round)})`;
   switch (run.phase) {
     case 'shift':
       lines.push(
@@ -281,7 +287,7 @@ export function formatView(run: ThroughputRun, context: ViewContext): string {
       lines.push(`YOU WON: cleared all ${run.rounds} rounds. Final Capital ${run.wallet.cash}C.`);
       break;
     case 'lost':
-      lines.push(`RUN OVER: ${where} ended with Sales $${run.sales} of $${run.target}.`);
+      lines.push(`RUN OVER: ${where} ended with Sales $${run.sales} of $${run.target}${endlessNote(run)}.`);
       break;
   }
   if (run.phase === 'won' || run.phase === 'lost') {
@@ -344,7 +350,7 @@ function nextBoardLayout(run: ThroughputRun): string[] {
 function marketLines(run: ThroughputRun): string[] {
   const first = run.phase === 'shop' ? run.round + 1 : run.round;
   const lines = [`Market (${run.phase === 'shop' ? 'next round' : 'this round'} and the 3 after):`];
-  for (let round = first; round < first + 4 && round <= run.rounds; round++) {
+  for (let round = first; round < first + 4 && round <= run.lastPlannedRound; round++) {
     const trends = run.trends[round - 1];
     if (trends === undefined) continue;
     const now = round === run.round && run.phase === 'shift';
@@ -371,12 +377,12 @@ function demandLine(run: ThroughputRun): string {
     const saturated = (shop ? run.trends[next - 1]?.[c] : run.trendsNow[c]) === 'saturated';
     if (saturated) notes.push(shop ? `Saturated: halved from ${run.demand[c]}` : 'Saturated: halved');
     const boss = run.bossOf(shop ? next : run.round);
-    if (boss != null && boss.demandMul() !== 1 && (shop ? next : run.round) <= run.rounds) notes.push(`${boss.name} ×${formatAmount(boss.demandMul())}`);
-    if (!shop && run.demandEarned[c] > 0 && run.round < run.rounds) notes.push(`+${run.demandEarned[c]} from next round`);
+    if (boss != null && boss.demandMul() !== 1 && (shop ? next : run.round) <= run.lastPlannedRound) notes.push(`${boss.name} ×${formatAmount(boss.demandMul())}`);
+    if (!shop && run.demandEarned[c] > 0) notes.push(`+${run.demandEarned[c]} ${fromNextRound(run)}`);
     if (scale > 0) notes.push(`Scale ${scale}`);
     const pricier = premium > 0 ? `, sells +${Math.round(100 * run.config.grant.premiumStep * premium)}% (Premium ${premium})` : '';
     const amount = shop
-      ? String(next <= run.rounds ? run.demandIn(next, c) : run.demand[c])
+      ? String(next <= run.lastPlannedRound ? run.demandIn(next, c) : run.demand[c])
       : run.demandLeft[c] === 0
         ? 'sold out'
         : `${run.demandLeft[c]} of ${run.roundDemand[c]}`;
@@ -388,20 +394,37 @@ function demandLine(run: ThroughputRun): string {
 /**
  * What `result` (a Shift of `run`'s current round) sells into Demand and the Demand it grows, e.g.
  * "Home 12 (sells out: +10 from next round)", or with both causes "Home 12 (+20 from next round:
- * sell-out +10, Emerging +10)". The last round grows nothing that counts, so it isn't mentioned.
+ * sell-out +10, Emerging +10)". In the last planned round growth counts only if you keep going, so
+ * it says "from next round if you keep going".
  */
 export function demandUseText(result: ShiftResult, run: ThroughputRun): string {
-  const growsNext = run.round < run.rounds;
+  const from = fromNextRound(run);
   return CATEGORIES.flatMap((c) => {
     const sold = result.demandSold[c] ?? 0;
-    const grows = growsNext ? (result.demandGrowth[c] ?? 0) : 0;
+    const grows = result.demandGrowth[c] ?? 0;
     if (sold === 0 && grows === 0) return [];
     if (grows === 0) return [`${c} ${sold}`];
     const emerging = result.emergingSold.includes(c) ? run.config.demand.emergingGrowth : 0;
     const sellOut = grows - emerging;
-    if (sellOut > 0 && emerging > 0) return [`${c} ${sold} (+${grows} from next round: sell-out +${sellOut}, Emerging +${emerging})`];
-    return [`${c} ${sold} (${sellOut > 0 ? 'sells out' : 'Emerging sale'}: +${grows} from next round)`];
+    if (sellOut > 0 && emerging > 0) return [`${c} ${sold} (+${grows} ${from}: sell-out +${sellOut}, Emerging +${emerging})`];
+    return [`${c} ${sold} (${sellOut > 0 ? 'sells out' : 'Emerging sale'}: +${grows} ${from})`];
   }).join(', ');
+}
+
+/** "from next round", or in the last planned round (before keeping going) "from next round if you keep going". */
+export function fromNextRound(run: ThroughputRun): string {
+  return run.round >= run.lastPlannedRound ? 'from next round if you keep going' : 'from next round';
+}
+
+/** "round 3 of 12", or once the run keeps going past its win "round 14; endless, won at round 12". */
+export function roundOf(run: ThroughputRun, round: number): string {
+  return run.endless ? `round ${round}; endless, won at round ${run.wonAtRound ?? run.rounds}` : `round ${round} of ${run.rounds}`;
+}
+
+/** For a run that kept going and then lost: ", after winning at round 12 (Y4 Board) and reaching Y5 Q2"; else ''. */
+export function endlessNote(run: ThroughputRun): string {
+  if (!run.endless || run.wonAtRound === null) return '';
+  return `, after winning at round ${run.wonAtRound} (${quarterLabel(run, run.wonAtRound)}) and reaching ${quarterLabel(run, run.round)}`;
 }
 
 /**
@@ -467,6 +490,8 @@ export function stateData(run: ThroughputRun, context: ViewContext): Record<stri
     phase: run.phase,
     round: run.round,
     rounds: run.rounds,
+    endless: run.endless,
+    wonAtRound: run.wonAtRound,
     quarter: quarterLabel(run, run.round),
     target: run.target,
     sales: run.sales,

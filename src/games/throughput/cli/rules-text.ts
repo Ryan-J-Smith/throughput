@@ -81,6 +81,7 @@ GOAL
   You have up to ${c.shiftsPerRound} Shifts to reach it. Miss it after Shift ${c.shiftsPerRound} and the run is over; clear the
   last Board Review to win.
   Targets: ${targets}.
+  ${wrap(`After the win you can keep going (endless): the shop, then Year ${years + 1} and on. Targets keep climbing ×${c.endlessGrowth} a round (rounded to $10), a Board Review still ends every Year, and the first missed target ends the run.`, '  ')}
 
 CARDS
   Every card has a type (Design, Make or Ship) and a Category (Apparel A, Gadgets G, Home H,
