@@ -1,7 +1,9 @@
+import { useRef } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { Icon } from '../icons';
 import type { CardView, Rarity } from '../types';
 import { Tooltip } from './Tooltip';
+import { useFitText } from './useFitText';
 
 export type CardProps = {
   card: CardView;
@@ -19,6 +21,8 @@ export type CardProps = {
  * A card printed like product packaging: a department band (first tag, coloured by `accent`),
  * the name, the value as a big model number, the blurb, and remaining tags as stamps. With art
  * (or an icon) the box gets a window under the band and the value sits on it as a sticker.
+ * Where the CSS gives the card a fixed template, the title and blurb step their type down to fit
+ * their boxes and, failing that, clamp with the full text in a tooltip (see useFitText).
  */
 export function Card({ card, selected = false, disabled = false, compact = false, rarity, index, onClick, footer }: CardProps) {
   const isDisabled = disabled || card.disabled === true;
@@ -35,6 +39,10 @@ export function Card({ card, selected = false, disabled = false, compact = false
     .filter(Boolean)
     .join(' ');
   const [department, ...stamps] = card.tags;
+  const titleRef = useRef<HTMLDivElement>(null);
+  const descRef = useRef<HTMLParagraphElement>(null);
+  useFitText(titleRef, card.title, 3);
+  useFitText(descRef, card.description, 2);
   const style = index === undefined ? undefined : ({ '--i': index } as CSSProperties);
 
   const valueText = card.valueLabel ?? (card.value !== undefined ? `+${card.value}` : undefined);
@@ -59,9 +67,13 @@ export function Card({ card, selected = false, disabled = false, compact = false
           {value}
         </div>
       )}
-      <div className="card__title">{card.title}</div>
+      <div className="card__title" ref={titleRef}>
+        {card.title}
+      </div>
       {!windowed && value}
-      <p className="card__desc">{card.description}</p>
+      <p className="card__desc" ref={descRef}>
+        {card.description}
+      </p>
       {stamps.length > 0 && (
         <ul className="card__tags">
           {stamps.map((tag) => (
