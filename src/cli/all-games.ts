@@ -1,5 +1,6 @@
 import { defaultBomConfig } from '../games/bom/content';
 import { BomTextGame } from '../games/bom/text';
+import { ThroughputTextGame } from '../games/throughput/cli';
 import { GenericRenderer } from '../play/render';
 import { PlayableGame } from '../play/session';
 import type { TextGame } from '../play/session';
@@ -10,4 +11,5 @@ import type { DemoCard } from '../sim/demo';
 export const ALL_GAMES: readonly TextGame[] = [
   new PlayableGame<DemoCard>({ name: 'demo', createRun: demoRun, renderer: new GenericRenderer() }),
   new BomTextGame('bom', defaultBomConfig),
+  new ThroughputTextGame(),
 ];
