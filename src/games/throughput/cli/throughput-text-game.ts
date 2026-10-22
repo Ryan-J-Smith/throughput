@@ -211,7 +211,7 @@ function runLog(run: ThroughputRun): string[] {
       break;
     case 'shift': {
       const drawn = drawnText(run, before);
-      lines.push(`Make and Ship cards dispatched${run.boss?.designsStay() === false ? ' (Turnover: Designs too)' : '; Designs stay'}.`);
+      lines.push(`Make and Ship cards used up${run.boss?.designsStay() === false ? ' (Turnover: Designs too)' : '; Designs stay'}.`);
       lines.push(...restockLog(run, restocked));
       lines.push(drawn === '' ? `Drew nothing (the draw pile is empty); ${run.hand.length} cards in hand.` : `Drew ${drawn}.`);
       lines.push(...movesLog(run));

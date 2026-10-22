@@ -118,11 +118,11 @@ describe('ThroughputTextGame', () => {
     expect(big.show(play(big, 1, [`load ${numberOf(hand, 'make')}:1 ${numberOf(hand, 'ship')}:2`])).text).toContain(`  This Shift clears the target, +${DEFAULT_CONFIG.overkill.cap}C overkill (140% over).`);
   });
 
-  it('marks what stays on the Line after the run', () => {
+  it('marks what stays on the Line for later Shifts and what this Shift uses up', () => {
     const hand = handOf(game, game.newSave(1));
     const view = game.show(play(game, 1, [`load ${numberOf(hand, 'design')}:1 ${numberOf(hand, 'make')}:2`])).text;
-    expect(view).toMatch(/1\. no Fixture \| Sketch-\w · .* \[loaded this Shift; stays after the run\]/);
-    expect(view).toMatch(/2\. no Fixture \| Workshop-\w · .* \[loaded this Shift; dispatched after the run\]/);
+    expect(view).toMatch(/1\. no Fixture \| Sketch-\w · .* \[loaded this Shift; stays for later Shifts\]/);
+    expect(view).toMatch(/2\. no Fixture \| Workshop-\w · .* \[loaded this Shift; used up this Shift\]/);
   });
 
   it('Line Shift: the shop shows the Shift 1 and Shift 2 layouts, the log and state list each move, and parked cards can be unloaded', () => {
@@ -154,7 +154,7 @@ describe('ThroughputTextGame', () => {
     const design = shift1.find((c) => c.stage === 'design');
     if (design === undefined) throw new Error('no Design in the Line Shift opening hand');
     const parked = ok(shiftGame.take(ok(shiftGame.take(next.save, `load ${design.n}:4`)).save, 'run'));
-    expect(parked.view.text).toContain('[parked since Shift 1; stays after the run; Line Shift lets you unload it]');
+    expect(parked.view.text).toContain('[parked since Shift 1; stays for later Shifts; Line Shift lets you unload it]');
     expect(parked.view.legalActions).toContain('unload <slot> … — take back cards loaded this Shift, or parked ones (Line Shift) (slots 4)');
     expect(ok(shiftGame.take(parked.save, 'unload 4')).log).toEqual([`Back in hand: ${design.name}.`]);
   });
@@ -261,10 +261,11 @@ describe('brick hands', () => {
     expect(formatView(run, { game: 'throughput', seed: 1, actionsTaken: 0 })).toContain(`Draw pile ${run.drawPile.length} (${ships} Ship${ships === 1 ? '' : 's'}) · Discard pile 0`);
   });
 
-  it('with no Ship on the Line, the preview says what the Shift still earns', () => {
+  it('with cards but no Ship on the Line, the preview says what the Shift still earns', () => {
     const run = new ThroughputRun(1, easyConfig());
     const note = 'No Ship on the Line, so nothing sells: each Unit left at the end of the Shift clears for $1.';
-    expect(noShipNote(run)).toBe(note);
+    // An empty Line at the start of a Shift needs no warning.
+    expect(noShipNote(run)).toBeNull();
     run.load([{ hand: run.hand.findIndex((c) => c.def.stage === 'make'), slot: 0 }]);
     expect(noShipNote(run)).toBe(note);
     expect(formatView(run, { game: 'throughput', seed: 1, actionsTaken: 1 })).toContain(`Shift total $${run.preview().total}.\n  ${note}`);
@@ -276,7 +277,9 @@ describe('brick hands', () => {
     const config = easyConfig({ roundsPerYear: 1, targets: [10_000] });
     const seed = Array.from({ length: 400 }, (_, i) => i + 1).find((x) => new ThroughputRun(x, config).boardBosses[0]?.id === 'jit-auditor');
     if (seed === undefined) throw new Error('no seed with JIT Auditor first');
-    expect(noShipNote(new ThroughputRun(seed, config))).toBe('No Ship on the Line, so nothing sells, and under JIT Auditor each Unit left at the end costs $2.');
+    const run = new ThroughputRun(seed, config);
+    run.load([{ hand: run.hand.findIndex((c) => c.def.stage !== 'ship'), slot: 0 }]);
+    expect(noShipNote(run)).toBe('No Ship on the Line, so nothing sells, and under JIT Auditor each Unit left at the end costs $2.');
   });
 });
 

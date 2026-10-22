@@ -1078,7 +1078,7 @@ body:has(.screen--tp-shop[data-year])::before {
   content: none;
 }
 
-.screen--tp-shop > .tp-payout .tp-payout__notice {
+.screen--tp-shop > .tp-payout :is(.tp-payout__notice, .tp-payout__next) {
   flex-basis: 100%;
 }
 
@@ -1660,6 +1660,35 @@ body:has(.screen--tp-shop[data-year])::before {
   font-size: var(--text-sm);
   font-weight: 600;
   color: var(--chalk-dim);
+}
+
+/* Next round is a Board Review: its gist in the boss red of the HUD banner, the full rule on hover. */
+.tp-payout__next {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 6px 12px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--print);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--stamp-red) 24%, transparent), color-mix(in srgb, var(--stamp-red) 4%, transparent) 70%);
+  border: 1px solid color-mix(in srgb, var(--stamp-red) 40%, transparent);
+  border-radius: var(--radius-button);
+  cursor: help;
+}
+
+.tp-payout__next-art {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.tp-payout__next-label {
+  font-weight: 700;
+  color: var(--stamp-red);
 }
 
 .tp-fixture-bar {

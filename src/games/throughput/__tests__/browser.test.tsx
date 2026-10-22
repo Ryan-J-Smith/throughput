@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { GrantPicker, HowToPlay, KEYS_HINT, LineView, MarketBoard, Shelf, ThroughputBrowserGame, ThroughputScreen, TpHud, TraceReceipt, cardView, demandBossCut, demandViews, fixtureView, lineNotice, overkillHelp, plateText } from '../browser';
+import { GrantPicker, HowToPlay, KEYS_HINT, LineView, MarketBoard, PayoutSlip, Shelf, ThroughputBrowserGame, ThroughputScreen, TpHud, TraceReceipt, cardView, demandBossCut, demandViews, fixtureView, lineNotice, nextBoardNotice, overkillHelp, plateText } from '../browser';
 import { cardText, demandUseText, grownText } from '../cli';
 import { DEFAULT_CONFIG, REBRAND, SKETCH, TRUCK, WORKSHOP } from '../content';
 import type { BayState } from '../browser';
@@ -352,6 +352,24 @@ describe('THROUGHPUT browser screen', () => {
     expect(html).toContain(`aria-label="Scrap ${name} from bay 1" title="Discard this parked card to free the bay. It goes to your discard pile, not out of your deck."`);
   });
 
+  it('the shop says when the next round is a Board Review: its gist, with the full rule on hover', () => {
+    const config = easyConfig({ roundsPerYear: 3, targets: [0, 0, 10_000], startingCapital: 100 });
+    const run = new ThroughputRun(1, config);
+    const boss = run.bossOf(3);
+    if (boss === null) throw new Error('no Board in round 3');
+    expect(nextBoardNotice(run)).toBeNull();
+    run.runShift();
+    // Shopping before Q2: no Board next, so no notice.
+    expect(nextBoardNotice(run)).toBeNull();
+    expect(renderToStaticMarkup(<PayoutSlip run={run} />)).not.toContain('tp-payout__next');
+    run.continueToNextRound();
+    run.runShift();
+    expect(nextBoardNotice(run)).toEqual({ boss, text: `Y1 Board Review · ${boss.name}: ${boss.short}`, help: `${boss.name}: ${boss.text}` });
+    const slip = renderToStaticMarkup(<PayoutSlip run={run} />);
+    expect(slip).toContain(`<p class="tp-payout__next" data-boss="${boss.id}" title="${boss.name}: ${boss.text.replace(/'/g, '&#x27;')}">`);
+    expect(slip).toContain(`<span class="tp-payout__next-label">Next round:</span> Y1 Board Review · ${boss.name}: ${boss.short}</p>`);
+  });
+
   it('Line Shift: the shop warns before the Board, and each Shift shows which Fixtures moved', () => {
     const config = easyConfig({ roundsPerYear: 2, targets: [10, 10_000, 10, 10], startingCapital: 100 });
     let seed = 1;
@@ -363,7 +381,9 @@ describe('THROUGHPUT browser screen', () => {
     ]);
     run.runShift();
     const fixture = run.buy(0, { slot: 0 });
-    expect(renderLine(run)).toContain('Next round, Line Shift moves your Fixtures one bay right before each Shift from Shift 2 on.');
+    // The shop's warning is the general Board notice; the Line itself says nothing until the round.
+    expect(nextBoardNotice(run)?.text).toBe('Y1 Board Review · Line Shift: Fixtures drift right');
+    expect(lineNotice(run)).toBeNull();
     run.continueToNextRound();
     expect(lineNotice(run)).toBe('Line Shift: from Shift 2, your Fixtures move one bay right before each Shift. Tap a parked card to take it back to your hand.');
     run.load([{ hand: handIndex(run, run.hand.some((c) => c.def.stage === 'design') ? 'design' : 'make'), slot: 2 }]);

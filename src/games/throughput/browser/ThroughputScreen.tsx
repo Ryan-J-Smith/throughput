@@ -402,7 +402,8 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
       {inShift && preview !== null && (
         <div className="tp-desk">
           <section className="hand tp-hand" aria-label="Hand">
-            <p className="tp-hint">{shiftHint(run, mode)}</p>
+            {/* The load tip says what the idle hint would, at more length; a picked card's hint still shows. */}
+            {!(tip === 'load' && mode.kind === 'idle') && <p className="tp-hint">{shiftHint(run, mode)}</p>}
             {tipFor('load')}
             <div className="hand__cards">
               {run.hand.map((card, i) => {

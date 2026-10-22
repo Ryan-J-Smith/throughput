@@ -6,13 +6,16 @@ import { interestTrade, rulesText } from '../cli';
 import { CATEGORIES, cardName, formatAmount } from '../model';
 import type { Category, GrantOption } from '../model';
 import type { Offer, ThroughputRun } from '../rules';
-import { CATEGORY_ACCENT, cardView, offerView } from './present';
+import { bossArt } from './art';
+import { CATEGORY_ACCENT, cardView, nextBoardNotice, offerView } from './present';
 import './demand.css';
 
-/** The payout for the round just cleared, as a remittance slip. */
+/** The payout for the round just cleared, as a remittance slip, and a heads-up if a Board Review is next. */
 export function PayoutSlip({ run }: { run: ThroughputRun }) {
   const q = run.quarter;
   const lines = run.lastPayout ?? [];
+  const next = nextBoardNotice(run);
+  const art = next === null ? undefined : bossArt(next.boss.id);
   return (
     <section className="summary tp-payout" aria-label="Payout">
       <h2 className="summary__heading">{q.isBoard ? `Year ${q.year} Board Review passed` : `Y${q.year} Q${q.quarter} closed`}</h2>
@@ -25,6 +28,12 @@ export function PayoutSlip({ run }: { run: ThroughputRun }) {
         ))}
       </ul>
       {run.storageNotice !== null && <p className="tp-payout__notice">{run.storageNotice}</p>}
+      {next !== null && (
+        <p className="tp-payout__next" data-boss={next.boss.id} title={next.help}>
+          {art !== undefined && <img className="tp-payout__next-art" src={art} alt="" loading="lazy" />}
+          <span className="tp-payout__next-label">Next round:</span> {next.text}
+        </p>
+      )}
     </section>
   );
 }

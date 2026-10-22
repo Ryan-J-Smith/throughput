@@ -214,14 +214,14 @@ function restockText(run: ThroughputRun): string {
   return ` · Restocked ${run.restocked} cards (no Restock left)`;
 }
 
-/** What happens to the card in a Line slot after the run, for the Line listing. */
+/** What happens to the card in a Line slot when the Shift runs, for the Line listing (worded as in the browser). */
 function lineCardNote(run: ThroughputRun, slot: number): string {
   const held = run.line[slot]?.card;
   if (held == null) return '';
   const parked = held.loadedShift < run.shift;
   const since = parked ? `parked since Shift ${held.loadedShift}` : 'loaded this Shift';
   const recall = parked && run.whyCannotUnload([slot]) === null ? `; ${run.boss?.name ?? 'the boss'} lets you unload it` : '';
-  return `[${since}; ${run.staysAfterShift(slot) ? 'stays after the run' : 'dispatched after the run'}${recall}]`;
+  return `[${since}; ${run.staysAfterShift(slot) ? 'stays for later Shifts' : 'used up this Shift'}${recall}]`;
 }
 
 /** Run-long perks from Contracts, e.g. "Perks: +1 Hot pip a round, +1 Retool a round, +1C a round", or '' if none. */
@@ -397,11 +397,13 @@ export function shipsToDraw(run: ThroughputRun): number {
 }
 
 /**
- * When no Ship card is on the Line (outside a welded slot), what the Shift still earns, so a $0
- * preview isn't a mystery: its leftover Units at the overstock value. Null if a Ship is loaded.
+ * When the Line holds cards but no Ship (outside a welded slot), what the Shift still earns, so a
+ * $0 preview isn't a mystery: its leftover Units at the overstock value. Null if a Ship is loaded,
+ * or if nothing is loaded yet (an empty Line at the start of a Shift needs no warning).
  */
 export function noShipNote(run: ThroughputRun): string | null {
-  if (run.phase !== 'shift' || run.line.some((slot, i) => slot.card?.card.def.stage === 'ship' && !run.isWelded(i))) return null;
+  if (run.phase !== 'shift' || run.line.every((slot) => slot.card == null)) return null;
+  if (run.line.some((slot, i) => slot.card?.card.def.stage === 'ship' && !run.isWelded(i))) return null;
   const value = run.boss?.overstockValue(run.config.overstockValue) ?? run.config.overstockValue;
   return value >= 0
     ? `No Ship on the Line, so nothing sells: each Unit left at the end of the Shift clears for $${value}.`

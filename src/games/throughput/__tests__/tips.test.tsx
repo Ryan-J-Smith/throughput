@@ -60,10 +60,13 @@ describe('THROUGHPUT first-run tips', () => {
     const fresh = renderToStaticMarkup(<ThroughputScreen seed={1} onQuit={() => {}} store={new MemoryStore()} resume={false} />);
     expect(fresh).toContain('data-tip="load"');
     expect(fresh).toContain('Turn off tips');
+    // The tip already says "tap a card, then a bay", so the hint line steps aside for it.
+    expect(fresh).not.toContain('class="tp-hint"');
 
     const store = new MemoryStore();
     new TipMemory(store).finishAll();
     const off = renderToStaticMarkup(<ThroughputScreen seed={1} onQuit={() => {}} store={store} resume={false} />);
     expect(off).not.toContain('tp-tip');
+    expect(off).toContain('<p class="tp-hint">Tap a card, then a bay. Tap a card you loaded to take it back.</p>');
   });
 });

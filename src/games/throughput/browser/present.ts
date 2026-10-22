@@ -2,7 +2,7 @@ import type { CardView } from '../../../ui/types';
 import { fixtureNow } from '../cli';
 import type { ThroughputConfig } from '../content';
 import { CATEGORIES, cardEffect, designAdd, formatAmount, growthText, makeUnits, shipCap } from '../model';
-import type { Card, CardDef, Category, Fixture, FixtureDef, Stage, TrendStage } from '../model';
+import type { BoardBoss, Card, CardDef, Category, Fixture, FixtureDef, Stage, TrendStage } from '../model';
 import type { Offer, ShiftResult, ThroughputRun } from '../rules';
 import { CATEGORY_ICON, cardArt, contractArt, fixtureArt } from './art';
 
@@ -80,21 +80,30 @@ export function plateText(fixture: Fixture): string {
 }
 
 /**
- * What a boss is doing to the Line's Fixtures, for a notice above the bays: the moves before this
- * Shift (or that they start next Shift), or in the shop a warning about next round's boss.
+ * What a boss is doing to the Line's Fixtures this round, for a notice above the bays: the moves
+ * before this Shift, or that they start next Shift. (The shop warns about next round's boss with
+ * nextBoardNotice instead.)
  */
 export function lineNotice(run: ThroughputRun): string | null {
   const recall = 'Tap a parked card to take it back to your hand.';
-  if (run.phase === 'shift') {
-    const boss = run.boss;
-    if (boss === null || !boss.movesFixtures()) return null;
-    if (run.fixtureMoves.length === 0) return `${boss.name}: from Shift 2, your Fixtures move one bay right before each Shift. ${boss.recallsParked() ? recall : ''}`.trim();
-    const moves = run.fixtureMoves.map((m) => `${m.fixture.def.name} ${m.from + 1}→${m.to + 1}`).join(', ');
-    return `${boss.name} moved your Fixtures before this Shift: ${moves}. Cards stay put. ${boss.recallsParked() ? recall : ''}`.trim();
-  }
-  const boss = run.phase === 'shop' ? run.bossOf(run.round + 1) : null;
+  if (run.phase !== 'shift') return null;
+  const boss = run.boss;
   if (boss === null || !boss.movesFixtures()) return null;
-  return `Next round, ${boss.name} moves your Fixtures one bay right before each Shift from Shift 2 on. Your layout comes back after the round.`;
+  if (run.fixtureMoves.length === 0) return `${boss.name}: from Shift 2, your Fixtures move one bay right before each Shift. ${boss.recallsParked() ? recall : ''}`.trim();
+  const moves = run.fixtureMoves.map((m) => `${m.fixture.def.name} ${m.from + 1}→${m.to + 1}`).join(', ');
+  return `${boss.name} moved your Fixtures before this Shift: ${moves}. Cards stay put. ${boss.recallsParked() ? recall : ''}`.trim();
+}
+
+/** The shop's heads-up when the next round is a Board Review: its gist to read, its full rule to hover. */
+export type NextBoardNotice = { readonly boss: BoardBoss; readonly text: string; readonly help: string };
+
+/** "Y1 Board Review · Short Week: Only 3 Shifts" while shopping before a Board Review; null otherwise. */
+export function nextBoardNotice(run: ThroughputRun): NextBoardNotice | null {
+  if (run.phase !== 'shop') return null;
+  const round = run.round + 1;
+  const boss = run.bossOf(round);
+  if (boss === null) return null;
+  return { boss, text: `Y${run.quarterOf(round).year} Board Review · ${boss.name}: ${boss.short}`, help: `${boss.name}: ${boss.text}` };
 }
 
 export function offerView(offer: Offer, id: string): CardView {

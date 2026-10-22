@@ -92,7 +92,7 @@ A SHIFT
   Unload takes back a card you loaded this Shift. Scrap discards a card parked from an earlier
   Shift to free its slot. A parked card can't move to another slot (except in a Line Shift round).
   The state shows the exact result of running the current Line ("If you run now") and, for each
-  card on the Line, whether it stays or is dispatched after the run.
+  card on the Line, whether it stays for later Shifts or is used up this Shift.
 
 HOW A SALE IS PRICED
   At each slot, in this order:
