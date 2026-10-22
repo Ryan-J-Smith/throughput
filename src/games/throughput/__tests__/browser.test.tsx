@@ -8,7 +8,7 @@ import { CATEGORIES, cardEffect, growthText } from '../model';
 import type { Category, Stage } from '../model';
 import { ThroughputRun, scoreLine } from '../rules';
 import { MemoryStore } from '../../../ui/storage';
-import { boss, card, context, easyConfig, fixture, slot } from './fixtures';
+import { boss, card, context, easyConfig, fixture, quotaCapRun, slot } from './fixtures';
 
 function handIndex(run: ThroughputRun, stage: Stage): number {
   const i = run.hand.findIndex((c) => c.def.stage === stage);
@@ -81,6 +81,18 @@ describe('THROUGHPUT browser screen', () => {
     expect(html).toContain('target hit');
     const overkill = renderToStaticMarkup(<TraceReceipt result={preview} heading="If you run now" salesBefore={0} target={5} overkillPay={4} />);
     expect(overkill).toContain('target hit, +4C overkill');
+  });
+
+  it('under Quota Cap the receipt takes off what is over the cap, and the HUD gives the cap in dollars', () => {
+    const run = quotaCapRun();
+    const preview = run.preview();
+    expect(preview.overCap).toBeGreaterThan(0);
+    const html = renderToStaticMarkup(<TraceReceipt result={preview} heading="If you run now" salesBefore={0} target={5} />);
+    expect(html).toContain(
+      `<li class="tp-receipt__line tp-receipt__line--capped"><span class="tp-receipt__slot"></span><span class="tp-receipt__what">Shift cap $3<small>$${preview.overCap} over the cap doesn&#x27;t count</small></span><span class="tp-receipt__batch"></span><span class="tp-receipt__amount">-$${preview.overCap}</span></li>`,
+    );
+    expect(html).toContain('Round $3 of $5: $2 to go');
+    expect(renderToStaticMarkup(<TpHud run={run} />)).toContain('Sales past that are lost. This round: at most $3 a Shift.</span>');
   });
 
   it('receipt lines lay out the Fixture as a chip, struck through when idle, then the card', () => {

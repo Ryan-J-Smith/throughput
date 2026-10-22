@@ -54,6 +54,24 @@ export type BuyTarget = { readonly slot?: number; readonly deckCard?: number; re
 type SlotState = { fixture: Fixture | null; card: LineCard | null };
 
 /**
+ * One boss per Year, from a shuffled `order`: each Year meets the first boss it hasn't met that may
+ * come that Year (`earliestYear`). Once every boss that may come has come, the pool starts over.
+ */
+export function assignBosses(order: readonly BoardBoss[], years: number): BoardBoss[] {
+  const out: BoardBoss[] = [];
+  let unmet = [...order];
+  for (let year = 1; year <= years; year++) {
+    const allowed = (boss: BoardBoss) => boss.earliestYear <= year;
+    if (!unmet.some(allowed)) unmet = [...order];
+    const pick = unmet.find(allowed) ?? unmet[0];
+    if (pick === undefined) break;
+    out.push(pick);
+    unmet = unmet.filter((boss) => boss !== pick);
+  }
+  return out;
+}
+
+/**
  * A THROUGHPUT run: 12 rounds of up to 4 Shifts each, with a shop between rounds. A game-specific
  * state machine rather than engine Run, because a round is "load cards into Line slots, then run
  * the Batch", and Designs stay on the Line between Shifts.
@@ -123,8 +141,7 @@ export class ThroughputRun {
     this.deckRng = rng.fork('deck');
     this.trends = trendSchedule(config.targets.length, rng.fork('market'));
     const years = Math.ceil(config.targets.length / config.roundsPerYear);
-    const order = rng.fork('bosses').shuffle(BOSSES);
-    this.boardBosses = Array.from({ length: years }, (_, i) => order[i % order.length] as BoardBoss);
+    this.boardBosses = assignBosses(rng.fork('bosses').shuffle(BOSSES), years);
     this.shop_ = new ThroughputShop(config, rng.fork('shop'));
     this.wallet = new Wallet(config.startingCapital);
     this.demand_ = Object.fromEntries(CATEGORIES.map((c) => [c, config.demand.start])) as Record<Category, number>;
@@ -223,6 +240,12 @@ export class ThroughputRun {
   /** Shifts in the current round (a boss may shorten it). */
   get shiftsThisRound(): number {
     return this.boss?.shiftsPerRound(this.config.shiftsPerRound) ?? this.config.shiftsPerRound;
+  }
+
+  /** The most one Shift can count toward Sales this round (Quota Cap); null for no limit. */
+  get shiftCap(): number | null {
+    const quota = this.boss?.shiftQuota() ?? null;
+    return quota === null ? null : Math.floor(quota * this.target);
   }
 
   /** Hot buzz pips per round, with Ad Campaigns. */
@@ -846,6 +869,7 @@ export class ThroughputRun {
       stored: this.stored_,
       shift: this.shift_,
       boss: this.boss,
+      shiftCap: this.shiftCap,
       demand: { ...this.demand_ },
       demandLeft: { ...this.demandLeft_ },
       grants: Object.fromEntries(CATEGORIES.map((c) => [c, { ...this.grants_[c] }])) as Record<Category, GrantLevels>,

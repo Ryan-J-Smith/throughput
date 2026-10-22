@@ -77,7 +77,8 @@ export function traceLines(result: ShiftResult, indent = '  '): string[] {
   if (result.stockedUnits > 0) leftover.push(`${result.stockedUnits} Units copied into Warehouse stock`);
   const cleared = result.leftover;
   if (cleared > 0) leftover.push(`${cleared} Units cleared for ${result.overstockSales < 0 ? '-' : ''}$${Math.abs(result.overstockSales)}`);
-  lines.push(`${indent}Leftover: ${leftover.length > 0 ? leftover.join(', ') : 'none'}. Shift total $${result.total}.`);
+  const capped = result.overCap > 0 ? ` (made $${result.total + result.overCap}, capped at $${result.total}: $${result.overCap} lost)` : '';
+  lines.push(`${indent}Leftover: ${leftover.length > 0 ? leftover.join(', ') : 'none'}. Shift total $${result.total}${capped}.`);
   return lines;
 }
 
@@ -156,7 +157,8 @@ export function legalActions(run: ThroughputRun): string[] {
     const preview = run.preview();
     const after = Math.max(0, run.sales + preview.total);
     const clears = overkillNote(run, after);
-    out.push(`run — run Shift ${run.shift} of ${run.shiftsThisRound} (makes $${preview.total}; round reaches $${after} of $${run.target}${clears === '' ? '' : `; ${clears}`})`);
+    const capped = preview.overCap > 0 ? `, capped from $${preview.total + preview.overCap}` : '';
+    out.push(`run — run Shift ${run.shift} of ${run.shiftsThisRound} (makes $${preview.total}${capped}; round reaches $${after} of $${run.target}${clears === '' ? '' : `; ${clears}`})`);
   }
   if (run.phase === 'shop') {
     run.offers.forEach((offer, i) => {
@@ -235,7 +237,7 @@ export function formatView(run: ThroughputRun, context: ViewContext): string {
         `Retools left this round ${run.retoolsLeft} · Draw pile ${run.drawPile.length} · Discard pile ${run.discardPile.length}${restockText(run)}${run.stored > 0 ? ` · Stored ${run.stored} Units` : ''}`,
       );
       if (perksText(run) !== '') lines.push(perksText(run));
-      if (run.boss !== null) lines.push(`BOARD REVIEW: ${run.boss.name}: ${run.boss.text}`);
+      if (run.boss !== null) lines.push(`BOARD REVIEW: ${run.boss.name}: ${run.boss.text}${run.shiftCap === null ? '' : ` This round: at most $${run.shiftCap} a Shift.`}`);
       if (run.fixtureMoves.length > 0) lines.push(`${run.boss?.name ?? 'The boss'} moved your Fixtures before this Shift: ${movesText(run.fixtureMoves)}.`);
       break;
     case 'shop': {
@@ -447,5 +449,5 @@ export function stateData(run: ThroughputRun, context: ViewContext): Record<stri
 }
 
 function previewData(result: ShiftResult) {
-  return { steps: result.steps, leftover: result.leftover, stockedUnits: result.stockedUnits, overstockSales: result.overstockSales, total: result.total };
+  return { steps: result.steps, leftover: result.leftover, stockedUnits: result.stockedUnits, overstockSales: result.overstockSales, total: result.total, overCap: result.overCap };
 }

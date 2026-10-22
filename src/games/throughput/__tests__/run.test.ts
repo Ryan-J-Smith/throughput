@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_CONFIG, STARTER_CARDS } from '../content';
 import type { ThroughputConfig } from '../content';
-import { CATEGORIES, makeUnits } from '../model';
+import { BoardBoss, CATEGORIES, makeUnits } from '../model';
 import type { Card, Category, Stage } from '../model';
-import { ThroughputRun } from '../rules';
+import { ThroughputRun, assignBosses } from '../rules';
 import { easyConfig } from './fixtures';
 
 function handIndex(run: ThroughputRun, stage: Stage): number {
@@ -62,6 +62,37 @@ describe('ThroughputRun: setup', () => {
     const b = new ThroughputRun(9);
     expect(a.hand.map((c) => c.uid)).toEqual(b.hand.map((c) => c.uid));
     expect(a.boardBosses.map((x) => x.id)).toEqual(b.boardBosses.map((x) => x.id));
+  });
+});
+
+/** A boss that changes nothing and may come from `earliestYear` on. */
+class YearBoss extends BoardBoss {
+  readonly id: string;
+  readonly name: string;
+  readonly text = '';
+  readonly pressures = '';
+  override readonly earliestYear: number;
+
+  constructor(id: string, earliestYear = 1) {
+    super();
+    this.id = id;
+    this.name = id;
+    this.earliestYear = earliestYear;
+  }
+}
+
+describe('assignBosses', () => {
+  const ids = (bosses: readonly BoardBoss[]) => bosses.map((b) => b.id);
+
+  it('gives each Year the next boss in order, and starts over once all have come', () => {
+    const order = [new YearBoss('a'), new YearBoss('b'), new YearBoss('c')];
+    expect(ids(assignBosses(order, 2))).toEqual(['a', 'b']);
+    expect(ids(assignBosses(order, 5))).toEqual(['a', 'b', 'c', 'a', 'b']);
+  });
+
+  it('holds a boss back until its earliest Year, then gives it the first Year it may come', () => {
+    const order = [new YearBoss('late', 3), new YearBoss('a'), new YearBoss('mid', 2), new YearBoss('b')];
+    expect(ids(assignBosses(order, 4))).toEqual(['a', 'mid', 'late', 'b']);
   });
 });
 

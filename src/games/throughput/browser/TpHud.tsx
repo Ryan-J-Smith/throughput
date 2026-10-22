@@ -80,7 +80,10 @@ export function TpHud({ run, reveal = null }: TpHudProps) {
           )}
           <span className="hud__boss-label">Board review</span>
           <span className="hud__boss-name">{boss.name}</span>
-          <span className="hud__boss-desc">{boss.text}</span>
+          <span className="hud__boss-desc">
+            {boss.text}
+            {run.shiftCap !== null && ` This round: at most $${run.shiftCap} a Shift.`}
+          </span>
         </div>
       )}
     </header>

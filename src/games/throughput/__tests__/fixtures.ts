@@ -2,6 +2,7 @@ import { BOSSES, DEFAULT_CONFIG, fixtureById } from '../content';
 import type { ThroughputConfig } from '../content';
 import { CATEGORIES } from '../model';
 import type { BoardBoss, Card, CardDef, Category, Fixture, GrantLevels, TrendStage } from '../model';
+import { ThroughputRun } from '../rules';
 import type { LineSlot, ShiftContext, Trends } from '../rules';
 
 let uid = 1000;
@@ -40,7 +41,7 @@ export function grants(overrides: Partial<Record<Category, Partial<GrantLevels>>
 }
 
 export function context(overrides: Partial<ShiftContext> = {}): ShiftContext {
-  return { config: DEFAULT_CONFIG, trends: trends(), demand: demandLeft(), demandLeft: demandLeft(), grants: grants(), hotPipsLeft: 2, stored: 0, shift: 1, boss: null, ...overrides };
+  return { config: DEFAULT_CONFIG, trends: trends(), demand: demandLeft(), demandLeft: demandLeft(), grants: grants(), hotPipsLeft: 2, stored: 0, shift: 1, boss: null, shiftCap: null, ...overrides };
 }
 
 export function boss(id: string): BoardBoss {
@@ -52,4 +53,22 @@ export function boss(id: string): BoardBoss {
 /** Default config with easy targets, for driving whole runs in tests. */
 export function easyConfig(overrides: Partial<ThroughputConfig> = {}): ThroughputConfig {
   return { ...DEFAULT_CONFIG, targets: [10, 10, 10], ...overrides };
+}
+
+/** A run at Shift 1 of a Quota Cap round (target $5, so a Shift counts at most $3), with a Make and its Category's Ship loaded. */
+export function quotaCapRun(): ThroughputRun {
+  const config = easyConfig({ roundsPerYear: 1, targets: [5, 5] });
+  for (let seed = 1; seed < 400; seed++) {
+    const run = new ThroughputRun(seed, config);
+    if (run.boardBosses[0]?.id !== 'quota-cap') continue;
+    const make = run.hand.findIndex((c) => c.def.stage === 'make');
+    const ship = run.hand.findIndex((c) => c.def.stage === 'ship' && c.category === run.hand[make]?.category);
+    if (make < 0 || ship < 0) continue;
+    run.load([
+      { hand: make, slot: 3 },
+      { hand: ship, slot: 4 },
+    ]);
+    return run;
+  }
+  throw new Error('no seed with Quota Cap first and a Make and matching Ship in hand');
 }

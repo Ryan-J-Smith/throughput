@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { SaveFile, TurnResult } from '../../../play/session';
-import { ThroughputTextGame, formatAction, legalActions, offerText, parseAction, perksText, rulesText, soldOutNote } from '../cli';
-import { BOSSES, CONTRACTS, DEFAULT_CONFIG, INFLUENCER, WHOLESALE_CLUB } from '../content';
+import { ThroughputTextGame, formatAction, formatView, legalActions, offerText, parseAction, perksText, rulesText, soldOutNote, traceLines } from '../cli';
+import { BOSSES, CONTRACTS, DEFAULT_CONFIG, INFLUENCER, TRUCK, WHOLESALE_CLUB, WORKSHOP } from '../content';
 import { CATEGORIES } from '../model';
 import type { Category, Perks } from '../model';
-import { ThroughputRun } from '../rules';
-import { easyConfig } from './fixtures';
+import { ThroughputRun, scoreLine } from '../rules';
+import { boss, card, context, easyConfig, quotaCapRun, slot } from './fixtures';
 
 type HandEntry = { readonly n: number; readonly name: string; readonly stage: string };
 
@@ -250,6 +250,25 @@ describe('playtest-2 clarity', () => {
     expect(soldOutNote(new SoldOutRun(ship.category), ship)).toBe(` (${ship.category} sold out: sells 0)`);
     expect(soldOutNote(new SoldOutRun(other), ship)).toBe('');
     expect(soldOutNote(new SoldOutRun(ship.category), { ...ship, def: WHOLESALE_CLUB })).toBe('');
+  });
+});
+
+describe('Quota Cap text', () => {
+  it('the trace says what a capped Shift made and what it lost', () => {
+    const line = [slot(null, card(WORKSHOP, 'Home')), slot(null, card(TRUCK, 'Home'))];
+    const made = scoreLine(line, context()).total;
+    const capped = traceLines(scoreLine(line, context({ boss: boss('quota-cap'), shiftCap: 5 })));
+    expect(capped.at(-1)).toMatch(new RegExp(`Shift total \\$5 \\(made \\$${made}, capped at \\$5: \\$${made - 5} lost\\)\\.$`));
+    expect(traceLines(scoreLine(line, context())).at(-1)).toMatch(new RegExp(`Shift total \\$${made}\\.$`));
+  });
+
+  it('the Board line gives the cap in dollars, and run says what the Shift counts', () => {
+    const run = quotaCapRun();
+    const made = run.preview().total + run.preview().overCap;
+    expect(formatView(run, { game: 'throughput', seed: run.seed, actionsTaken: 0 })).toContain(
+      'BOARD REVIEW: Quota Cap: No single Shift counts more than 60% of the target. Sales past that are lost. This round: at most $3 a Shift.',
+    );
+    expect(legalActions(run)).toContain(`run — run Shift 1 of ${run.shiftsThisRound} (makes $3, capped from $${made}; round reaches $3 of $5)`);
   });
 });
 

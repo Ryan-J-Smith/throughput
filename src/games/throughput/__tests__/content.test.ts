@@ -13,9 +13,9 @@ import {
   WORKSHOP,
 } from '../content';
 import { ThroughputRun, scoreLine } from '../rules';
-import { boss, card, context, easyConfig, fixture, slot } from './fixtures';
+import { boss, card, context, easyConfig, fixture, quotaCapRun, slot } from './fixtures';
 
-// Content wave 1 (completion plan): 12 shop cards, 24 Fixtures, 8 Contracts, 8 Board bosses.
+// Content wave 1 (completion plan): 12 shop cards, 24 Fixtures, 8 Contracts, 8 Board bosses (9 with playtest-2's Quota Cap).
 
 const words = (text: string) => text.split(/\s+/).filter(Boolean).length;
 
@@ -24,7 +24,7 @@ describe('content catalogue', () => {
     expect(SHOP_CARDS).toHaveLength(12);
     expect(FIXTURES).toHaveLength(24);
     expect(CONTRACTS).toHaveLength(8);
-    expect(BOSSES).toHaveLength(8);
+    expect(BOSSES).toHaveLength(9);
     for (const list of [SHOP_CARDS, FIXTURES, CONTRACTS, BOSSES] as const) {
       expect(new Set(list.map((x) => x.id)).size).toBe(list.length);
     }
@@ -116,6 +116,31 @@ describe('wave-1 Board bosses', () => {
     expect(short.shiftsThisRound).toBe(3);
     for (let i = 0; i < 3; i++) short.runShift();
     expect(short.phase).toBe('lost');
+  });
+
+  it('Quota Cap counts a Shift up to the cap and loses the rest; a Shift that costs money still costs it all', () => {
+    const line = [slot(null, make2()), slot(null, card(TRUCK, 'Apparel'))];
+    const made = scoreLine(line, context()).total;
+    expect(made).toBeGreaterThan(5);
+    expect(scoreLine(line, context({ boss: boss('quota-cap'), shiftCap: 5 }))).toMatchObject({ total: 5, overCap: made - 5 });
+    expect(scoreLine(line, context({ boss: boss('quota-cap'), shiftCap: made }))).toMatchObject({ total: made, overCap: 0 });
+    expect(scoreLine(line, context())).toMatchObject({ overCap: 0 });
+
+    const overstock = scoreLine([slot(null, make2())], context({ boss: boss('jit-auditor'), shiftCap: 5 }));
+    expect(overstock.total).toBeLessThan(0);
+    expect(overstock.overCap).toBe(0);
+  });
+
+  it('under Quota Cap a Shift counts at most 60% of the target, so no single Shift clears the round', () => {
+    const run = quotaCapRun();
+    expect(run.shiftCap).toBe(3);
+    expect(new ThroughputRun(1, easyConfig()).shiftCap).toBeNull();
+    const preview = run.preview();
+    expect(preview.total + preview.overCap).toBeGreaterThanOrEqual(5);
+    expect(preview).toMatchObject({ total: 3 });
+    run.runShift();
+    expect(run.sales).toBe(3);
+    expect(run.phase).toBe('shift');
   });
 });
 

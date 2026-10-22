@@ -56,6 +56,17 @@ export function TraceReceipt({ result, heading, salesBefore, target, overkillPay
               <span className="tp-receipt__amount">{result.overstockSales !== 0 ? `${result.overstockSales < 0 ? '-' : ''}$${Math.abs(result.overstockSales)}` : ''}</span>
             </li>
           )}
+          {result.overCap > 0 && (
+            <li className="tp-receipt__line tp-receipt__line--capped">
+              <span className="tp-receipt__slot" />
+              <span className="tp-receipt__what">
+                Shift cap ${result.total}
+                <small>{`$${result.overCap} over the cap doesn't count`}</small>
+              </span>
+              <span className="tp-receipt__batch" />
+              <span className="tp-receipt__amount">-${result.overCap}</span>
+            </li>
+          )}
         </ol>
         <div className="receipt__total">
           <span className="receipt__total-label">Shift</span>

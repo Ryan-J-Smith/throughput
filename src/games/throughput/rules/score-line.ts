@@ -26,6 +26,8 @@ export type ShiftContext = {
   /** This Shift's number in the round, from 1. */
   readonly shift: number;
   readonly boss: BoardBoss | null;
+  /** The most one Shift can count toward round Sales (Quota Cap); null for no limit. */
+  readonly shiftCap: number | null;
 };
 
 export type SlotTrace = {
@@ -59,7 +61,10 @@ export type ShiftResult = {
   readonly overstockSales: number;
   /** Warehouse stock after the Shift. */
   readonly storedAfter: number;
+  /** What the Shift counts toward round Sales: Ship sales plus overstock, up to the Shift cap. */
   readonly total: number;
+  /** What the Shift made past the Shift cap, which doesn't count (Quota Cap); 0 otherwise. */
+  readonly overCap: number;
   /** Designs that grew (R&D Lab), one entry per +$1. */
   readonly grown: readonly Card[];
   readonly hotPipUsed: boolean;
@@ -127,6 +132,8 @@ export function scoreLine(line: readonly LineSlot[], ctx: ShiftContext, options:
   const leftover = batch.units;
   const unitValue = boss?.overstockValue(config.overstockValue) ?? config.overstockValue;
   const overstockSales = leftover * unitValue;
+  const made = batch.sales + overstockSales;
+  const total = ctx.shiftCap === null ? made : Math.min(made, ctx.shiftCap);
   return {
     steps,
     shipSales: batch.sales,
@@ -134,7 +141,8 @@ export function scoreLine(line: readonly LineSlot[], ctx: ShiftContext, options:
     stockedUnits: batch.stocked,
     overstockSales,
     storedAfter: batch.stored,
-    total: batch.sales + overstockSales,
+    total,
+    overCap: made - total,
     grown: batch.grown,
     hotPipUsed: sale.hotUsed,
     demandSold: Object.fromEntries(sale.demandSold),

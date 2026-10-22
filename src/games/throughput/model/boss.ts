@@ -8,6 +8,8 @@ export abstract class BoardBoss {
   abstract readonly text: string;
   /** The build this boss leans on (for design notes and reports). */
   abstract readonly pressures: string;
+  /** The first Year this boss can be drawn for; later-Year bosses wait until engines exist to test. */
+  readonly earliestYear: number = 1;
 
   /** True if this 0-based slot is unusable this round. */
   isWelded(_slot: number): boolean {
@@ -56,5 +58,10 @@ export abstract class BoardBoss {
   /** Shifts this round, given the normal number. */
   shiftsPerRound(normal: number): number {
     return normal;
+  }
+
+  /** The share of the round's target one Shift can count toward Sales; null for no limit. */
+  shiftQuota(): number | null {
+    return null;
   }
 }

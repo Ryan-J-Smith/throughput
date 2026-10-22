@@ -315,8 +315,14 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
                 </button>
               )}
               <PileStack draw={run.drawPile.length} discard={run.discardPile.length} {...(restockNote === null ? {} : { note: restockNote })} />
-              <button type="button" className="btn btn--play" onClick={runShift}>
+              <button
+                type="button"
+                className="btn btn--play"
+                onClick={runShift}
+                title={preview.overCap > 0 ? `Makes $${preview.total + preview.overCap}; the Shift cap counts $${preview.total}` : undefined}
+              >
                 Run Shift {run.shift}: ${preview.total}
+                {preview.overCap > 0 && ' (capped)'}
               </button>
             </div>
           </section>

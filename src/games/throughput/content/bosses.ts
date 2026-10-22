@@ -103,6 +103,17 @@ class ShortWeek extends BoardBoss {
   }
 }
 
+class QuotaCap extends BoardBoss {
+  readonly id = 'quota-cap';
+  readonly name = 'Quota Cap';
+  readonly text = 'No single Shift counts more than 60% of the target. Sales past that are lost.';
+  readonly pressures = 'Shift-1 burst engines: one big Shift can no longer clear the round';
+
+  override shiftQuota(): number {
+    return 0.6;
+  }
+}
+
 export const BOSSES: readonly BoardBoss[] = [
   new LineShift(),
   new Turnover(),
@@ -112,4 +123,5 @@ export const BOSSES: readonly BoardBoss[] = [
   new Recession(),
   new EthicsReview(),
   new ShortWeek(),
+  new QuotaCap(),
 ];
