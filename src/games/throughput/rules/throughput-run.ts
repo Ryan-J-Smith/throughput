@@ -40,8 +40,11 @@ export type RoundRecord = {
   readonly capital: number;
 };
 
-/** A load instruction: hand index → slot index, both 0-based. */
+/** A load instruction: hand index → slot index, both 0-based. The hand index is into `hand`, not `handSlots`. */
 export type Placement = { readonly hand: number; readonly slot: number };
+
+/** A Fixture a boss moved at the start of a Shift (0-based slots). */
+export type FixtureMove = { readonly fixture: Fixture; readonly from: number; readonly to: number };
 
 /** What `buy` acts on: a Line slot for a Fixture, a deck card for a targeted Contract. */
 export type BuyTarget = { readonly slot?: number; readonly deckCard?: number };
@@ -78,11 +81,19 @@ export class ThroughputRun {
   private stored_ = 0;
   private deck_: Card[] = [];
   private draw_: Card[] = [];
+  /** The hand in position order (see `handSlots`). */
   private hand_: Card[] = [];
+  /**
+   * Hand position per card uid. A card keeps its position while it is in hand and draws fill the
+   * gaps, so hand numbers don't shift under the player. Kept after a card leaves, so an unloaded
+   * card can go back to its old spot.
+   */
+  private readonly handPos_ = new Map<number, number>();
   private discard_: Card[] = [];
   /** Fixtures as the player arranged them, restored after a round (Line Shift moves them). */
   private layout: (Fixture | null)[] = [];
   private lastShift_: ShiftResult | null = null;
+  private fixtureMoves_: readonly FixtureMove[] = [];
   private lastPayout_: readonly PayoutLine[] | null = null;
   private storageNotice_: string | null = null;
   private nextUid = 1;
@@ -167,8 +178,20 @@ export class ThroughputRun {
     return this.slots_;
   }
 
+  /** The cards in hand, in position order. Placements and Retools index this array. */
   get hand(): readonly Card[] {
     return this.hand_;
+  }
+
+  /** The hand by stable position, with null gaps where a card left and nothing has been drawn yet. */
+  get handSlots(): readonly (Card | null)[] {
+    const out: (Card | null)[] = [];
+    for (const card of this.hand_) {
+      const pos = this.handPos_.get(card.uid) ?? out.length;
+      while (out.length < pos) out.push(null);
+      out[pos] = card;
+    }
+    return out;
   }
 
   get drawPile(): readonly Card[] {
@@ -194,6 +217,11 @@ export class ThroughputRun {
 
   get lastShift(): ShiftResult | null {
     return this.lastShift_;
+  }
+
+  /** Fixtures the boss moved at the start of the current Shift (Line Shift); empty otherwise. */
+  get fixtureMoves(): readonly FixtureMove[] {
+    return this.fixtureMoves_;
   }
 
   /** Payout of the round just cleared (in the shop or after the win), else null. */
@@ -240,6 +268,17 @@ export class ThroughputRun {
     return this.boss?.isWelded(slot) ?? false;
   }
 
+  /**
+   * True if the card in this slot stays on the Line after the Shift runs: Designs stay unless the
+   * boss says otherwise, and a Fixture may keep its card (Automation keeps Makes). False for an empty slot.
+   */
+  staysAfterShift(slot: number): boolean {
+    const state = this.slots_[slot];
+    const card = state?.card?.card;
+    if (state === undefined || card === undefined) return false;
+    return (card.def.stage === 'design' && (this.boss?.designsStay() ?? true)) || (state.fixture?.def.effect.keepsOnLine(card) ?? false);
+  }
+
   // ---- Shift actions ----
 
   whyCannotLoad(placements: readonly Placement[]): string | null {
@@ -266,7 +305,7 @@ export class ThroughputRun {
     this.assert(this.whyCannotLoad(placements));
     const moves = placements.map(({ hand, slot }) => ({ card: this.hand_[hand] as Card, slot }));
     for (const { card, slot } of moves) {
-      this.hand_.splice(this.hand_.indexOf(card), 1);
+      this.removeFromHand(card);
       (this.slots_[slot] as SlotState).card = { card, loadedShift: this.shift_ };
     }
   }
@@ -288,7 +327,8 @@ export class ThroughputRun {
     this.assert(this.whyCannotUnload(slots));
     for (const slot of slots) {
       const state = this.slots_[slot] as SlotState;
-      this.hand_.push((state.card as LineCard).card);
+      const card = (state.card as LineCard).card;
+      this.addToHand(card, this.handPos_.get(card.uid));
       state.card = null;
     }
   }
@@ -325,14 +365,18 @@ export class ThroughputRun {
     return missing === undefined ? null : `No hand card ${missing + 1}`;
   }
 
-  /** Discards up to 3 hand cards and draws as many (fewer if the deck runs out). */
+  /** Discards up to 3 hand cards and draws as many (fewer if the deck runs out) into their positions. */
   retool(hand: readonly number[]): void {
     this.assert(this.whyCannotRetool(hand));
     const cards = hand.map((i) => this.hand_[i] as Card);
-    this.hand_ = this.hand_.filter((card) => !cards.includes(card));
+    const freed = cards.map((card) => this.removeFromHand(card)).sort((a, b) => a - b);
     this.discard_.push(...cards);
     this.retools_--;
-    for (let i = 0; i < cards.length && this.draw_.length > 0; i++) this.hand_.push(this.draw_.pop() as Card);
+    for (const pos of freed) {
+      const drawn = this.draw_.pop();
+      if (drawn === undefined) break;
+      this.addToHand(drawn, pos);
+    }
   }
 
   whyCannotRun(): string | null {
@@ -482,28 +526,47 @@ export class ThroughputRun {
     this.layout = this.slots_.map((s) => s.fixture);
     this.draw_ = this.deckRng.shuffle(this.deck_);
     this.hand_ = [];
+    this.handPos_.clear();
     this.discard_ = [];
     this.beginShift();
   }
 
   private beginShift(): void {
     const boss = this.boss;
+    this.fixtureMoves_ = [];
     if (boss !== null) {
-      const moved = boss.shiftFixtures(this.slots_.map((s) => s.fixture));
+      const before = this.slots_.map((s) => s.fixture);
+      const moved = boss.shiftFixtures(before);
       this.slots_.forEach((slot, i) => (slot.fixture = moved[i] ?? null));
+      this.fixtureMoves_ = moved.flatMap((fixture, to) => {
+        const from = fixture === null ? to : before.indexOf(fixture);
+        return fixture === null || from === to ? [] : [{ fixture, from, to }];
+      });
     }
-    while (this.hand_.length < this.config.handSize && this.draw_.length > 0) this.hand_.push(this.draw_.pop() as Card);
+    while (this.hand_.length < this.config.handSize && this.draw_.length > 0) this.addToHand(this.draw_.pop() as Card);
+  }
+
+  /** Puts a card in the hand at `pos` if that position is free, else at the lowest free one. */
+  private addToHand(card: Card, pos?: number): void {
+    const taken = new Set(this.hand_.map((c) => this.handPos_.get(c.uid)));
+    let at = pos !== undefined && !taken.has(pos) ? pos : 0;
+    while (taken.has(at)) at++;
+    this.handPos_.set(card.uid, at);
+    const after = this.hand_.findIndex((c) => (this.handPos_.get(c.uid) ?? 0) > at);
+    this.hand_.splice(after < 0 ? this.hand_.length : after, 0, card);
+  }
+
+  /** Takes a card out of the hand and returns the position it held. */
+  private removeFromHand(card: Card): number {
+    this.hand_.splice(this.hand_.indexOf(card), 1);
+    return this.handPos_.get(card.uid) ?? 0;
   }
 
   /** Make and Ship cards leave the Line; Designs stay unless the boss says otherwise; Automation keeps Makes. */
   private dispatch(): void {
-    const designsStay = this.boss?.designsStay() ?? true;
-    this.slots_.forEach((slot) => {
-      if (slot.card === null) return;
-      const card = slot.card.card;
-      const keep = (card.def.stage === 'design' && designsStay) || (slot.fixture?.def.effect.keepsOnLine(card) ?? false);
-      if (keep) return;
-      this.discard_.push(card);
+    this.slots_.forEach((slot, i) => {
+      if (slot.card === null || this.staysAfterShift(i)) return;
+      this.discard_.push(slot.card.card);
       slot.card = null;
     });
   }

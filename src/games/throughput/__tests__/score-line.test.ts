@@ -111,6 +111,11 @@ describe('scoreLine: cards and fixtures', () => {
     expect(scoreLine(line, context()).total).toBe(Math.floor(6 * 2 * 1.6));
   });
 
+  it('tags a Fixture idle where it does nothing for the card on it', () => {
+    const line = [slot(fixture('quality-lab'), card(SKETCH, 'Home')), slot(fixture('overtime-crew'), card(WORKSHOP, 'Home')), slot(fixture('quality-lab'), card(TRUCK, 'Home'))];
+    expect(scoreLine(line, context()).steps.map((s) => s.label)).toEqual(['[Quality Lab] Sketch-H', '[Overtime Crew] Workshop-H', '[Quality Lab: idle] Truck-H']);
+  });
+
   it('Warehouse releases stored Units and stores leftovers up to 40', () => {
     const line = [slot(null, card(FACTORY_FLOOR, 'Home')), slot(fixture('warehouse'), null)];
     const result = scoreLine(line, context({ stored: 30 }));

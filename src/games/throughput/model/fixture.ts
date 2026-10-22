@@ -34,6 +34,11 @@ export abstract class FixtureEffect {
   keepsOnLine(_card: Card): boolean {
     return false;
   }
+
+  /** False if this Fixture never does anything for this card (e.g. Quality Lab under a Ship card); traces mark it idle. */
+  appliesTo(_card: Card): boolean {
+    return true;
+  }
 }
 
 export type FixtureKind = 'mod' | 'station';

@@ -20,7 +20,9 @@ const USAGE = `usage:
   npm run -s cli -- new   --seed N --save FILE [--game NAME] [--force] [--json]
   npm run -s cli -- state --save FILE [--json]
   npm run -s cli -- act   --save FILE "<action>" [--json]
+  npm run -s cli -- rules --game NAME | --save FILE [--json]
 actions are game-specific; every state printout ends with the legal ones (--game picks the game for new)
+free queries such as act "rules" or act "deck" print an answer and leave the save alone
 exit codes: 0 ok, 1 illegal action (save unchanged), 2 usage or save-file error`;
 
 type Parsed = {
@@ -47,6 +49,8 @@ export function runCli(args: readonly string[], io: CliIo, games: readonly TextG
         return commandState(parsed, io, games);
       case 'act':
         return commandAct(parsed, io, games);
+      case 'rules':
+        return commandRules(parsed, io, games);
       case 'help':
         io.out(USAGE);
         return EXIT_OK;
@@ -110,6 +114,19 @@ function commandAct(parsed: Parsed, io: CliIo, games: readonly TextGame[]): numb
     // The state can't have changed, so don't reprint it.
     io.out([`> ${action}`, ...result.log, '(state unchanged; use "state" to reprint it)'].join('\n'));
   }
+  return EXIT_OK;
+}
+
+/** Prints a game's rules (its free "rules" query), for --game or a save's game. Never writes the save. */
+function commandRules(parsed: Parsed, io: CliIo, games: readonly TextGame[]): number {
+  const name = parsed.options.get('game');
+  if (name === undefined && !parsed.options.has('save')) {
+    throw new UsageError(`rules needs --game NAME or --save FILE (games: ${games.map((g) => g.name).join(', ')})`);
+  }
+  const save = name === undefined ? loadSave(parsed, io) : findGame(games, name).newSave(1);
+  const result = findGame(games, save.game).take(save, 'rules');
+  if (!result.ok) throw new UsageError(`${save.game} has no rules text (${result.reason})`);
+  io.out(parsed.flags.has('json') ? JSON.stringify({ ok: true, log: result.log }) : result.log.join('\n'));
   return EXIT_OK;
 }
 

@@ -4,11 +4,11 @@ import type { ThroughputConfig } from '../content';
 import { cardName } from '../model';
 import type { Card } from '../model';
 import { ThroughputRun } from '../rules';
-import type { BuyTarget } from '../rules';
+import type { BuyTarget, Placement } from '../rules';
 import { formatAction, parseAction } from './actions';
 import type { ThroughputAction } from './actions';
-import { RULES_TEXT } from './rules-text';
-import { deckText, formatView, legalActions, quarterLabel, stateData, traceLines } from './text-view';
+import { rulesText } from './rules-text';
+import { deckText, formatView, legalActions, movesText, quarterLabel, stateData, traceLines } from './text-view';
 
 /** THROUGHPUT for the text CLI: `npm run -s cli -- new --game throughput --seed N --save FILE`. */
 export class ThroughputTextGame extends ReplayTextGame<ThroughputRun> {
@@ -48,16 +48,43 @@ function buyTarget(run: ThroughputRun, offer: number, target: number | null): Bu
   return `${item.def.name} takes no target; use "buy ${offer + 1}"`;
 }
 
+/**
+ * The `run.hand` indexes of the cards at these hand numbers (0-based stable positions, as the
+ * state lists them), or why one doesn't name a card.
+ */
+function handIndexes(run: ThroughputRun, numbers: readonly number[]): number[] | string {
+  const out: number[] = [];
+  for (const [i, n] of numbers.entries()) {
+    if (numbers.indexOf(n) !== i) return `Hand card ${n + 1} is named twice`;
+    const card = run.handSlots[n];
+    if (card == null) return `No hand card ${n + 1}`;
+    out.push(run.hand.indexOf(card));
+  }
+  return out;
+}
+
+/** The action's placements with hand numbers turned into `run.hand` indexes, or why that fails. */
+function placementsFor(run: ThroughputRun, placements: readonly Placement[]): Placement[] | string {
+  const hand = handIndexes(run, placements.map((p) => p.hand));
+  return typeof hand === 'string' ? hand : placements.map((p, i) => ({ hand: hand[i] as number, slot: p.slot }));
+}
+
 function whyCannot(run: ThroughputRun, action: ThroughputAction): string | null {
   switch (action.verb) {
-    case 'load':
-      return run.whyCannotLoad(action.placements);
+    case 'load': {
+      if (run.phase !== 'shift') return run.whyCannotLoad(action.placements);
+      const placements = placementsFor(run, action.placements);
+      return typeof placements === 'string' ? placements : run.whyCannotLoad(placements);
+    }
     case 'unload':
       return run.whyCannotUnload(action.slots);
     case 'scrap':
       return run.whyCannotScrap(action.slots);
-    case 'retool':
-      return run.whyCannotRetool(action.hand);
+    case 'retool': {
+      if (run.phase !== 'shift') return run.whyCannotRetool(action.hand);
+      const hand = handIndexes(run, action.hand);
+      return typeof hand === 'string' ? hand : run.whyCannotRetool(hand);
+    }
     case 'run':
       return run.whyCannotRun();
     case 'buy': {
@@ -82,8 +109,9 @@ function whyCannot(run: ThroughputRun, action: ThroughputAction): string | null 
 function apply(run: ThroughputRun, action: ThroughputAction): string[] {
   switch (action.verb) {
     case 'load': {
-      const names = action.placements.map((p) => `${nameOf(run.hand[p.hand])} → slot ${p.slot + 1}`);
-      run.load(action.placements);
+      const placements = placementsFor(run, action.placements) as Placement[];
+      const names = placements.map((p) => `${nameOf(run.hand[p.hand])} → slot ${p.slot + 1}`);
+      run.load(placements);
       return [`Loaded ${names.join(', ')}.`];
     }
     case 'unload': {
@@ -92,16 +120,17 @@ function apply(run: ThroughputRun, action: ThroughputAction): string[] {
       return [`Back in hand: ${names.join(', ')}.`];
     }
     case 'scrap': {
-      const names = action.slots.map((s) => nameOf(run.line[s]?.card?.card));
+      const names = action.slots.map((s) => `${nameOf(run.line[s]?.card?.card)} (slot ${s + 1} is free)`);
       run.scrap(action.slots);
       return [`Scrapped ${names.join(', ')}.`];
     }
     case 'retool': {
-      const names = action.hand.map((h) => nameOf(run.hand[h]));
-      const before = run.hand.length - action.hand.length;
-      run.retool(action.hand);
-      const drawn = run.hand.slice(before).map(cardName);
-      return [`Retooled ${names.join(', ')}; drew ${drawn.length > 0 ? drawn.join(', ') : 'nothing (the draw pile is empty)'}.`];
+      const hand = handIndexes(run, action.hand) as number[];
+      const names = hand.map((h) => nameOf(run.hand[h]));
+      const before = new Set(run.hand);
+      run.retool(hand);
+      const drawn = drawnText(run, before);
+      return [`Retooled ${names.join(', ')}; drew ${drawn === '' ? 'nothing (the draw pile is empty)' : drawn}.`];
     }
     case 'run':
       return runLog(run);
@@ -109,7 +138,9 @@ function apply(run: ThroughputRun, action: ThroughputAction): string[] {
       const target = buyTarget(run, action.offer, action.target) as BuyTarget;
       const item = run.buy(action.offer, target);
       const where = item.kind === 'fixture' ? ` into slot ${(target.slot ?? 0) + 1}` : item.kind === 'card' ? ' into your deck' : '';
-      return [`Bought ${item.kind === 'card' ? `${item.def.name}-${item.category.charAt(0)}` : item.def.name} for ${item.price}C${where}. Capital ${run.wallet.cash}C.`];
+      const lines = [`Bought ${item.kind === 'card' ? `${item.def.name}-${item.category.charAt(0)}` : item.def.name} for ${item.price}C${where}. Capital ${run.wallet.cash}C.`];
+      if (target.slot !== undefined) lines.push(...weldWarning(run, target.slot));
+      return lines;
     }
     case 'sell': {
       const name = action.what === 'fixture' ? run.line[action.index]?.fixture?.def.name : nameOf(run.deck[action.index]);
@@ -118,21 +149,22 @@ function apply(run: ThroughputRun, action: ThroughputAction): string[] {
     }
     case 'move':
       run.moveFixture(action.from, action.to);
-      return [`Moved the Fixture in slot ${action.from + 1} to slot ${action.to + 1}. Capital ${run.wallet.cash}C.`];
+      return [`Moved the Fixture in slot ${action.from + 1} to slot ${action.to + 1}. Capital ${run.wallet.cash}C.`, ...weldWarning(run, action.to)];
     case 'reroll':
       run.reroll();
       return [`Rerolled. Next reroll ${run.rerollCost}C.`];
     case 'continue':
       run.continueToNextRound();
-      return [`${quarterLabel(run, run.round)} begins: target $${run.target}.`];
+      return [`${quarterLabel(run, run.round)} begins: target $${run.target}.`, ...movesLog(run)];
     case 'rules':
-      return [RULES_TEXT];
+      return [rulesText(run.config)];
     case 'deck':
       return deckText(run);
   }
 }
 
 function runLog(run: ThroughputRun): string[] {
+  const before = new Set(run.hand);
   const round = run.round;
   const shift = run.shift;
   const target = run.target;
@@ -154,11 +186,34 @@ function runLog(run: ThroughputRun): string[] {
     case 'lost':
       lines.push('Missed the target after the last Shift. The run is over.');
       break;
-    case 'shift':
-      lines.push(`Make and Ship cards dispatched${run.boss?.designsStay() === false ? ' (Turnover: Designs too)' : '; Designs stay'}. Drew back up to ${run.hand.length}.`);
+    case 'shift': {
+      const drawn = drawnText(run, before);
+      lines.push(`Make and Ship cards dispatched${run.boss?.designsStay() === false ? ' (Turnover: Designs too)' : '; Designs stay'}.`);
+      lines.push(drawn === '' ? `Drew nothing (the draw pile is empty); ${run.hand.length} cards in hand.` : `Drew ${drawn}.`);
+      lines.push(...movesLog(run));
       break;
+    }
   }
   return lines;
+}
+
+/** The cards now in hand that weren't in `before`, with their hand numbers: "Truck-G (3), Sketch-A (5)". */
+function drawnText(run: ThroughputRun, before: ReadonlySet<Card>): string {
+  return run.handSlots.flatMap((card, i) => (card === null || before.has(card) ? [] : [`${cardName(card)} (${i + 1})`])).join(', ');
+}
+
+/** A log line for Fixtures the boss moved at the start of this Shift. */
+function movesLog(run: ThroughputRun): string[] {
+  if (run.phase !== 'shift' || run.fixtureMoves.length === 0) return [];
+  return [`${run.boss?.name ?? 'The boss'}: Fixtures moved before Shift ${run.shift}: ${movesText(run.fixtureMoves)}.`];
+}
+
+/** Warns when a Board Review ahead welds the slot a Fixture just went into. */
+function weldWarning(run: ThroughputRun, slot: number): string[] {
+  return run
+    .upcomingBoards()
+    .filter((b) => b.round > run.round && b.boss.isWelded(slot))
+    .map((b) => `Note: ${quarterLabel(run, b.round)} (round ${b.round}) ${b.boss.name} welds slot ${slot + 1}, and its Fixture does nothing that round.`);
 }
 
 function nameOf(card: Card | null | undefined): string {

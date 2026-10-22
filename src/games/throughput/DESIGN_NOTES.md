@@ -20,8 +20,9 @@ These notes record where the docs were silent or ambiguous, and what was chosen.
 - **Engine `Deck` not reused.** Cards move hand → Line → hand (unload) or → discard, and `Deck`'s
   one-way exhaust can't express that. The run keeps its own draw/hand/discard piles.
 - **Behavioural contracts are abstract classes:**
-  - `FixtureEffect` has hooks `onSlot`, `resolveCount`, `saleMultiplier`, `afterResolve` and
-    `keepsOnLine`.
+  - `FixtureEffect` has hooks `onSlot`, `resolveCount`, `saleMultiplier`, `afterResolve`,
+    `keepsOnLine` and `appliesTo`. `appliesTo` is for display only: traces and the Line tag a Mod "idle"
+    under a card it never acts on (Quality Lab under a Truck).
   - `BoardBoss` has `isWelded`, `designsStay`, `overstockValue`, `warehouseOpen` and `shiftFixtures`.
   - Cards and Contracts are plain data records.
 
@@ -53,6 +54,7 @@ These notes record where the docs were silent or ambiguous, and what was chosen.
 | Shop cards | Each of the 4 shop cards comes in a random Category (16 offer ids); no duplicates within a stock. | Cards have Categories; this also lets the shop feed trend plays. |
 | Fixture rarity | 70/25/5 by tier, split evenly within each tier. | Doc's odds are per tier, not per item. |
 | Floor Expansion | Not offered once the Line has 7 slots. | Max 7. |
+| Hand positions | A card keeps its hand position while it is in hand. The next Shift's draws fill the lowest gaps, a Retool's draws go into the retooled positions, and an unloaded card returns to its old position if it is free. `hand` stays dense (Placements, Retools and the bots index it); `handSlots` gives the positions for display. | Playtest round 1: renumbering after each load caused misloads (4/7). Presentation only: the draw order is unchanged. |
 
 ## Trend conveyor
 
@@ -82,16 +84,26 @@ These notes record where the docs were silent or ambiguous, and what was chosen.
 
 - `npm run -s cli -- new --game throughput --seed N --save FILE`.
 - Commands:
-  - `load 3:1 5:4` places several cards in one action (`<hand>:<slot>`; hand numbers refer to the hand
-    before the command).
+  - `load 3:1 5:4` places several cards in one action (`<hand>:<slot>`). Hand numbers are stable hand
+    positions (see "Hand positions"); the CLI maps them to `hand` indexes.
+    - Saves made before stable positions can fail to replay if they loaded twice in one Shift, since
+      the same numbers now name different cards.
   - Also `unload`, `scrap`, `retool`, `run`, `buy <offer> [<slot>|<deck card>]`,
     `sell fixture|card N`, `move A B`, `reroll` and `continue`.
-- `rules` and `deck` are free queries and are not recorded in the save.
+- `rules` and `deck` are free queries and are not recorded in the save. `npm run -s cli -- rules --game
+  throughput` prints the rules without a save.
+- The rules text is `rulesText(config)`, so targets, payouts and other tunables can't drift from it. The
+  browser's How to play is the same text without COMMANDS.
 - The state always shows:
   - the exact "If you run now" trace;
-  - the Market strip (this round and the next 3, with Equity);
+  - the Market strip (this round and the next 3, with Equity, and what spends a buzz pip);
   - the next two Board bosses;
+  - for each card on the Line, whether it stays after the run;
+  - the Fixtures a boss moved before this Shift (Line Shift), also logged after `run` and `continue`;
   - legal actions with their valid slots.
+- The shop shows why an offer can't be bought, the interest the current Capital would earn, and (before a
+  Line Shift Board) where the Fixtures will sit for Shift 1. The deck is listed only when a card-targeting
+  Contract is on offer; otherwise `deck` lists it.
 
 ## Sim tuning (Phase B, first pass)
 

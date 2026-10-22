@@ -203,6 +203,35 @@
   color: var(--chalk-dim);
 }
 
+/* A Mod under a card it never acts on: plate goes dull, with a note. */
+.tp-bay__plate.is-idle {
+  border-left-style: dashed;
+  opacity: 0.72;
+}
+
+.tp-bay__idle {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--chalk);
+}
+
+.tp-bay__moved {
+  font-family: var(--font-body);
+  font-weight: 700;
+  color: var(--chalk);
+}
+
+/* Boss notice above the bays (Line Shift), in hazard yellow. */
+.tp-line__notice {
+  margin: 0 0 10px;
+  padding: 6px 10px;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--floor-deep);
+  background: var(--floor-paint);
+  border-radius: 3px;
+}
+
 .tp-bay__spot {
   display: flex;
   align-items: stretch;

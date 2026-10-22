@@ -1,7 +1,7 @@
 import type { CardView } from '../../../ui/types';
 import { cardEffect, designAdd, formatAmount, makeUnits, shipCap } from '../model';
 import type { Card, CardDef, Category, FixtureDef, TrendStage } from '../model';
-import type { Offer } from '../rules';
+import type { Offer, ThroughputRun } from '../rules';
 
 /** Department colour per Category (keys from ui/theme/tokens.css). */
 export const CATEGORY_ACCENT: Readonly<Record<Category, string>> = { Apparel: 'violet', Gadgets: 'blue', Home: 'orange', Food: 'green' };
@@ -52,6 +52,22 @@ export function fixtureView(def: FixtureDef, id: string): CardView {
     tags: [def.kind === 'station' ? 'Station' : 'Mod'],
     accent: def.kind === 'station' ? 'mustard' : 'teal',
   };
+}
+
+/**
+ * What a boss is doing to the Line's Fixtures, for a notice above the bays: the moves before this
+ * Shift, or (in the shop) a warning that next round's boss will move them before Shift 1.
+ */
+export function lineNotice(run: ThroughputRun): string | null {
+  if (run.phase === 'shift') {
+    if (run.fixtureMoves.length === 0) return null;
+    return `${run.boss?.name ?? 'The boss'} moved your Fixtures before this Shift: ${run.fixtureMoves.map((m) => `${m.fixture.def.name} ${m.from + 1}→${m.to + 1}`).join(', ')}. Cards stay put.`;
+  }
+  const boss = run.phase === 'shop' ? run.bossOf(run.round + 1) : null;
+  if (boss === null) return null;
+  const before = run.line.map((s) => s.fixture);
+  if (boss.shiftFixtures(before).every((f, i) => f === before[i])) return null;
+  return `Next round, ${boss.name} moves your Fixtures before every Shift, starting before Shift 1. Your layout comes back after the round.`;
 }
 
 export function offerView(offer: Offer, id: string): CardView {

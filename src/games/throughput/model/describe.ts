@@ -39,7 +39,7 @@ export function cardEffect(card: Card): string {
     case 'ship': {
       const cap = shipCap(card);
       const at = def.marginMul === 1 ? '' : def.marginMul === 0.5 ? ' at half Margin' : ` at Margin ×${formatAmount(def.marginMul)}`;
-      return `${STAGE_LABEL.ship}: sell ${cap === 'all' ? 'all Units' : `up to ${cap} Units`}${at}`;
+      return `${STAGE_LABEL.ship}: sell ${cap === 'all' ? 'all Units' : `up to ${cap} Units`}${at}${cap === 'all' ? ' (ignores cap cuts)' : ''}`;
     }
   }
 }

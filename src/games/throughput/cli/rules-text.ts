@@ -1,77 +1,125 @@
-/** Full rules, shown by the free `rules` command. Written so a new player needs nothing else. */
-export const RULES_TEXT = `THROUGHPUT — rules
+import type { ThroughputConfig } from '../content';
+
+/**
+ * Full rules, shown by the free `rules` command and the browser's How to play. Written so a new
+ * player needs nothing else; tunable numbers come from `config`.
+ */
+export function rulesText(config: ThroughputConfig): string {
+  const c = config;
+  const rounds = c.targets.length;
+  const years = Math.ceil(rounds / c.roundsPerYear);
+  const quarters = Array.from({ length: c.roundsPerYear - 1 }, (_, i) => `Q${i + 1}`).join(', ');
+  const targets = Array.from({ length: years }, (_, y) => `Y${y + 1} ${c.targets.slice(y * c.roundsPerYear, (y + 1) * c.roundsPerYear).join('/')}`).join(' · ');
+  const income = c.income.map((amount, i) => `${amount}C (${i === c.income.length - 1 ? 'Board Review' : `Q${i + 1}`})`).join(', ');
+  const interestFull = Math.ceil(c.interest.cap / c.interest.amount) * c.interest.per;
+  const pips = `${c.hotPips} buzz pip${c.hotPips === 1 ? '' : 's'}`;
+
+  return `THROUGHPUT — rules
 
 GOAL
-  12 rounds: 4 Years × 3 quarters (Q1, Q2, then a Board Review). Each round has a Sales target.
-  You have up to 4 Shifts to reach it. Miss it after Shift 4 and the run is over; clear the
-  Year 4 Board Review to win.
+  ${rounds} rounds: ${years} Years × ${c.roundsPerYear} quarters (${quarters}, then a Board Review). Each round has a Sales target.
+  You have up to ${c.shiftsPerRound} Shifts to reach it. Miss it after Shift ${c.shiftsPerRound} and the run is over; clear the
+  last Board Review to win.
+  Targets: ${targets}.
 
 CARDS
-  Every card has a Stage and a Category (Apparel A, Gadgets G, Home H, Food F), shown as a suffix:
-  "Sketch-G" is a Gadgets Sketch.
-  - Design: changes Margin. Designs STAY on the Line after a Shift, so they fire every Shift
-    until the round ends (or you scrap them). They also occupy that slot all round.
-  - Make: adds Units. Used up (dispatched) after the Shift.
-  - Ship: sells Units at the current Margin. Used up after the Shift.
+  Every card has a type (Design, Make or Ship) and a Category (Apparel A, Gadgets G, Home H,
+  Food F), shown as a suffix: "Sketch-G" is a Gadgets Sketch.
+  - Design: changes Margin. Designs STAY on the Line after a Shift ("parked") and fire again every
+    Shift until the round ends, unless you scrap them. They hold their slot all round.
+  - Make: adds Units. Dispatched (discarded) after the Shift, unless its Fixture keeps it.
+  - Ship: sells Units at the current Margin. Dispatched after the Shift, even if it sold nothing.
   Starter deck (20): per Category 1 Sketch (Design +$2), 2 Workshops (Make +6 Units),
   2 Trucks (Ship up to 20 Units).
+  Each round starts with an empty Line, the whole deck shuffled and a hand of ${c.handSize}.
   The deck does NOT reshuffle during a round: once the draw pile is empty you draw nothing more.
-  Each round starts with the whole deck shuffled and a hand of 7.
+  Tip: "deck" shows exactly what is left to draw this round.
 
 A SHIFT
-  1. Load: put hand cards into empty Line slots (5 slots to start, up to 7).
-  2. Run: a Batch starts at 0 Units and Margin $2 and moves left to right. At each slot:
-     a. Handoff: +$1 Margin if the previous slot holds a card of the same Category.
-        Empty slots and Stations break the chain.
-     b. The slot's Fixture applies (see SHOP).
-     c. The card resolves. A Ship card sells min(Units, its cap) at the current Margin;
-        sold Units leave the Batch, Margin carries on to later slots.
-  3. Leftover Units clear at $1 each.
+  1. Load: put hand cards into empty Line slots (${c.startSlots} slots to start, up to ${c.maxSlots}).
+  2. Run: a Batch starts at 0 Units and Margin $${c.baseMargin} and moves left to right through the
+     slots (see HOW A SALE IS PRICED).
+  3. Leftover Units clear at $${c.overstockValue} each (or go into a Warehouse).
   4. Dispatch: Make and Ship cards are discarded. Designs stay in their slots.
-  5. Draw back up to 7 cards.
-  Retool (2 per round): discard 1–3 hand cards and draw as many.
-  Unload takes back a card you loaded this Shift; Scrap discards a card parked from an earlier
-  Shift to free its slot.
-  The game shows the exact result of running the current Line before you commit ("If you run now").
+  5. If Sales have reached the target, the round clears now. Otherwise draw back up to ${c.handSize}.
+  Retool (${c.retoolsPerRound} per round): discard 1–${c.retoolMax} hand cards and draw as many into their places.
+  Unload takes back a card you loaded this Shift. Scrap discards a card parked from an earlier
+  Shift to free its slot. A parked card can't move to another slot.
+  The state shows the exact result of running the current Line ("If you run now") and, for each
+  card on the Line, whether it stays or is dispatched after the run.
+
+HOW A SALE IS PRICED
+  At each slot, in this order:
+    a. Handoff: +$1 Margin if the previous slot holds a card of the same Category.
+       Empty slots and Stations break the chain.
+    b. The slot's Fixture applies.
+    c. The card resolves. A Design adds its +$ and then applies its ×. A Make adds Units.
+       A Ship sells min(Units, its cap); sold Units leave the Batch.
+  Every change to Margin (Handoffs, Fixtures, Designs, Factory Floor's -$1) carries on to all later
+  slots. So order matters: Quality Lab's +$4 under an Influencer lands before the Influencer's ×1.5,
+  and a Tooling Upgrade's +$1 on an Influencer is added before its ×1.5.
+  A Ship sells each Unit at:
+    (Margin + that Category's Equity) × the Ship card's own × (Boutique ×2, Wholesale Club ×0.5)
+      × Hot ×${c.hotMultiplier} (while a buzz pip is left) × Flagship Store
+  These sale bonuses apply to that one sale only and do not carry on.
+  Caps: Saturated and Price Gun each halve a Ship's cap (they stack); Wholesale Club ignores cap cuts.
+  Revenue is rounded down once per sale. Margin itself is kept exact and shown to 2 decimals.
 
 MARKET (trends)
   Each round every Category has a trend stage. Each new round the conveyor moves
-  Emerging → Hot → Saturated → Neutral, and a Neutral Category becomes Emerging.
-  The Market shows this round and the next 3.
-  - Hot: that Category's Ship cards sell at Margin ×2 during the first 2 Shifts of the round in
-    which they ship ("buzz pips").
-  - Emerging: each Shift that ships at least 1 Unit of it gives that Category +1 Equity.
-  - Equity is permanent: +$1 Margin per point on that Category's Ship sales.
-  - Saturated: that Category's Ship caps are halved, unless it is Loyal (Equity 3+).
+  Emerging → Hot → Saturated → Neutral, and a Neutral Category becomes Emerging (it may be the one
+  that just left Saturated). The Market shows this round and the next 3.
+  - Hot: the Hot Category has ${pips} per round. A Shift in which a Hot Ship card sells at least
+    1 Unit spends 1 pip, and every Hot sale that Shift gets Margin ×${c.hotMultiplier}. A Shift with no Hot sale
+    keeps the pips, so you can save them for your best Shift. Pips don't carry over to the next round.
+  - Emerging: each Shift in which a Ship card of that Category sells at least 1 Unit gives the
+    Category +1 Equity. Units have no Category; the Ship card's Category counts.
+  - Equity is permanent: +$1 per point on that Category's Ship sales (before the ×s above).
+  - Saturated: that Category's Ship caps are halved, unless it is Loyal (Equity ${c.loyalEquity}+).
 
 CAPITAL AND THE SHOP
-  Capital (C) is separate from Sales. After a cleared round you earn 4C (Q1), 5C (Q2) or
-  6C (Board Review), +2C per unused Shift, and +1C interest per 5C you held (max 5C).
-  Each shop offers 2 Fixtures, 2 Cards and 1 Contract. Reroll: 2C, +1C each time per visit.
-  Sell a Fixture, or a card you bought, for half its price. Starter cards can't be sold.
-  Fixtures: each slot holds one. A Mod sits under a card and affects only that card.
-  A Station fills the slot itself (no card) and breaks handoffs. New Fixtures are placed free
-  in the slot you choose; moving one later costs 1C (it swaps with what is there).
-  Contracts: Tooling Upgrade (a deck card gets Design +$1 / Make +3 Units / Ship +5 cap),
-  Downsizing (remove a deck card), Floor Expansion (+1 slot).
+  Capital (C) is separate from Sales. When a round clears you earn ${income},
+  plus ${c.unusedShiftBonus}C per unused Shift, plus interest: ${c.interest.amount}C per full ${c.interest.per}C you hold when the round
+  clears, counted before that round's payout (at most +${c.interest.cap}C, reached at ${interestFull}C).
+  Each shop offers 2 Fixtures, 2 Cards and 1 Contract. Reroll: ${c.rerollBaseCost}C, +${c.rerollCostIncrement}C each time per visit.
+  Sell a Fixture, or a card you bought, for half its price (rounded down). Starter cards can't be sold.
+  Contracts: Tooling Upgrade (a deck card gets Design +$1, Make +3 Units or Ship +5 cap),
+  Downsizing (remove a deck card), Floor Expansion (+1 slot, up to ${c.maxSlots}).
+
+FIXTURES
+  Each slot holds one Fixture. A new Fixture goes free into the slot you choose; moving one later
+  costs ${c.moveCost}C, in the shop only, and swaps it with any Fixture there.
+  - A Mod sits under a card and acts on that card. Most act on one card type (Quality Lab: Designs;
+    Overtime Crew and Automation: Makes; Showroom and Flagship Store: Ships). The trace marks a Mod
+    "idle" when its card is the wrong type.
+  - A Station fills the slot itself: no card goes there, and it breaks Handoffs.
+  - Warehouse (Station): when the Batch reaches it, stored Units join the Batch, and that Shift's
+    leftover Units are stored (up to ${c.warehouseCap}) instead of cleared. On entering the shop you pay 1C per
+    ${c.storagePerCapital} stored Units (rounded up), or lose them.
 
 BOARD REVIEWS (bosses)
-  Q3 of each Year has a boss rule. The next two Board bosses are always shown.
-  Line Shift: Fixtures move one slot right at the start of every Shift (wrapping around).
-  Turnover: Designs are dispatched like every other card.
-  Supply Shock: slot 1 is welded shut.
-  JIT Auditor: leftover Units cost $2 each, and the Warehouse is closed.
+  The last round of each Year has a boss rule. The next two Board bosses are always shown.
+  Line Shift: before every Shift, including Shift 1, all Fixtures move one slot right (the last
+    wraps to slot 1). Cards on the Line do NOT move, so parked Designs end up over other Fixtures,
+    and one that lands on a Station sits idle. The state lists each move. Your shop layout comes
+    back after the round.
+  Turnover: Designs are dispatched after each Shift like every other card.
+  Supply Shock: slot 1 is welded shut: no card, and its Fixture does nothing.
+  JIT Auditor: leftover Units cost $2 each instead of selling, and the Warehouse is closed (stored
+    Units stay stored).
 
 COMMANDS
   Numbers are as listed in the state: hand cards, slots, shop offers, deck cards.
+  Hand numbers stay put: a card keeps its number until it leaves the hand, and new cards fill the gaps.
   load <hand>:<slot> …   e.g. "load 3:1 5:4" puts hand card 3 in slot 1 and hand card 5 in slot 4
   unload <slot> …        take back cards loaded this Shift
   scrap <slot> …         discard parked cards
-  retool <hand> …        discard 1–3 hand cards and draw as many
+  retool <hand> …        discard 1–${c.retoolMax} hand cards and draw as many
   run                    run the Shift
   buy <offer> [<slot> | <deck card>]   Fixtures need a slot; Tooling Upgrade/Downsizing a deck card
   sell fixture <slot> | sell card <deck card>
   move <from slot> <to slot>
   reroll | continue
-  deck                   list every card you own and what is left to draw (free)
-  rules                  this text (free)`;
+  deck                   list every card you own and what is left to draw (free, not recorded)
+  rules                  this text (free); also "npm run -s cli -- rules --game throughput"`;
+}

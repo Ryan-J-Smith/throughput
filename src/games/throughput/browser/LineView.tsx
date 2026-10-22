@@ -1,6 +1,7 @@
 import { Card } from '../../../ui/components';
+import { fixtureNow } from '../cli';
 import type { ThroughputRun } from '../rules';
-import { cardView } from './present';
+import { cardView, lineNotice } from './present';
 
 export type BayState = 'target' | 'selected' | 'idle';
 
@@ -21,14 +22,20 @@ export type LineViewProps = {
  */
 export function LineView({ run, bayState, onBay, onScrap, bayLabel }: LineViewProps) {
   const inShift = run.phase === 'shift';
+  const notice = lineNotice(run);
+  const movedFrom = new Map(inShift ? run.fixtureMoves.map((m) => [m.to, m.from]) : []);
   return (
     <section className="tp-line" aria-label="Line">
+      {notice !== null && <p className="tp-line__notice">{notice}</p>}
       <ol className="tp-line__bays">
         {run.line.map((slot, i) => {
           const welded = inShift && run.isWelded(i);
           const station = slot.fixture?.def.kind === 'station';
           const held = slot.card;
           const parked = held !== null && held.loadedShift < run.shift;
+          // A Mod under a card it never acts on (Quality Lab under a Truck).
+          const idle = held !== null && slot.fixture !== null && !welded && !slot.fixture.def.effect.appliesTo(held.card);
+          const from = movedFrom.get(i);
           const state = bayState(i);
           // Between rounds only bays that hold a Fixture (to move or sell) or accept one can be tapped.
           const inert = !inShift && state === 'idle' && slot.fixture === null;
@@ -37,10 +44,18 @@ export function LineView({ run, bayState, onBay, onScrap, bayLabel }: LineViewPr
             .join(' ');
           return (
             <li key={i} className={classes}>
-              <div className="tp-bay__plate" data-accent={slot.fixture === null ? undefined : station ? 'mustard' : 'teal'}>
-                <span className="tp-bay__number">{i + 1}</span>
+              <div className={`tp-bay__plate ${idle ? 'is-idle' : ''}`} data-accent={slot.fixture === null ? undefined : station ? 'mustard' : 'teal'}>
+                <span className="tp-bay__number">
+                  {i + 1}
+                  {from !== undefined && <span className="tp-bay__moved"> moved from bay {from + 1}</span>}
+                </span>
                 <span className="tp-bay__fixture">{welded ? 'Welded shut' : (slot.fixture?.def.name ?? 'No fixture')}</span>
-                {slot.fixture !== null && !welded && <span className="tp-bay__fixture-text">{slot.fixture.def.text.replace(/^Station\. /, '')}</span>}
+                {slot.fixture !== null && !welded && (
+                  <span className="tp-bay__fixture-text">
+                    {slot.fixture.def.text.replace(/^Station\. /, '')} {fixtureNow(slot.fixture)}
+                  </span>
+                )}
+                {idle && <span className="tp-bay__idle">Idle for this card</span>}
               </div>
               <button type="button" className="tp-bay__spot" aria-label={bayLabel(i)} onClick={() => onBay(i)} disabled={inert}>
                 {held !== null ? (
@@ -50,7 +65,9 @@ export function LineView({ run, bayState, onBay, onScrap, bayLabel }: LineViewPr
                 )}
               </button>
               {held !== null && inShift && (
-                <span className={`tp-bay__status ${parked ? 'is-parked' : 'is-new'}`}>{parked ? `Parked since Shift ${held.loadedShift}` : 'Loaded'}</span>
+                <span className={`tp-bay__status ${parked ? 'is-parked' : 'is-new'}`}>
+                  {parked ? `Parked since Shift ${held.loadedShift}` : run.staysAfterShift(i) ? 'Loaded, stays after the run' : 'Loaded, used up by the run'}
+                </span>
               )}
               {parked && onScrap !== undefined && (
                 <button type="button" className="tp-bay__scrap" onClick={() => onScrap(i)}>

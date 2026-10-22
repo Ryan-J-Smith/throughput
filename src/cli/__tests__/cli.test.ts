@@ -150,6 +150,27 @@ describe('cli errors', () => {
   });
 });
 
+describe('cli rules', () => {
+  it('prints a game\'s rules by --game or from a save, without touching the save', () => {
+    const io = new FakeIo();
+    expect(io.run('rules', '--game', 'throughput')).toBe(EXIT_OK);
+    expect(io.output).toMatch(/^THROUGHPUT — rules\n/);
+    io.run('new', '--seed', '5', '--save', 't.json', '--game', 'throughput');
+    const saved = io.read('t.json');
+    expect(io.run('rules', '--save', 't.json')).toBe(EXIT_OK);
+    expect(io.output).toMatch(/^THROUGHPUT — rules\n/);
+    expect(io.read('t.json')).toBe(saved);
+  });
+
+  it('needs a game, and says so for a game without rules text', () => {
+    const io = new FakeIo();
+    expect(io.run('rules')).toBe(EXIT_USAGE);
+    expect(io.stderr.join('\n')).toMatch(/rules needs --game NAME or --save FILE \(games: demo, bom, throughput\)/);
+    expect(io.run('rules', '--game', 'demo')).toBe(EXIT_USAGE);
+    expect(io.stderr.join('\n')).toMatch(/demo has no rules text/);
+  });
+});
+
 describe('cli with a non-Run game', () => {
   it('drives any TextGame and does not rewrite the save for read-only queries', () => {
     const io = new FakeIo();

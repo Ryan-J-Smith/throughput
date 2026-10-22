@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import { Card } from '../../../ui/components';
-import { RULES_TEXT } from '../cli';
+import { rulesText } from '../cli';
 import { cardName } from '../model';
 import type { Offer, ThroughputRun } from '../rules';
 import { cardView, offerView } from './present';
@@ -117,12 +117,12 @@ export function DeckDrawer({ run, picking, onPick, onSell }: DeckDrawerProps) {
   );
 }
 
-/** The full rules, folded away. */
-export function RulesSheet() {
+/** The full rules (without the CLI commands), folded away. */
+export function RulesSheet({ run }: { run: ThroughputRun }) {
   return (
     <details className="tp-rules">
       <summary>How to play</summary>
-      <pre className="tp-rules__text">{RULES_TEXT.split('\nCOMMANDS')[0]}</pre>
+      <pre className="tp-rules__text">{rulesText(run.config).split('\nCOMMANDS')[0]}</pre>
     </details>
   );
 }

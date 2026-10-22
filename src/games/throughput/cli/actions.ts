@@ -1,6 +1,9 @@
 import type { Placement } from '../rules';
 
-/** A parsed text command. Numbers are 0-based here; the text uses 1-based. */
+/**
+ * A parsed text command. Numbers are 0-based here; the text uses 1-based. Hand numbers are stable
+ * hand positions (`ThroughputRun.handSlots`), not indexes into `ThroughputRun.hand`.
+ */
 export type ThroughputAction =
   | { readonly verb: 'load'; readonly placements: readonly Placement[] }
   | { readonly verb: 'unload' | 'scrap'; readonly slots: readonly number[] }

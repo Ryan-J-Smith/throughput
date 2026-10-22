@@ -170,6 +170,7 @@ function ship(card: Card, marginMul: number, fixture: Fixture | null, batch: Bat
 
 function slotLabel(fixture: Fixture | null, card: Card | null, welded: boolean): string {
   if (welded) return '(welded)';
-  const parts = [fixture === null ? '' : `[${fixture.def.name}]`, card === null ? '' : cardName(card)].filter(Boolean);
+  const idle = fixture !== null && card !== null && !fixture.def.effect.appliesTo(card);
+  const parts = [fixture === null ? '' : `[${fixture.def.name}${idle ? ': idle' : ''}]`, card === null ? '' : cardName(card)].filter(Boolean);
   return parts.length > 0 ? parts.join(' ') : '(empty)';
 }

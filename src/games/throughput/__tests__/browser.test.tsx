@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { LineView, ThroughputBrowserGame, ThroughputScreen, TraceReceipt } from '../browser';
+import { LineView, ThroughputBrowserGame, ThroughputScreen, TraceReceipt, lineNotice } from '../browser';
 import type { BayState } from '../browser';
 import type { Stage } from '../model';
 import { ThroughputRun } from '../rules';
@@ -66,6 +66,36 @@ describe('THROUGHPUT browser screen', () => {
     expect(html).toContain('Ship sells');
     expect(html).toContain(`$${preview.total}`);
     expect(html).toContain('target hit');
+  });
+
+  it('each loaded card says whether it stays after the run', () => {
+    const run = new ThroughputRun(1, easyConfig({ targets: [10_000] }));
+    run.load([
+      { hand: handIndex(run, 'design'), slot: 0 },
+      { hand: handIndex(run, 'make'), slot: 1 },
+    ]);
+    const html = renderLine(run);
+    expect(html).toContain('Loaded, stays after the run');
+    expect(html).toContain('Loaded, used up by the run');
+  });
+
+  it('Line Shift: the shop warns before the Board, and each Shift shows which Fixtures moved', () => {
+    const config = easyConfig({ roundsPerYear: 2, targets: [10, 10_000, 10, 10], startingCapital: 100 });
+    let seed = 1;
+    while (new ThroughputRun(seed, config).boardBosses[0]?.id !== 'line-shift') seed++;
+    const run = new ThroughputRun(seed, config);
+    run.load([
+      { hand: handIndex(run, 'make'), slot: 0 },
+      { hand: handIndex(run, 'ship'), slot: 1 },
+    ]);
+    run.runShift();
+    const fixture = run.buy(0, { slot: 0 });
+    expect(renderLine(run)).toContain('Next round, Line Shift moves your Fixtures before every Shift, starting before Shift 1.');
+    run.continueToNextRound();
+    expect(lineNotice(run)).toBe(`Line Shift moved your Fixtures before this Shift: ${fixture.def.name} 1→2. Cards stay put.`);
+    const html = renderLine(run);
+    expect(html).toContain('class="tp-line__notice"');
+    expect(html).toContain('moved from bay 1');
   });
 
   it('registers as a browser game', () => {

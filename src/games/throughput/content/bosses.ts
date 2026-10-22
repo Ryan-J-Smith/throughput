@@ -3,7 +3,7 @@ import { BoardBoss } from '../model';
 class LineShift extends BoardBoss {
   readonly id = 'line-shift';
   readonly name = 'Line Shift';
-  readonly text = 'At the start of every Shift, all Fixtures move one slot right, wrapping around.';
+  readonly text = 'Before every Shift, including Shift 1, all Fixtures move one slot right (the last wraps to slot 1). Cards stay put. Your layout comes back after the round.';
   readonly pressures = 'R&D Compounder and Skimmer: parked Designs drift off their Mods';
 
   override shiftFixtures<T>(fixtures: readonly T[]): T[] {

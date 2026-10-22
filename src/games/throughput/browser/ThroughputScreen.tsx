@@ -225,7 +225,7 @@ export function ThroughputScreen({ seed, onQuit }: BrowserGameProps) {
           <TraceReceipt result={lastShift.result} heading={lastShift.heading} salesBefore={lastShift.salesBefore} target={lastShift.target} />
         </details>
       )}
-      <RulesSheet />
+      <RulesSheet run={run} />
     </main>
   );
 }

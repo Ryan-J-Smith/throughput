@@ -1,7 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import type { SaveFile, TurnResult } from '../../../play/session';
-import { ThroughputTextGame, formatAction, parseAction } from '../cli';
+import { ThroughputTextGame, formatAction, offerText, parseAction, rulesText } from '../cli';
+import { DEFAULT_CONFIG, INFLUENCER, WHOLESALE_CLUB } from '../content';
+import { ThroughputRun } from '../rules';
 import { easyConfig } from './fixtures';
+
+type HandEntry = { readonly n: number; readonly name: string; readonly stage: string };
+
+/** The hand as --json lists it. */
+function handOf(game: ThroughputTextGame, save: SaveFile): HandEntry[] {
+  return (game.show(save).state as { hand: HandEntry[] }).hand;
+}
+
+/** The hand number of the first card of a type. */
+function numberOf(hand: readonly HandEntry[], stage: string): number {
+  const entry = hand.find((c) => c.stage === stage);
+  if (entry === undefined) throw new Error(`no ${stage} in hand`);
+  return entry.n;
+}
 
 function ok(result: TurnResult): Extract<TurnResult, { ok: true }> {
   if (!result.ok) throw new Error(`refused: ${result.reason}`);
@@ -45,7 +61,7 @@ describe('ThroughputTextGame', () => {
     const view = game.show(game.newSave(1));
     expect(view.text).toContain('Y1 Q1 (round 1 of 3) · Shift 1 of 4');
     expect(view.text).toContain('Market (this round and the 3 after):');
-    expect(view.text).toContain('Hand (7):');
+    expect(view.text).toContain('Hand (7; a card keeps its number until it leaves the hand):');
     expect(view.text).toContain('If you run now:');
     expect(view.legalActions[0]).toMatch(/^load <hand>:<slot>/);
     expect(view.legalActions).toContain('rules — show the full rules (free)');
@@ -71,16 +87,73 @@ describe('ThroughputTextGame', () => {
     }
   });
 
+  it('hand numbers stay put across commands; drawn cards say where they went', () => {
+    const start = handOf(game, game.newSave(1));
+    const [first, second] = start;
+    if (first === undefined || second === undefined) throw new Error('short hand');
+    const save = play(game, 1, [`load ${first.n}:1`]);
+    const loaded = ok(game.take(save, `load ${second.n}:2`));
+    expect(loaded.log).toEqual([`Loaded ${second.name} → slot 2.`]);
+    expect(handOf(game, loaded.save).map((c) => c.n)).toEqual(start.slice(2).map((c) => c.n));
+    expect(game.take(loaded.save, `load ${first.n}:3`)).toMatchObject({ ok: false, reason: `No hand card ${first.n}` });
+    const retooled = ok(game.take(loaded.save, `retool ${start[2]?.n ?? 0}`));
+    expect(retooled.log[0]).toMatch(new RegExp(`; drew \\S+ \\(${start[2]?.n ?? 0}\\)\\.$`));
+    const ran = ok(game.take(loaded.save, 'run'));
+    expect(ran.log).toContain(`Drew ${handOf(game, ran.save).slice(0, 2).map((c) => `${c.name} (${c.n})`).join(', ')}.`);
+  });
+
+  it('marks what stays on the Line after the run', () => {
+    const hand = handOf(game, game.newSave(1));
+    const view = game.show(play(game, 1, [`load ${numberOf(hand, 'design')}:1 ${numberOf(hand, 'make')}:2`])).text;
+    expect(view).toMatch(/1\. no Fixture \| Sketch-\w · .* \[loaded this Shift; stays after the run\]/);
+    expect(view).toMatch(/2\. no Fixture \| Workshop-\w · .* \[loaded this Shift; dispatched after the run\]/);
+  });
+
+  it('Line Shift: the shop shows the Shift 1 layout, and the log and state list each move', () => {
+    const config = easyConfig({ roundsPerYear: 2, targets: [10, 10_000, 10, 10], startingCapital: 100 });
+    let seed = 1;
+    while (new ThroughputRun(seed, config).boardBosses[0]?.id !== 'line-shift') seed++;
+    const shiftGame = new ThroughputTextGame(config);
+    const hand = handOf(shiftGame, shiftGame.newSave(seed));
+    const shop = play(shiftGame, seed, [`load ${numberOf(hand, 'make')}:1 ${numberOf(hand, 'ship')}:2`, 'run', 'buy 1 1']);
+    const name = (shiftGame.show(shop).state as { line: { fixture: { name: string } | null }[] }).line[0]?.fixture?.name ?? '';
+    expect(shiftGame.show(shop).text).toContain(`Line Shift next round: before Shift 1 your Fixtures will sit at 1. - · 2. ${name} · 3. - · 4. - · 5. -.`);
+    const next = ok(shiftGame.take(shop, 'continue'));
+    expect(next.log).toContain(`Line Shift: Fixtures moved before Shift 1: ${name} 1→2.`);
+    expect(next.view.text).toContain(`Line Shift moved your Fixtures before this Shift: ${name} 1→2.`);
+    expect(next.view.state).toMatchObject({ fixtureMoves: [{ fixture: name, from: 1, to: 2 }] });
+  });
+
   it('plays from a Shift into the shop and on into round 2', () => {
-    const view = game.show(game.newSave(1));
-    const state = view.state as { hand: { stage: string }[] };
-    const make = state.hand.findIndex((c) => c.stage === 'make') + 1;
-    const ship = state.hand.findIndex((c) => c.stage === 'ship') + 1;
+    const hand = handOf(game, game.newSave(1));
+    const make = numberOf(hand, 'make');
+    const ship = numberOf(hand, 'ship');
     const shop = ok(game.take(play(game, 1, [`load ${make}:1 ${ship}:2`]), 'run'));
     expect(shop.log.at(-1)).toMatch(/^Target hit! Y1 Q1 cleared\. Payout: Q1 cleared 4C, 3 unused Shifts 6C\.$/);
     expect(shop.view.text).toContain('Shop (reroll 2C):');
+    expect(shop.view.text).toMatch(/Interest: holding \d+C when the next round clears pays \+\d+C/);
     expect(shop.view.legalActions.at(-3)).toBe('continue — start Y1 Q2 (round 2, target $10)');
     const next = ok(game.take(shop.save, 'continue'));
     expect(next.view.state).toMatchObject({ phase: 'shift', round: 2 });
+  });
+});
+
+describe('rules and shop text', () => {
+  it('the rules match the engine on Hot pips and explain how a sale is priced, with numbers from the config', () => {
+    const text = rulesText(DEFAULT_CONFIG);
+    expect(text).toContain('A Shift in which a Hot Ship card sells at least\n    1 Unit spends 1 pip');
+    expect(text).not.toContain('first 2 Shifts');
+    expect(text).toContain('HOW A SALE IS PRICED');
+    expect(text).toContain('Revenue is rounded down once per sale');
+    expect(text).toContain('Line Shift: before every Shift, including Shift 1');
+    expect(text).toContain(`Targets: Y1 ${DEFAULT_CONFIG.targets.slice(0, 3).join('/')}`);
+    expect(rulesText({ ...DEFAULT_CONFIG, handSize: 8 })).toContain('a hand of 8');
+  });
+
+  it('a shop card offer names its Category and type, in the same words the deck uses', () => {
+    expect(offerText({ kind: 'card', def: INFLUENCER, category: 'Food', price: 5 })).toBe('Card · Influencer-F (Food Design) · 5C: Margin ×1.5');
+    expect(offerText({ kind: 'card', def: WHOLESALE_CLUB, category: 'Home', price: 4 })).toBe(
+      'Card · Wholesale Club-H (Home Ship) · 4C: sell all Units at half Margin (ignores cap cuts)',
+    );
   });
 });

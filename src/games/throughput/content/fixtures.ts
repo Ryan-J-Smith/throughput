@@ -5,11 +5,19 @@ class QualityLab extends FixtureEffect {
   override onSlot(batch: Batch, here: SlotContext): void {
     if (here.card?.def.stage === 'design') batch.addMargin(4, 'Quality Lab');
   }
+
+  override appliesTo(card: Card): boolean {
+    return card.def.stage === 'design';
+  }
 }
 
 class OvertimeCrew extends FixtureEffect {
   override onSlot(batch: Batch, here: SlotContext): void {
     if (here.card?.def.stage === 'make') batch.addUnits(8, 'Overtime Crew');
+  }
+
+  override appliesTo(card: Card): boolean {
+    return card.def.stage === 'make';
   }
 }
 
@@ -17,16 +25,28 @@ class Showroom extends FixtureEffect {
   override onSlot(batch: Batch, here: SlotContext): void {
     if (here.card?.def.stage === 'ship') batch.addMargin(3, 'Showroom');
   }
+
+  override appliesTo(card: Card): boolean {
+    return card.def.stage === 'ship';
+  }
 }
 
 class RndLab extends FixtureEffect {
   override afterResolve(card: Card, batch: Batch): void {
     if (card.def.stage === 'design') batch.grow(card, 'R&D Lab');
   }
+
+  override appliesTo(card: Card): boolean {
+    return card.def.stage === 'design';
+  }
 }
 
 class Automation extends FixtureEffect {
   override keepsOnLine(card: Card): boolean {
+    return card.def.stage === 'make';
+  }
+
+  override appliesTo(card: Card): boolean {
     return card.def.stage === 'make';
   }
 }
@@ -76,6 +96,10 @@ class FlagshipStore extends FixtureEffect {
   override saleMultiplier(card: Card, fixture: Fixture): number {
     return card.def.stage === 'ship' ? flagshipMultiplier(fixture.roundsOwned) : 1;
   }
+
+  override appliesTo(card: Card): boolean {
+    return card.def.stage === 'ship';
+  }
 }
 
 /** ×1.2, +0.2 per round cleared since the Flagship was bought. */
@@ -86,7 +110,7 @@ export function flagshipMultiplier(roundsOwned: number): number {
 export const FIXTURES: readonly FixtureDef[] = [
   { id: 'quality-lab', name: 'Quality Lab', kind: 'mod', rarity: 'common', price: 4, text: 'A Design here gets +$4.', effect: new QualityLab() },
   { id: 'overtime-crew', name: 'Overtime Crew', kind: 'mod', rarity: 'common', price: 4, text: 'A Make card here gets +8 Units.', effect: new OvertimeCrew() },
-  { id: 'showroom', name: 'Showroom', kind: 'mod', rarity: 'common', price: 4, text: 'A Ship card here gets +$3 Margin before selling.', effect: new Showroom() },
+  { id: 'showroom', name: 'Showroom', kind: 'mod', rarity: 'common', price: 4, text: 'With a Ship card here: +$3 Margin before it sells (carries on to later slots).', effect: new Showroom() },
   {
     id: 'rnd-lab',
     name: 'R&D Lab',

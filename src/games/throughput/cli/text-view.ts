@@ -1,9 +1,12 @@
+import { computeInterest } from '../../../engine/economy';
+import { TRUCK } from '../content';
 import { CATEGORIES, cardEffect, cardName, formatAmount } from '../model';
-import type { Card, Category, Fixture, TrendStage } from '../model';
-import type { Offer, ShiftResult, ThroughputRun, Trends } from '../rules';
+import type { Card, CardDef, Category, Fixture, TrendStage } from '../model';
+import type { FixtureMove, Offer, ShiftResult, ThroughputRun, Trends } from '../rules';
 
 const STAGE_ORDER: readonly TrendStage[] = ['hot', 'emerging', 'saturated', 'neutral'];
 const STAGE_NAME: Readonly<Record<TrendStage, string>> = { hot: 'Hot', emerging: 'Emerging', saturated: 'Saturated', neutral: 'Neutral' };
+const TYPE_NAME = { design: 'Design', make: 'Make', ship: 'Ship' } as const;
 
 export type ViewContext = { readonly game: string; readonly seed: number; readonly actionsTaken: number };
 
@@ -13,8 +16,20 @@ export function quarterLabel(run: ThroughputRun, round: number): string {
   return `Y${q.year} ${q.isBoard ? 'Board' : `Q${q.quarter}`}`;
 }
 
+/** A card as the shop offers it, before it is in the deck. */
+function freshCard(def: CardDef, category: Category): Card {
+  return { uid: -1, def, category, paid: 0, upgrades: 0, growth: 0 };
+}
+
+/** "Now ×1.6." for a Fixture whose sale × grows (Flagship Store), else ''. */
+export function fixtureNow(fixture: Fixture): string {
+  const multiplier = fixture.def.effect.saleMultiplier(freshCard(TRUCK, 'Food'), fixture);
+  return multiplier === 1 ? '' : `Now ×${formatAmount(multiplier)}.`;
+}
+
 export function fixtureText(fixture: Fixture): string {
-  return `${fixture.def.name} (${fixture.def.kind === 'station' ? 'Station' : 'Mod'}): ${fixture.def.text}`;
+  const now = fixtureNow(fixture);
+  return `${fixture.def.name} (${fixture.def.kind === 'station' ? 'Station' : 'Mod'}): ${fixture.def.text}${now === '' ? '' : ` ${now}`}`;
 }
 
 export function cardText(card: Card): string {
@@ -28,8 +43,11 @@ export function offerText(offer: Offer): string {
   switch (offer.kind) {
     case 'fixture':
       return `Fixture · ${offer.def.name} (${offer.def.kind === 'station' ? 'Station' : 'Mod'}, ${offer.def.rarity}) · ${offer.price}C: ${offer.def.text}`;
-    case 'card':
-      return `Card · ${offer.def.name}-${offer.category.charAt(0)} (${offer.category}) · ${offer.price}C: ${offer.def.text}`;
+    case 'card': {
+      // Same text as the deck shows once bought.
+      const effect = cardEffect(freshCard(offer.def, offer.category)).replace(/^\w+: /, '');
+      return `Card · ${offer.def.name}-${offer.category.charAt(0)} (${offer.category} ${TYPE_NAME[offer.def.stage]}) · ${offer.price}C: ${effect}`;
+    }
     case 'contract':
       return `Contract · ${offer.def.name} · ${offer.price}C: ${offer.def.text}`;
   }
@@ -56,21 +74,60 @@ export function traceLines(result: ShiftResult, indent = '  '): string[] {
   return lines;
 }
 
+/** "Showroom 5→1, Quality Lab 1→2" (1-based slots). */
+export function movesText(moves: readonly FixtureMove[]): string {
+  return moves.map((m) => `${m.fixture.def.name} ${m.from + 1}→${m.to + 1}`).join(', ');
+}
+
+/** 1-based numbers with runs collapsed: [0, 1, 2, 4] → "1–3, 5". */
+function ranges(ns: readonly number[]): string {
+  const out: string[] = [];
+  for (let i = 0; i < ns.length; ) {
+    let j = i;
+    while (j + 1 < ns.length && (ns[j + 1] as number) === (ns[j] as number) + 1) j++;
+    const first = (ns[i] as number) + 1;
+    const last = (ns[j] as number) + 1;
+    out.push(first === last ? String(first) : `${first}–${last}`);
+    i = j + 1;
+  }
+  return out.join(', ');
+}
+
+/** Hand numbers (0-based positions) of the cards in hand. */
+function handNumbers(run: ThroughputRun): number[] {
+  return run.handSlots.flatMap((card, i) => (card === null ? [] : [i]));
+}
+
+/** Why no target makes this offer buyable right now, or null if one does (or it is sold). */
+export function offerBlocker(run: ThroughputRun, offer: number): string | null {
+  const item = run.offers[offer];
+  if (item == null) return null;
+  if (!run.wallet.canAfford(item.price)) return `needs ${item.price}C (you have ${run.wallet.cash}C)`;
+  if (item.kind === 'fixture') {
+    return run.line.some((_, s) => run.whyCannotBuy(offer, { slot: s }) === null) ? null : 'no slot without a Fixture (sell or move one first)';
+  }
+  return run.whyCannotBuy(offer, item.kind === 'contract' && item.def.targetsCard ? { deckCard: 0 } : {});
+}
+
 export function legalActions(run: ThroughputRun): string[] {
   const out: string[] = [];
   const list = (ns: readonly number[]) => ns.map((n) => n + 1).join(', ');
   const slots = run.line.map((_, i) => i);
   if (run.phase === 'shift') {
+    const hand = handNumbers(run);
     const open = slots.filter((i) => run.whyCannotLoad([{ hand: 0, slot: i }]) === null);
-    if (run.hand.length > 0 && open.length > 0) {
-      out.push(`load <hand>:<slot> … — put hand cards (1–${run.hand.length}) into open slots (${list(open)})`);
+    if (hand.length > 0 && open.length > 0) {
+      const cards = hand.length === 1 ? `hand card ${ranges(hand)}` : `hand cards (${ranges(hand)})`;
+      out.push(`load <hand>:<slot> … — put ${cards} into open slots (${list(open)})`);
     }
     const loaded = slots.filter((i) => run.whyCannotUnload([i]) === null);
     if (loaded.length > 0) out.push(`unload <slot> … — take back cards loaded this Shift (slots ${list(loaded)})`);
     const parked = slots.filter((i) => run.whyCannotScrap([i]) === null);
     if (parked.length > 0) out.push(`scrap <slot> … — discard parked cards to free their slots (slots ${list(parked)})`);
     if (run.whyCannotRetool([0]) === null) {
-      out.push(`retool <hand> … — discard 1–${Math.min(run.config.retoolMax, run.hand.length)} hand cards and draw as many (${run.retoolsLeft} left this round)`);
+      const most = Math.min(run.config.retoolMax, run.hand.length);
+      const cards = most === 1 ? '1 hand card' : `1–${most} hand cards`;
+      out.push(`retool <hand> … — discard ${cards} and draw as many into their places (${run.retoolsLeft} left this round)`);
     }
     const preview = run.preview();
     out.push(`run — run Shift ${run.shift} of ${run.config.shiftsPerRound} (makes $${preview.total}; round reaches $${Math.max(0, run.sales + preview.total)} of $${run.target})`);
@@ -106,6 +163,14 @@ export function legalActions(run: ThroughputRun): string[] {
   return out;
 }
 
+/** What happens to the card in a Line slot after the run, for the Line listing. */
+function lineCardNote(run: ThroughputRun, slot: number): string {
+  const held = run.line[slot]?.card;
+  if (held == null) return '';
+  const since = held.loadedShift < run.shift ? `parked since Shift ${held.loadedShift}` : 'loaded this Shift';
+  return `[${since}; ${run.staysAfterShift(slot) ? 'stays after the run' : 'dispatched after the run'}]`;
+}
+
 export function formatView(run: ThroughputRun, context: ViewContext): string {
   const lines = [`THROUGHPUT · seed ${context.seed} · ${context.actionsTaken} actions`];
   const where = `${quarterLabel(run, run.round)} (round ${run.round} of ${run.rounds})`;
@@ -116,12 +181,16 @@ export function formatView(run: ThroughputRun, context: ViewContext): string {
         `Retools left ${run.retoolsLeft} · Draw pile ${run.drawPile.length} · Discard pile ${run.discardPile.length}${run.stored > 0 ? ` · Stored ${run.stored} Units` : ''}`,
       );
       if (run.boss !== null) lines.push(`BOARD REVIEW: ${run.boss.name}: ${run.boss.text}`);
+      if (run.fixtureMoves.length > 0) lines.push(`${run.boss?.name ?? 'The boss'} moved your Fixtures before this Shift: ${movesText(run.fixtureMoves)}.`);
       break;
-    case 'shop':
+    case 'shop': {
       lines.push(`Shop after ${where} · Capital ${run.wallet.cash}C${run.stored > 0 ? ` · Stored ${run.stored} Units` : ''}`);
       if (run.lastPayout !== null) lines.push(`Payout: ${run.lastPayout.map((l) => `${l.source} ${l.amount}C`).join(', ')}`);
       if (run.storageNotice !== null) lines.push(run.storageNotice);
+      const interest = computeInterest(run.wallet.cash, run.config.interest);
+      lines.push(`Interest: holding ${run.wallet.cash}C when the next round clears pays +${interest}C (${run.config.interest.amount}C per full ${run.config.interest.per}C, at most +${run.config.interest.cap}C).`);
       break;
+    }
     case 'won':
       lines.push(`YOU WON: cleared all ${run.rounds} rounds. Final Capital ${run.wallet.cash}C.`);
       break;
@@ -138,23 +207,44 @@ export function formatView(run: ThroughputRun, context: ViewContext): string {
   const boards = run.upcomingBoards();
   if (boards.length > 0) lines.push(`Board Reviews ahead: ${boards.map((b) => `${quarterLabel(run, b.round)} (round ${b.round}): ${b.boss.name}: ${b.boss.text}`).join(' | ')}`);
 
-  lines.push('', run.phase === 'shift' ? 'Line (the Batch runs left to right from 0 Units, Margin $2):' : 'Line Fixtures:');
+  lines.push('', run.phase === 'shift' ? `Line (the Batch runs left to right from 0 Units, Margin $${run.config.baseMargin}):` : 'Line Fixtures:');
   run.line.forEach((slot, i) => {
     const fixture = run.isWelded(i) && run.phase === 'shift' ? 'WELDED SHUT' : slot.fixture === null ? 'no Fixture' : fixtureText(slot.fixture);
-    const held = slot.card === null ? '' : ` | ${cardText(slot.card.card)}${slot.card.loadedShift < run.shift ? ` [parked since Shift ${slot.card.loadedShift}]` : ' [loaded this Shift]'}`;
+    const card = slot.card?.card;
+    const idle = card !== undefined && slot.fixture !== null && slot.fixture.def.kind === 'mod' && !slot.fixture.def.effect.appliesTo(card) ? ` (${slot.fixture.def.name} is idle for it)` : '';
+    const held = card === undefined ? '' : ` | ${cardText(card)} ${lineCardNote(run, i)}${idle}`;
     lines.push(`  ${i + 1}. ${fixture}${held}`);
   });
 
   if (run.phase === 'shift') {
-    lines.push('', `Hand (${run.hand.length}):`, ...run.hand.map((card, i) => `  ${i + 1}. ${cardText(card)}`));
+    const hand = run.handSlots.flatMap((card, i) => (card === null ? [] : [`  ${i + 1}. ${cardText(card)}`]));
+    lines.push('', `Hand (${run.hand.length}; a card keeps its number until it leaves the hand):`, ...hand);
     lines.push('', 'If you run now:', ...traceLines(run.preview()));
   } else {
+    lines.push(...nextBoardLayout(run));
     lines.push('', `Shop (reroll ${run.rerollCost}C):`);
-    run.offers.forEach((offer, i) => lines.push(`  ${i + 1}. ${offer === null ? '(bought)' : offerText(offer)}`));
-    lines.push('', `Deck (${run.deck.length} cards; numbers are for contracts and selling):`, ...run.deck.map((card, i) => `  ${i + 1}. ${cardText(card)}`));
+    run.offers.forEach((offer, i) => {
+      const blocker = offerBlocker(run, i);
+      lines.push(`  ${i + 1}. ${offer === null ? '(bought)' : offerText(offer)}${blocker === null ? '' : ` [can't buy: ${blocker}]`}`);
+    });
+    // Deck numbers matter in the shop only for a Contract that targets a card; otherwise keep the screen short.
+    const picksCard = run.offers.some((o) => o?.kind === 'contract' && o.def.targetsCard);
+    if (picksCard) lines.push('', `Deck (${run.deck.length} cards; numbers are for contracts and selling):`, ...run.deck.map((card, i) => `  ${i + 1}. ${cardText(card)}`));
+    else lines.push('', `Deck: ${run.deck.length} cards ("deck" lists them).`);
   }
   lines.push('', 'Legal actions:', ...legalActions(run).map((a) => `  ${a}`));
   return lines.join('\n');
+}
+
+/** In the shop before a Board whose boss moves Fixtures: where they will sit for Shift 1. */
+function nextBoardLayout(run: ThroughputRun): string[] {
+  const boss = run.bossOf(run.round + 1);
+  if (boss === null) return [];
+  const before = run.line.map((s) => s.fixture);
+  const after = boss.shiftFixtures(before);
+  if (after.every((f, i) => f === before[i])) return [];
+  const layout = after.map((f, i) => `${i + 1}. ${f?.def.name ?? '-'}`).join(' · ');
+  return [`${boss.name} next round: before Shift 1 your Fixtures will sit at ${layout}.`];
 }
 
 function marketLines(run: ThroughputRun): string[] {
@@ -163,8 +253,12 @@ function marketLines(run: ThroughputRun): string[] {
   for (let round = first; round < first + 4 && round <= run.rounds; round++) {
     const trends = run.trends[round - 1];
     if (trends === undefined) continue;
-    const pips = round === run.round && run.phase === 'shift' ? ` (${run.hotPipsLeft} buzz pip${run.hotPipsLeft === 1 ? '' : 's'} left)` : '';
-    lines.push(`  ${round === run.round && run.phase === 'shift' ? 'now ' : '    '}${quarterLabel(run, round)}: ${trendsText(trends, pips)}`);
+    const now = round === run.round && run.phase === 'shift';
+    const hot = CATEGORIES.find((c) => trends[c] === 'hot');
+    const pips = now
+      ? ` (${run.hotPipsLeft} buzz pip${run.hotPipsLeft === 1 ? '' : 's'} left; a Shift that sells ${hot ?? 'it'} spends one and gets ×${formatAmount(run.config.hotMultiplier)})`
+      : '';
+    lines.push(`  ${now ? 'now ' : '    '}${quarterLabel(run, round)}: ${trendsText(trends, pips)}`);
   }
   const loyal = run.config.loyalEquity;
   lines.push(`  Equity: ${CATEGORIES.map((c) => `${c} ${run.equity[c]}${run.equity[c] >= loyal ? ' (Loyal)' : ''}`).join(' · ')} (Loyal at ${loyal})`);
@@ -185,7 +279,7 @@ export function deckText(run: ThroughputRun): string[] {
 
 /** JSON-safe snapshot for --json. */
 export function stateData(run: ThroughputRun, context: ViewContext): Record<string, unknown> {
-  const fixture = (f: Fixture | null) => (f === null ? null : { id: f.def.id, name: f.def.name, kind: f.def.kind, text: f.def.text, roundsOwned: f.roundsOwned });
+  const fixture = (f: Fixture | null) => (f === null ? null : { id: f.def.id, name: f.def.name, kind: f.def.kind, text: fixtureText(f), roundsOwned: f.roundsOwned });
   const card = (c: Card) => ({ name: cardName(c), id: c.def.id, stage: c.def.stage, category: c.category, effect: cardEffect(c), upgrades: c.upgrades, growth: c.growth });
   const equity: Partial<Record<Category, number>> = {};
   for (const c of CATEGORIES) equity[c] = run.equity[c];
@@ -205,6 +299,7 @@ export function stateData(run: ThroughputRun, context: ViewContext): Record<stri
     stored: run.stored,
     hotPipsLeft: run.hotPipsLeft,
     boss: run.boss === null ? null : { name: run.boss.name, text: run.boss.text },
+    fixtureMoves: run.phase === 'shift' ? run.fixtureMoves.map((m) => ({ fixture: m.fixture.def.name, from: m.from + 1, to: m.to + 1 })) : [],
     market: run.trends.slice(run.round - 1, run.round + 3).map((trends, i) => ({ round: run.round + i, trends })),
     equity,
     boards: run.upcomingBoards().map((b) => ({ round: b.round, boss: b.boss.name, text: b.boss.text })),
@@ -212,13 +307,17 @@ export function stateData(run: ThroughputRun, context: ViewContext): Record<stri
       slot: i + 1,
       welded: run.isWelded(i),
       fixture: fixture(slot.fixture),
-      card: slot.card === null ? null : { ...card(slot.card.card), loadedShift: slot.card.loadedShift },
+      card: slot.card === null ? null : { ...card(slot.card.card), loadedShift: slot.card.loadedShift, staysAfterRun: run.staysAfterShift(i) },
     })),
-    hand: run.phase === 'shift' ? run.hand.map(card) : [],
+    // `n` is the hand number to use in load/retool; it stays put while the card is in hand.
+    hand: run.phase === 'shift' ? run.handSlots.flatMap((c, i) => (c === null ? [] : [{ n: i + 1, ...card(c) }])) : [],
     preview: run.phase === 'shift' ? previewData(run.preview()) : null,
     lastShift: run.lastShift === null ? null : previewData(run.lastShift),
     payout: run.lastPayout,
-    shop: run.phase === 'shop' ? { rerollCost: run.rerollCost, offers: run.offers.map((o) => (o === null ? null : { kind: o.kind, text: offerText(o), price: o.price })) } : null,
+    shop:
+      run.phase === 'shop'
+        ? { rerollCost: run.rerollCost, offers: run.offers.map((o, i) => (o === null ? null : { kind: o.kind, text: offerText(o), price: o.price, blocked: offerBlocker(run, i) })) }
+        : null,
     deck: run.deck.map(card),
     legalActions: legalActions(run),
   };

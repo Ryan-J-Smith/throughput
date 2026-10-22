@@ -89,6 +89,37 @@ describe('ThroughputRun: a Shift', () => {
     expect(run.line[0]?.card).toBeNull();
   });
 
+  it('hand numbers stay put: loads leave gaps, unload goes back, a Retool and the next Shift fill the gaps', () => {
+    const run = new ThroughputRun(1, easyConfig({ targets: [10_000] }));
+    const start = [...run.handSlots];
+    expect(start).toEqual(run.hand);
+    run.load([
+      { hand: 1, slot: 0 },
+      { hand: 4, slot: 1 },
+    ]);
+    expect(run.handSlots).toEqual([start[0], null, start[2], start[3], null, start[5], start[6]]);
+    expect(run.hand).toEqual([start[0], start[2], start[3], start[5], start[6]]);
+    run.unload([1]);
+    expect(run.handSlots).toEqual([start[0], null, start[2], start[3], start[4], start[5], start[6]]);
+    run.retool([0]);
+    const retooled = [...run.handSlots];
+    expect(retooled[0]).not.toBe(start[0]);
+    expect(retooled.slice(1)).toEqual([null, start[2], start[3], start[4], start[5], start[6]]);
+    run.runShift();
+    expect(run.handSlots).toHaveLength(7);
+    expect(run.handSlots[1]).not.toBeNull();
+    expect([run.handSlots[0], ...run.handSlots.slice(2)]).toEqual([retooled[0], ...retooled.slice(2)]);
+  });
+
+  it('says which Line cards stay after the run: Designs, and Makes on Automation', () => {
+    const run = new ThroughputRun(1, easyConfig({ targets: [10_000] }));
+    run.load([
+      { hand: handIndex(run, 'design'), slot: 0 },
+      { hand: handIndex(run, 'make'), slot: 1 },
+    ]);
+    expect([0, 1, 2].map((s) => run.staysAfterShift(s))).toEqual([true, false, false]);
+  });
+
   it('refuses bad loads without changing anything', () => {
     const run = new ThroughputRun(1);
     expect(run.whyCannotLoad([{ hand: 9, slot: 0 }])).toBe('No hand card 10');
@@ -214,9 +245,12 @@ describe('ThroughputRun: bosses', () => {
     const fixture = run.buy(0, { slot: 0 });
     run.continueToNextRound();
     expect(run.boss?.id).toBe('line-shift');
-    expect(run.line[1]?.fixture?.def).toBe(fixture.def);
+    const owned = run.line[1]?.fixture;
+    expect(owned?.def).toBe(fixture.def);
+    expect(run.fixtureMoves).toEqual([{ fixture: owned, from: 0, to: 1 }]);
     run.runShift();
     expect(run.line[2]?.fixture?.def).toBe(fixture.def);
+    expect(run.fixtureMoves).toEqual([{ fixture: owned, from: 1, to: 2 }]);
     for (let i = 0; i < 3; i++) run.runShift();
     expect(run.phase).toBe('lost');
     expect(run.line[0]?.fixture?.def).toBe(fixture.def);
@@ -232,6 +266,7 @@ describe('ThroughputRun: bosses', () => {
       (r) => r.boss?.id === 'turnover' && r.hand.some((c) => c.def.stage === 'design'),
     );
     run.load([{ hand: handIndex(run, 'design'), slot: 0 }]);
+    expect(run.staysAfterShift(0)).toBe(false);
     run.runShift();
     expect(run.line[0]?.card).toBeNull();
   });
