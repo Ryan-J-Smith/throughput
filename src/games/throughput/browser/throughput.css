@@ -847,6 +847,115 @@
   gap: 14px;
 }
 
+/* ---------- Run summary (layout in summary.css) ---------- */
+
+/* The hero robot: on the podium after a win, alone on a stopped belt after a loss. */
+.tp-summary .tp-summary__art {
+  inset: 0 0 auto auto;
+  width: min(46vw, 440px);
+  aspect-ratio: 1;
+  background: 50% 50% / cover no-repeat;
+  -webkit-mask-image: radial-gradient(closest-side, #000 62%, transparent);
+  mask-image: radial-gradient(closest-side, #000 62%, transparent);
+  animation: tp-summary-art-in 900ms var(--ease-out) both;
+}
+
+.tp-summary__art[data-art='end-win'] {
+  background-image: url('../../../assets/art/plain/end-win.webp');
+}
+
+.tp-summary__art[data-art='end-loss'] {
+  background-image: url('../../../assets/art/plain/end-loss.webp');
+  filter: saturate(0.85);
+}
+
+@keyframes tp-summary-art-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+}
+
+.tp-summary .tp-summary__title {
+  letter-spacing: -0.03em;
+  background: linear-gradient(180deg, #fff, #b9c7e8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.tp-summary[data-outcome='won'] .tp-summary__title {
+  background-image: linear-gradient(180deg, #fff3c4, var(--rarity-gold) 60%, #d9a440);
+  filter: drop-shadow(0 0 24px rgb(255 207 90 / 0.35));
+}
+
+.tp-summary .tp-summary__total {
+  letter-spacing: -0.04em;
+  background: linear-gradient(180deg, #fff 30%, #9fe9c8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 30px rgb(61 220 151 / 0.3));
+}
+
+.tp-summary[data-outcome='won'] .tp-summary__total {
+  background-image: linear-gradient(180deg, #fff 25%, var(--rarity-gold));
+  filter: drop-shadow(0 0 30px rgb(255 207 90 / 0.35));
+}
+
+.tp-summary .tp-summary__total-label {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.tp-summary .tp-summary__stat {
+  background: var(--glass), var(--glass-solid);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-panel);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
+
+.tp-summary .tp-summary__stat dt {
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tp-summary__stat[data-stat='best-shift'] .tp-summary__stat-value {
+  color: var(--cash);
+  text-shadow: 0 0 18px rgb(61 220 151 / 0.35);
+}
+
+.tp-summary__stat[data-stat='capital'] .tp-summary__stat-value {
+  color: var(--rarity-gold);
+}
+
+.tp-summary .tp-summary__heading {
+  font-family: var(--font-display);
+}
+
+.tp-summary .tp-summary__empty {
+  border-color: rgb(255 255 255 / 0.14);
+  background: rgb(0 0 0 / 0.2);
+}
+
+.tp-summary .tp-summary__seed-value {
+  padding: 3px 10px;
+  background: rgb(0 0 0 / 0.3);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+}
+
+@media (max-width: 640px) {
+  .tp-summary .tp-summary__art {
+    width: 62vw;
+    opacity: 0.55;
+  }
+}
+
 /* ---------- How to play: numbered glowing steps ---------- */
 
 .tp-howto__heading {

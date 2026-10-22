@@ -331,7 +331,7 @@ button {
 }
 
 .home__secondary .btn,
-.home__new.btn {
+.home__new.btn:not(.btn--play) {
   --btn: rgb(255 255 255 / 0.1);
   --btn-2: rgb(255 255 255 / 0.04);
   -webkit-backdrop-filter: var(--glass-blur);
@@ -666,6 +666,7 @@ button {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  isolation: isolate; /* keep the value tab and foil layers inside the card's own stacking */
   width: 100%;
   min-height: 176px;
   margin: 0;
@@ -2014,8 +2015,9 @@ button {
   .hand__controls {
     position: sticky;
     bottom: 0;
-    padding: 10px 0;
-    background: linear-gradient(transparent, var(--floor) 35%);
+    z-index: 10;
+    padding: 12px 0 10px;
+    background: linear-gradient(rgb(10 16 29 / 0), rgb(10 16 29 / 0.94) 30%);
   }
 
   .hand__controls .btn {
