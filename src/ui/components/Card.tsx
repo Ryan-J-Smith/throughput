@@ -40,7 +40,7 @@ export function Card({ card, selected = false, disabled = false, compact = false
         {card.cost !== undefined && <span className="badge badge--cost">${card.cost}</span>}
       </div>
       <div className="card__title">{card.title}</div>
-      {card.value !== undefined && <span className="badge badge--value">+{card.value}</span>}
+      {(card.valueLabel ?? card.value) !== undefined && <span className="badge badge--value">{card.valueLabel ?? `+${card.value}`}</span>}
       <p className="card__desc">{card.description}</p>
       {stamps.length > 0 && (
         <ul className="card__tags">

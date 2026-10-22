@@ -1,0 +1,66 @@
+import type { CardView } from '../../../ui/types';
+import { cardEffect, designAdd, formatAmount, makeUnits, shipCap } from '../model';
+import type { Card, CardDef, Category, FixtureDef, TrendStage } from '../model';
+import type { Offer } from '../rules';
+
+/** Department colour per Category (keys from ui/theme/tokens.css). */
+export const CATEGORY_ACCENT: Readonly<Record<Category, string>> = { Apparel: 'violet', Gadgets: 'blue', Home: 'orange', Food: 'green' };
+
+export const STAGE_NAME: Readonly<Record<TrendStage, string>> = { hot: 'Hot', emerging: 'Emerging', saturated: 'Saturated', neutral: 'Neutral' };
+
+const STAGE_LABEL = { design: 'Design', make: 'Make', ship: 'Ship' } as const;
+
+/** The big number on the box: Margin for a Design, Units for a Make, capacity for a Ship. */
+function valueLabel(card: Card): string {
+  const def = card.def;
+  switch (def.stage) {
+    case 'design': {
+      const add = designAdd(card);
+      return add !== 0 ? `+$${formatAmount(add)}` : `×${formatAmount(def.marginMul)}`;
+    }
+    case 'make':
+      return `+${makeUnits(card)}`;
+    case 'ship': {
+      const cap = shipCap(card);
+      return cap === 'all' ? 'All' : String(cap);
+    }
+  }
+}
+
+export function cardView(card: Card, id = `card-${card.uid}`): CardView {
+  const extras = [card.upgrades > 0 ? `Tooled ×${card.upgrades}` : '', card.growth > 0 ? `R&D +$${card.growth}` : ''].filter(Boolean);
+  return {
+    id,
+    title: card.def.name,
+    description: cardEffect(card).replace(/^\w+: /, ''),
+    tags: [card.category, STAGE_LABEL[card.def.stage], ...extras],
+    accent: CATEGORY_ACCENT[card.category],
+    valueLabel: valueLabel(card),
+  };
+}
+
+/** A shop card shown before it exists in the deck. */
+export function cardDefView(def: CardDef, category: Category, id: string): CardView {
+  return cardView({ uid: -1, def, category, paid: 0, upgrades: 0, growth: 0 }, id);
+}
+
+export function fixtureView(def: FixtureDef, id: string): CardView {
+  return {
+    id,
+    title: def.name,
+    description: def.text.replace(/^Station\. /, ''),
+    tags: [def.kind === 'station' ? 'Station' : 'Mod'],
+    accent: def.kind === 'station' ? 'mustard' : 'teal',
+  };
+}
+
+export function offerView(offer: Offer, id: string): CardView {
+  switch (offer.kind) {
+    case 'fixture':
+      return fixtureView(offer.def, id);
+    case 'card':
+      return cardDefView(offer.def, offer.category, id);
+    case 'contract':
+      return { id, title: offer.def.name, description: offer.def.text, tags: ['Contract'], accent: 'red' };
+  }
+}

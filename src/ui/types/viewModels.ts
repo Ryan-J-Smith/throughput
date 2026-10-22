@@ -23,6 +23,8 @@ export type CardView = {
   tooltip?: TooltipView;
   /** Department colour key from the theme's accent map (e.g. "red", "teal"); presentational only. */
   accent?: string;
+  /** Text for the big model number instead of "+value" (e.g. "+$2", "×1.5"); presentational only. */
+  valueLabel?: string;
 };
 
 export type ModifierView = {
