@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "sim": "vite-node src/sim/cli/sim-cli.ts --"
+    "sim": "vite-node src/sim/cli/sim-cli.ts --",
+    "cli": "vite-node src/cli/cli-main.ts --"
   },
   "dependencies": {
     "react": "18.3.1",
