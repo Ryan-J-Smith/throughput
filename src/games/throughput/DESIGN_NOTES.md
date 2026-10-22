@@ -661,3 +661,38 @@ moved. Every text still passes the 20-word test.
   - Rebrand: "-$2 Margin, ×2 (a 2nd Rebrand: ×1.5)".
   - "Ships all Units" already says that cap cuts can't bite, so "(ignores … cap cuts)" went.
 - **Left long, since they weren't flagged:** Superstore (100 characters), Cross-Dock (77) and Showroom (78).
+
+## Boss Years (with Quota Cap) and dead refills
+
+**Recession and Ethics Review now come from Year 3** (`earliestYear = 3`). They test volume and Design-× engines, which
+don't exist in Years 1–2.
+
+Board clears on 242fb77's 9-boss pool, before and after the change. Each cell is clear %, from 1000 seeds × 4 bots.
+
+| Year | All bosses from Year 1 | Recession and Ethics from Year 3 |
+|---|---|---|
+| 1 | 99% | 99% |
+| 2 | 94% | 94% |
+| 3 | 57% | 57% |
+| 4 | 37% | 39% |
+
+- **Difficulty:** unchanged, and win % moves within noise (6.4 / 7.5 / 9.5 / 1.9). Both bosses sit near the Year-3
+  average: Recession clears 59%, Ethics Review 56%.
+- **Year-3 spread:** Bottleneck 32% and Supply Shock 34% are the hard Boards. Quota Cap 78% and Turnover 79% are the
+  soft ones.
+- **The draw concentrates.** `assignBosses` gives each Year the first unmet boss that may come. So a late boss skipped
+  in Years 1–2 is still at the front at Year 3. Recession or Ethics Review is the Year-3 Board 60% of the time (about
+  30% each, against about 5% for each other boss).
+
+**Dead refills on the 16-card starter.** This counts Shift 2+ hands with no Ship while the draw pile still holds one,
+over 500 seeds per bot.
+
+| Starter | Per Shift 2+ | Runs that see one |
+|---|---|---|
+| 16 cards | 3.1–6.2% | 27–54% |
+| 20 cards | 0.2–0.6% | 3–6% |
+
+- A deal model of the orchestrator's case, Round 1 Shift 2 after a 5-card Shift 1, on the 16-card starter:
+  - 2.8% when the player kept a spare Ship;
+  - 9.8% when they played every Ship.
+- That is under the ~15% per-Shift bar, but about one run in three meets it.

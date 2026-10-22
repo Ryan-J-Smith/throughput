@@ -310,9 +310,11 @@ describe('THROUGHPUT Demand in the browser', () => {
   });
 
   it('names a Board boss that cuts Demand (Recession) on the round it plays', () => {
-    const seed = Array.from({ length: 300 }, (_, i) => i + 1).find((x) => new ThroughputRun(x, easyConfig()).boardBosses[0]?.id === 'recession');
-    if (seed === undefined) throw new Error('no seed opens with a Recession Board');
-    const run = new ThroughputRun(seed, easyConfig());
+    // One round a Year, so round 3 is the Year-3 Board (Recession's earliest).
+    const config = easyConfig({ roundsPerYear: 1 });
+    const seed = Array.from({ length: 300 }, (_, i) => i + 1).find((x) => new ThroughputRun(x, config).boardBosses[2]?.id === 'recession');
+    if (seed === undefined) throw new Error('no seed has a Recession Board in Year 3');
+    const run = new ThroughputRun(seed, config);
     expect(demandBossCut(run, 1)).toBeNull();
     expect(demandBossCut(run, 3)).toBe('Recession ×0.5');
     expect(run.demandIn(3, 'Food')).toBe(Math.floor(run.demand.Food * 0.5 * (run.trends[2]?.Food === 'saturated' ? 0.5 : 1)));

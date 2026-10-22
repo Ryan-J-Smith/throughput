@@ -75,6 +75,7 @@ class Recession extends BoardBoss {
   readonly name = 'Recession';
   readonly text = "Every Category's Demand is halved this round. Wholesale Club and Export Deal still sell everything.";
   readonly pressures = 'Mass Market: volume runs out of buyers';
+  override readonly earliestYear = 3;
 
   override demandMul(): number {
     return 0.5;
@@ -86,6 +87,7 @@ class EthicsReview extends BoardBoss {
   readonly name = 'Ethics Review';
   readonly text = "Design cards' Margin × (Influencer, Rebrand) don't apply this round. Their +$ still do.";
   readonly pressures = 'Design stacks: the Influencer multiplier tower';
+  override readonly earliestYear = 3;
 
   override designMultipliers(): boolean {
     return false;
