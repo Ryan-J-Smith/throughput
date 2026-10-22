@@ -117,6 +117,23 @@
   flex: 0 0 9.5rem;
 }
 
+/* A stack of identical deck cards: the count sits on the card's corner. */
+.tp-summary__cards > li {
+  position: relative;
+}
+
+.tp-summary__count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  padding: 1px 7px;
+  font: 700 var(--text-sm) var(--font-display);
+  color: var(--print);
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--radius-pill);
+}
+
 .tp-summary__empty {
   display: grid;
   place-items: center;

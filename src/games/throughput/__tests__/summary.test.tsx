@@ -71,7 +71,13 @@ describe('THROUGHPUT run summary', () => {
     expect(summary.line).toHaveLength(run.line.length);
     expect(summary.line.filter((f) => f !== null)).toHaveLength(run.line.filter((s) => s.fixture !== null).length);
     run.line.forEach((slot, i) => slot.fixture !== null && expect(summary.line[i]?.description).toBe(plateText(slot.fixture)));
-    expect(summary.cards).toHaveLength(run.deck.filter((c) => c.paid > 0 || c.upgrades > 0 || c.growth > 0).length);
+    // The whole deck, identical cards stacked; bought and improved cards say so.
+    expect(summary.deckSize).toBe(run.deck.length);
+    expect(summary.deck.reduce((n, s) => n + s.count, 0)).toBe(run.deck.length);
+    const stages = summary.deck.map((s) => s.view.tags.find((t) => ['Design', 'Make', 'Ship'].includes(t)));
+    expect(stages).toEqual([...stages].sort((a, b) => ['Design', 'Make', 'Ship'].indexOf(a ?? '') - ['Design', 'Make', 'Ship'].indexOf(b ?? '')));
+    const bought = run.deck.filter((c) => c.paid > 0 && c.upgrades === 0 && c.growth === 0).length;
+    expect(summary.deck.filter((s) => s.view.tags.includes('Bought')).reduce((n, s) => n + s.count, 0)).toBe(bought);
   });
 
   it('lists the R&D Grants bought', () => {
@@ -103,10 +109,13 @@ describe('THROUGHPUT run summary', () => {
     expect(html).toContain('Best Shift');
     expect(html).toContain(`<code class="tp-summary__seed-value">${run.seed}</code>`);
     expect(html).toContain('Copy seed');
-    // The Line's Fixtures as full cards with their art; the added or improved cards compact.
+    // The Line's Fixtures as full cards with their art; the deck compact, stacks counted.
     const bays = [...html.matchAll(/<li class="tp-summary__bay"[^>]*><div class="card-wrap"><div class="card card--windowed"/g)];
     expect(bays).toHaveLength(summary.line.filter((f) => f !== null).length);
-    expect(html.match(/class="card card--compact/g)?.length ?? 0).toBe(summary.cards.length);
+    expect(html.match(/class="card card--compact/g)?.length ?? 0).toBe(summary.deck.length);
+    expect(html).toContain(`Your deck (${run.deck.length} cards)`);
+    const stacked = summary.deck.find((s) => s.count > 1);
+    if (stacked !== undefined) expect(html).toContain(`<span class="tp-summary__count">×${stacked.count}</span>`);
   });
 });
 

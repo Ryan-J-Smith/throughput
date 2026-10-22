@@ -1,7 +1,7 @@
 import type { CardView } from '../../../ui/types';
 import { fixtureNow } from '../cli';
 import { CATEGORIES, cardEffect, designAdd, formatAmount, growthText, makeUnits, shipCap } from '../model';
-import type { Card, CardDef, Category, Fixture, FixtureDef, TrendStage } from '../model';
+import type { Card, CardDef, Category, Fixture, FixtureDef, Stage, TrendStage } from '../model';
 import type { Offer, ShiftResult, ThroughputRun } from '../rules';
 import { CATEGORY_ICON, cardArt, contractArt, fixtureArt } from './art';
 
@@ -187,8 +187,10 @@ export type RunSummary = {
   readonly outcome: string;
   /** The final Line's Fixtures by slot (null for a bay without one). */
   readonly line: readonly (CardView | null)[];
-  /** Deck cards the player bought or improved. */
-  readonly cards: readonly CardView[];
+  /** The final deck, identical cards stacked, Designs then Makes then Ships; bought or improved ones say so in a tag. */
+  readonly deck: readonly { readonly view: CardView; readonly count: number }[];
+  /** Cards in the final deck. */
+  readonly deckSize: number;
   /** R&D Grants bought, per Category, e.g. "Gadgets Scale 1, Premium ×1.5". */
   readonly grants: readonly string[];
   /** The Board boss of the last round played, if it was a Board Review. */
@@ -232,7 +234,8 @@ export function runSummary(run: ThroughputRun): RunSummary {
     outcome,
     // Each Fixture reads as its bay plate did: the short gist and what it does now.
     line: run.line.map((slot, i) => (slot.fixture === null ? null : { ...fixtureView(slot.fixture.def, `summary-fixture-${i}`), description: plateText(slot.fixture) })),
-    cards: run.deck.filter((c) => c.paid > 0 || c.upgrades > 0 || c.growth > 0).map((c) => cardView(c, `summary-card-${c.uid}`)),
+    deck: deckStacks(run.deck),
+    deckSize: run.deck.length,
     grants: CATEGORIES.flatMap((c) => {
       const { scale, premium } = run.grants[c];
       const parts = [scale > 0 ? `Scale ${scale}` : '', premium > 0 ? `Premium ×${formatAmount(1 + run.config.grant.premiumStep * premium)}` : ''].filter(Boolean);
@@ -241,6 +244,26 @@ export function runSummary(run: ThroughputRun): RunSummary {
     finalBoss: boss == null ? null : { id: boss.id, name: boss.name },
     seed: run.seed,
   };
+}
+
+const STAGE_ORDER: readonly Stage[] = ['design', 'make', 'ship'];
+
+/** Identical cards (same card, Category, upgrades, growth, bought or not) as one view with a count, Designs first. */
+function deckStacks(deck: readonly Card[]): { view: CardView; count: number }[] {
+  const stacks = new Map<string, { card: Card; count: number }>();
+  for (const card of deck) {
+    const key = `${card.def.id}|${card.category}|${card.upgrades}|${card.growth}|${card.paid > 0}`;
+    const stack = stacks.get(key);
+    if (stack === undefined) stacks.set(key, { card, count: 1 });
+    else stack.count++;
+  }
+  return [...stacks.values()]
+    .sort((a, b) => STAGE_ORDER.indexOf(a.card.def.stage) - STAGE_ORDER.indexOf(b.card.def.stage) || a.card.def.name.localeCompare(b.card.def.name) || a.card.category.localeCompare(b.card.category))
+    .map(({ card, count }) => {
+      const view = cardView(card, `summary-card-${card.uid}`);
+      const mark = card.upgrades > 0 || card.growth > 0 ? 'Improved' : card.paid > 0 ? 'Bought' : null;
+      return { view: mark === null ? view : { ...view, tags: [...view.tags, mark] }, count };
+    });
 }
 
 /** A hover explanation for a receipt event that names a rule rather than a card or Fixture; undefined otherwise. */

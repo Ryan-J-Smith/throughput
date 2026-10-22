@@ -106,18 +106,15 @@ export function RunSummaryView({ run, onNewRun, onQuit, copy = clipboardCopy }: 
             <span className="tp-summary__grants-label">R&amp;D Grants</span> {summary.grants.join(' · ')}
           </p>
         )}
-        {summary.cards.length > 0 && (
-          <>
-            <h2 className="tp-summary__heading">Cards you added or improved</h2>
-            <ul className="tp-summary__cards">
-              {summary.cards.map((view) => (
-                <li key={view.id}>
-                  <Card card={view} compact />
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
+        <h2 className="tp-summary__heading">Your deck ({summary.deckSize} cards)</h2>
+        <ul className="tp-summary__cards">
+          {summary.deck.map(({ view, count }) => (
+            <li key={view.id} data-count={count}>
+              <Card card={view} compact />
+              {count > 1 && <span className="tp-summary__count">×{count}</span>}
+            </li>
+          ))}
+        </ul>
       </section>
 
       <div className="tp-summary__seed">
