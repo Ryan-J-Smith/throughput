@@ -49,7 +49,7 @@ export class WebAudioPlayer extends SoundPlayer {
     if (!this.enabled || context === null || master === null) return;
     if (context.state !== 'running' && !this.resuming) return;
     const at = context.currentTime + Math.max(0, options.delayMs ?? 0) / 1000;
-    VOICES[cue](context, master, at, clamp01(options.intensity ?? 1));
+    VOICES[cue](context, master, at, clamp01(options.intensity ?? 1), Math.max(0, Math.round(options.step ?? 0)));
   }
 
   configure(enabled: boolean, volume: number): void {

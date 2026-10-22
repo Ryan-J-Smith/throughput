@@ -19,7 +19,8 @@ export function useTickingNumber(target: number, durationMs: number, from: numbe
     const integral = Number.isInteger(target) && Number.isInteger(from);
     let raf = 0;
     const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / durationMs);
+      // A frame's timestamp can come before `start` (it marks the frame's beginning), so clamp at 0 too.
+      const t = Math.max(0, Math.min(1, (now - start) / durationMs));
       const eased = 1 - (1 - t) ** 3;
       const raw = from + (target - from) * eased;
       const value = t === 1 ? target : integral ? Math.round(raw) : Math.round(raw * 10) / 10;

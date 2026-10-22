@@ -22,6 +22,8 @@ export type CueOptions = {
   readonly delayMs?: number;
   /** 0 to 1: how big the moment is (a sale's pitch, a slot's weight). Defaults to 1. */
   readonly intensity?: number;
+  /** Scale steps above the cue's usual pitch, for a run of rising cues (the nth sale in a Shift). Defaults to 0. */
+  readonly step?: number;
 };
 
 /**

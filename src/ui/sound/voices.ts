@@ -3,8 +3,8 @@ import type { SoundCue } from './sound-player';
 // Every cue is synthesized on the fly (no audio files): short oscillator and filtered-noise
 // envelopes, kept quiet and brief so they sit under play rather than on top of it.
 
-/** Schedules one cue on `out` starting at context time `at`. */
-type Voice = (context: BaseAudioContext, out: AudioNode, at: number, intensity: number) => void;
+/** Schedules one cue on `out` starting at context time `at`; `step` raises a pitched cue up its scale. */
+type Voice = (context: BaseAudioContext, out: AudioNode, at: number, intensity: number, step: number) => void;
 
 /** Exponential ramps can't reach 0, so envelopes start and end here. */
 const SILENT = 0.0001;
@@ -87,14 +87,18 @@ function noiseBuffer(context: BaseAudioContext): AudioBuffer {
   return buffer;
 }
 
-/** Semitones above the lowest sale ding: a major pentatonic over two octaves, so runs of dings stay in key. */
-const SALE_STEPS = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21];
+/** Semitones of a major pentatonic within an octave, so runs of dings stay in key. */
+const PENTATONIC = [0, 2, 4, 7, 9];
+/** Intensity spans the first two octaves of the scale; `step` climbs from there, up to this many steps in all. */
+const SALE_RANGE = 10;
+const SALE_TOP = 14;
 const SALE_BASE_HZ = 523.25; // C5
 
-/** The ding's pitch for a sale of `intensity` (0 to 1). */
-export function saleHz(intensity: number): number {
-  const step = SALE_STEPS[Math.round(intensity * (SALE_STEPS.length - 1))] ?? 0;
-  return SALE_BASE_HZ * 2 ** (step / 12);
+/** The ding's pitch for a sale of `intensity` (0 to 1), `step` notes further up the scale (a Shift's later sales). */
+export function saleHz(intensity: number, step = 0): number {
+  const note = Math.min(SALE_TOP, Math.round(intensity * (SALE_RANGE - 1)) + Math.max(0, step));
+  const semitones = 12 * Math.floor(note / PENTATONIC.length) + (PENTATONIC[note % PENTATONIC.length] ?? 0);
+  return SALE_BASE_HZ * 2 ** (semitones / 12);
 }
 
 /** C major, spread a little in time like a strum. */
@@ -112,8 +116,8 @@ export const VOICES: Readonly<Record<SoundCue, Voice>> = {
     noise(context, out, { filter: 'bandpass', from: 450, to: 1500, q: 0.9, at, peak: 0.1 + 0.14 * intensity, attack: 0.035, decay: 0.11 });
     tone(context, out, { from: 90, to: 70, at, peak: 0.08 * intensity + SILENT, attack: 0.01, decay: 0.06 });
   },
-  sale: (context, out, at, intensity) => {
-    const hz = saleHz(intensity);
+  sale: (context, out, at, intensity, step) => {
+    const hz = saleHz(intensity, step);
     tone(context, out, { from: hz, at, peak: 0.16, attack: 0.002, decay: 0.5 });
     tone(context, out, { from: hz * 2.756, at, peak: 0.045, attack: 0.001, decay: 0.16 });
     tone(context, out, { type: 'triangle', from: hz * 2, at, peak: 0.03, attack: 0.002, decay: 0.25 });

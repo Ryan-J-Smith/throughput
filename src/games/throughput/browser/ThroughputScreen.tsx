@@ -20,6 +20,7 @@ import { PileStack } from './PileStack';
 import { cardView } from './present';
 import { RunAutosave, handNumber } from './run-autosave';
 import { RunSummaryView } from './RunSummary';
+import { beatReveal, hitStopMs, salesBefore } from './replay-hud';
 import { playBeat, playFinale, playShiftAtOnce, shiftOutcome } from './shift-sound';
 import type { ShiftOutcome } from './shift-sound';
 import { Tip } from './Tip';
@@ -29,8 +30,8 @@ import { DeckDrawer, GrantPicker, PayoutSlip, RulesSheet, Shelf } from './ShopPa
 import { TpHud } from './TpHud';
 import type { SalesReveal } from './TpHud';
 import { TraceReceipt } from './TraceReceipt';
-import { ShiftReplay, replayTiming } from '../spectacle';
-import type { ReplayTiming } from '../spectacle';
+import { ShiftReplay, replayTiming, shiftBeats } from '../spectacle';
+import type { ReplayTiming, ShiftBeats } from '../spectacle';
 import './throughput.css';
 
 const SILENT = new SilentPlayer();
@@ -38,7 +39,14 @@ const SILENT = new SilentPlayer();
 type ShiftRecord = { readonly result: ShiftResult; readonly heading: string; readonly salesBefore: number; readonly target: number };
 
 /** A Run playing on the belt. The run itself is untouched until the replay finishes or the player moves on. */
-type Replay = { readonly key: number; readonly result: ShiftResult; readonly shift: number; readonly outcome: ShiftOutcome; readonly timing: ReplayTiming };
+type Replay = {
+  readonly key: number;
+  readonly result: ShiftResult;
+  readonly beats: ShiftBeats;
+  readonly shift: number;
+  readonly outcome: ShiftOutcome;
+  readonly timing: ReplayTiming;
+};
 
 type Session = { readonly run: ThroughputRun; readonly autosave: RunAutosave };
 
@@ -60,7 +68,7 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
   const [lastShift, setLastShift] = useState<ShiftRecord | null>(null);
   const [tips] = useState(() => new TipMemory(store));
   const [replay, setReplay] = useState<Replay | null>(null);
-  /** The HUD counting Sales up from the replay's finale until the Run is applied. */
+  /** The HUD counting Sales up as the replay banks each sale, then its total, until the Run is applied. */
   const [reveal, setReveal] = useState<SalesReveal | null>(null);
   const toastId = useRef(0);
   const replayKey = useRef(0);
@@ -199,7 +207,9 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
     }
     replaying.current = true;
     setMode(IDLE);
-    setReplay({ key: replayKey.current++, result, shift: run.shift, outcome, timing });
+    // Sales stays put until the first sale banks; the reveal keeps the HUD from offering "+$N if you run" meanwhile.
+    setReveal({ from: run.sales, to: run.sales });
+    setReplay({ key: replayKey.current++, result, beats: shiftBeats(result, run.config.baseMargin), shift: run.shift, outcome, timing });
   };
 
   /** Applies the replayed Run: when the replay is done, or as soon as the player does anything else. */
@@ -339,7 +349,11 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
       onClickCapture={replay !== null ? tapDuringReplay : undefined}
     >
       <ToastStack toasts={toasts} onDismiss={dismiss} />
-      <TpHud run={run} reveal={reveal} pending={replay === null ? (preview?.total ?? null) : null} />
+      <TpHud
+        run={run}
+        reveal={reveal}
+        pending={replay === null ? (preview?.total ?? null) : replay.result.total - ((reveal?.to ?? run.sales) - run.sales)}
+      />
       {!inShift && <PayoutSlip run={run} />}
       <MarketBoard run={run} preview={preview} />
       <LineView
@@ -356,7 +370,12 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
           result={replay.result}
           shift={replay.shift}
           baseMargin={run.config.baseMargin}
-          onBeat={(beat) => playBeat(sound, beat, replay.timing.stepMs)}
+          onBeat={(beat, i) => {
+            playBeat(sound, beat, replay.timing.stepMs, salesBefore(replay.beats, i));
+            const banked = beatReveal(run, beat, i, replay.timing.stepMs);
+            if (banked !== null) setReveal(banked);
+          }}
+          holdAfter={(beat) => hitStopMs(run, beat)}
           onFinale={() => {
             playFinale(sound, replay.outcome, durationToken('--dur-med', 240));
             setReveal({ from: run.sales, to: Math.max(0, run.sales + replay.result.total) });

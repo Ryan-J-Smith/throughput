@@ -35,6 +35,8 @@ export type ShiftReplayProps = {
   baseMargin?: number;
   /** Each slot as the token reaches it (in order, `stepMs` apart); not called under reduced motion. */
   onBeat?: (beat: Beat, index: number) => void;
+  /** Extra milliseconds to hold on a slot before moving on (a hit-stop on a big sale); 0 if unset. */
+  holdAfter?: (beat: Beat, index: number) => number;
   /** When the leftovers land and the total shows. */
   onFinale?: (beats: ShiftBeats) => void;
   /** After the finale has been up for `holdMs`, or at once when the player skips past it. */
@@ -56,13 +58,13 @@ const MAX_CRATES = 8;
  * readouts tick, sales send a truck off, and the leftovers pile up before the total lands.
  * Click or Skip jumps to the finale.
  */
-export function ShiftReplay({ result, shift, baseMargin, onBeat, onFinale, onDone }: ShiftReplayProps) {
+export function ShiftReplay({ result, shift, baseMargin, onBeat, holdAfter, onFinale, onDone }: ShiftReplayProps) {
   const data = useMemo(() => shiftBeats(result, baseMargin), [result, baseMargin]);
   const n = data.beats.length;
   const [timing] = useState(replayTiming);
   const [at, setAt] = useState(() => (timing.instant ? n : -1));
-  const handlers = useRef({ onBeat, onFinale, onDone });
-  handlers.current = { onBeat, onFinale, onDone };
+  const handlers = useRef({ onBeat, holdAfter, onFinale, onDone });
+  handlers.current = { onBeat, holdAfter, onFinale, onDone };
 
   useEffect(() => {
     if (at >= n) {
@@ -72,7 +74,8 @@ export function ShiftReplay({ result, shift, baseMargin, onBeat, onFinale, onDon
     }
     const beat = data.beats[at];
     if (beat !== undefined) handlers.current.onBeat?.(beat, at);
-    const next = window.setTimeout(() => setAt((a) => a + 1), at < 0 ? timing.startMs : timing.stepMs);
+    const hold = beat === undefined ? 0 : Math.max(0, handlers.current.holdAfter?.(beat, at) ?? 0);
+    const next = window.setTimeout(() => setAt((a) => a + 1), at < 0 ? timing.startMs : timing.stepMs + hold);
     return () => window.clearTimeout(next);
   }, [at, n, data, timing]);
 
