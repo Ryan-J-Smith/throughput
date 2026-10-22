@@ -4,7 +4,7 @@ import { DISRUPTIONS } from './disruptions';
 import { FACILITIES } from './facilities';
 import { BASE_CATEGORIES, PAINT, startingDeck } from './parts';
 
-/** Revenue targets from the design doc (§5). */
+/** Revenue targets from the design doc (§5). No sim bot clears Q2 with them (see DESIGN_NOTES "Tuning"). */
 export const DOC_TARGETS: readonly (readonly [number, number, number])[] = [
   [120, 180, 240],
   [400, 600, 800],
@@ -12,10 +12,18 @@ export const DOC_TARGETS: readonly (readonly [number, number, number])[] = [
   [2500, 3750, 5000],
 ];
 
-/** The game exactly as specified in the design doc. */
+/** First-pass sim tune (Phase B): the best bot (bargain-bin) wins ~47% over 1000 seeds. */
+export const TUNED_TARGETS: readonly (readonly [number, number, number])[] = [
+  [120, 180, 240],
+  [300, 380, 460],
+  [560, 680, 800],
+  [900, 1050, 1200],
+];
+
+/** The game as specified in the design doc, except for the tuned targets. */
 export function defaultBomConfig(): BomConfig {
   return {
-    targets: DOC_TARGETS,
+    targets: TUNED_TARGETS,
     rewards: { small: 3, big: 4, boss: 5 },
     startingCash: 4,
     interest: { per: 5, amount: 1, cap: 5 },

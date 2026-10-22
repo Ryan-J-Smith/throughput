@@ -210,6 +210,12 @@ export class BomRun {
     return this.productsFor(parts).map((product) => this.quote(product, parts));
   }
 
+  /** What shipping `parts` as `productId` would earn, or null if that Ship is not allowed now. */
+  quoteFor(productId: string, parts: readonly Part[]): ShipQuote | null {
+    if (this.whyCannotShip(parts, productId) !== null) return null;
+    return this.quote(this.blueprint(productId) as OwnedBlueprint, parts);
+  }
+
   ship(parts: readonly Part[], productId: string): ShipResult {
     this.check(this.whyCannotShip(parts, productId));
     const product = this.blueprint(productId) as OwnedBlueprint;
