@@ -19,6 +19,8 @@ export type ThroughputConfig = {
   readonly openingHandTypes: readonly Stage[];
   /** Also give the opening hand a Design while a Mod that works only on Designs is on the Line (outside a welded slot). */
   readonly designOpener: boolean;
+  /** After a later Shift's refill or a Retool, swap in a Ship from the draw pile if neither the hand nor the Line has one. */
+  readonly shipRefill: boolean;
   readonly startSlots: number;
   readonly maxSlots: number;
   readonly baseMargin: number;
@@ -80,6 +82,7 @@ export const DEFAULT_CONFIG: ThroughputConfig = {
   handSize: 7,
   openingHandTypes: ['make', 'ship'],
   designOpener: true,
+  shipRefill: true,
   startSlots: 5,
   maxSlots: 7,
   baseMargin: 2,

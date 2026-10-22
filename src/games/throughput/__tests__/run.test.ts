@@ -116,6 +116,75 @@ describe('assignBosses', () => {
   });
 });
 
+describe('ThroughputRun: Ship refill', () => {
+  const config = (shipRefill: boolean) => easyConfig({ targets: [10_000, 10_000, 10_000], shipRefill });
+  const ships = (cards: readonly Card[]) => cards.filter((c) => c.def.stage === 'ship').length;
+  const shipsInHand = (run: ThroughputRun) => run.hand.flatMap((c, i) => (c.def.stage === 'ship' ? [i] : []));
+  /** Loads every Ship in hand and runs Shift 1, so Shift 2's hand has only what the refill drew. */
+  const shipAllThenRun = (run: ThroughputRun) => {
+    run.load(shipsInHand(run).slice(0, 5).map((hand, slot) => ({ hand, slot })));
+    run.runShift();
+  };
+  /** Retools away the Ships in hand (up to 3). */
+  const retoolShips = (run: ThroughputRun) => run.retool(shipsInHand(run).slice(0, 3));
+  /** The first seed where, with the refill off, `play` leaves no Ship in hand but one in the draw pile. */
+  const deadSeed = (play: (run: ThroughputRun) => void, ok: (run: ThroughputRun) => boolean = () => true): number => {
+    for (let seed = 1; seed < 500; seed++) {
+      const run = new ThroughputRun(seed, config(false));
+      play(run);
+      if (ok(run) && ships(run.hand) === 0 && ships(run.drawPile) > 0) return seed;
+    }
+    throw new Error('no dead refill in 500 seeds');
+  };
+  /** The one card each run's hand has that the other's doesn't. */
+  const swapped = (off: ThroughputRun, on: ThroughputRun) => {
+    const inOn = new Set(on.hand.map((c) => c.uid));
+    const inOff = new Set(off.hand.map((c) => c.uid));
+    return { cameIn: on.hand.filter((c) => !inOff.has(c.uid)), wentOut: off.hand.filter((c) => !inOn.has(c.uid)) };
+  };
+
+  it('a later Shift whose refill draws no Ship swaps the next Ship in for a card just drawn', () => {
+    const seed = deadSeed(shipAllThenRun);
+    const off = new ThroughputRun(seed, config(false));
+    const on = new ThroughputRun(seed, config(true));
+    shipAllThenRun(off);
+    shipAllThenRun(on);
+    expect(ships(on.hand)).toBe(1);
+    expect(on.hand).toHaveLength(off.hand.length);
+    const { cameIn, wentOut } = swapped(off, on);
+    expect(cameIn.map((c) => c.def.stage)).toEqual(['ship']);
+    expect(wentOut).toHaveLength(1);
+    expect(on.drawPile.map((c) => c.uid)).toContain(wentOut[0]?.uid);
+    expect(on.drawPile).toHaveLength(off.drawPile.length);
+  });
+
+  it('a Retool that leaves no Ship in hand or on the Line swaps one in too', () => {
+    const seed = deadSeed(retoolShips);
+    const off = new ThroughputRun(seed, config(false));
+    const on = new ThroughputRun(seed, config(true));
+    retoolShips(off);
+    retoolShips(on);
+    expect(ships(on.hand)).toBe(1);
+    expect(swapped(off, on).cameIn.map((c) => c.def.stage)).toEqual(['ship']);
+  });
+
+  it('a Ship already on the Line means no swap', () => {
+    // Load one Ship, then Retool the rest away: the hand may hold none, but the Line can sell.
+    const play = (run: ThroughputRun) => {
+      const [first] = shipsInHand(run);
+      run.load([{ hand: first as number, slot: 4 }]);
+      if (shipsInHand(run).length > 0) retoolShips(run);
+      else run.retool([0]);
+    };
+    const seed = deadSeed(play);
+    const off = new ThroughputRun(seed, config(false));
+    const on = new ThroughputRun(seed, config(true));
+    play(off);
+    play(on);
+    expect(on.hand.map((c) => c.uid)).toEqual(off.hand.map((c) => c.uid));
+  });
+});
+
 describe('ThroughputRun: a Shift', () => {
   it('Designs stay on the Line; Make and Ship cards are dispatched; the hand refills', () => {
     const run = new ThroughputRun(1, easyConfig({ targets: [10_000] }));

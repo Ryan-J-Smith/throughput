@@ -551,11 +551,14 @@ export class ThroughputRun {
     const freed = cards.map((card) => this.removeFromHand(card)).sort((a, b) => a - b);
     this.discard_.push(...cards);
     this.retools_--;
+    const drawn: Card[] = [];
     for (const pos of freed) {
-      const drawn = this.drawOne();
-      if (drawn === undefined) break;
-      this.addToHand(drawn, pos);
+      const card = this.drawOne();
+      if (card === undefined) break;
+      this.addToHand(card, pos);
+      drawn.push(card);
     }
+    this.fixRefill(drawn);
   }
 
   whyCannotRun(): string | null {
@@ -783,11 +786,15 @@ export class ThroughputRun {
         return fixture === null || from === to ? [] : [{ fixture, from, to }];
       });
     }
+    const drawn: Card[] = [];
     while (this.hand_.length < this.config.handSize) {
       const card = this.drawOne();
       if (card === undefined) break;
       this.addToHand(card);
+      drawn.push(card);
     }
+    // Shift 1's hand is the opening hand, which fixOpeningHand looks after.
+    if (this.shift_ > 1) this.fixRefill(drawn);
   }
 
   /** The top card of the draw pile. An empty pile first Restocks from the discards, if a Restock is left. */
@@ -829,6 +836,25 @@ export class ThroughputRun {
       this.addToHand(this.draw_[next] as Card, pos);
       this.draw_[next] = out;
     }
+  }
+
+  /**
+   * Ship refill: when cards just drawn (a later Shift's refill or a Retool) leave no Ship in the
+   * hand or on the Line, the next Ship in the draw pile swaps in for the drawn card of the hand's
+   * most common type, which takes its place in the pile. Nothing changes if the pile has no Ship.
+   */
+  private fixRefill(drawn: readonly Card[]): void {
+    if (!this.config.shipRefill || drawn.length === 0) return;
+    const isShip = (card: Card) => card.def.stage === 'ship';
+    if (this.hand_.some(isShip) || this.slots_.some((slot, i) => slot.card !== null && isShip(slot.card.card) && !this.isWelded(i))) return;
+    let next = this.draw_.length - 1;
+    while (next >= 0 && !isShip(this.draw_[next] as Card)) next--;
+    if (next < 0) return;
+    const count = (stage: Stage) => this.hand_.filter((c) => c.def.stage === stage).length;
+    const out = drawn.reduce((a, b) => (count(b.def.stage) >= count(a.def.stage) ? b : a));
+    const pos = this.removeFromHand(out);
+    this.addToHand(this.draw_[next] as Card, pos);
+    this.draw_[next] = out;
   }
 
   /** Puts a card in the hand at `pos` if that position is free, else at the lowest free one. */
