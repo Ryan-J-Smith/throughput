@@ -1,6 +1,6 @@
 import { Card } from '../../../ui/components';
 import { Icon } from '../../../ui/icons';
-import { fixtureNow } from '../cli';
+import { fixtureNow, fixtureText } from '../cli';
 import type { ThroughputRun } from '../rules';
 import { fixtureArt } from './art';
 import { cardView, lineNotice } from './present';
@@ -47,7 +47,11 @@ export function LineView({ run, bayState, onBay, onScrap, bayLabel }: LineViewPr
           const art = slot.fixture === null || welded ? undefined : fixtureArt(slot.fixture.def.id);
           return (
             <li key={i} className={classes} data-slot={i + 1} data-fixture={slot.fixture?.def.id} data-kind={slot.fixture?.def.kind}>
-              <div className={`tp-bay__plate ${idle ? 'is-idle' : ''}`} data-accent={slot.fixture === null ? undefined : station ? 'mustard' : 'teal'}>
+              <div
+                className={`tp-bay__plate ${idle ? 'is-idle' : ''}`}
+                data-accent={slot.fixture === null ? undefined : station ? 'mustard' : 'teal'}
+                title={slot.fixture === null || welded ? undefined : fixtureText(slot.fixture)}
+              >
                 {slot.fixture !== null && !welded && (
                   <span className={`tp-bay__fixture-art ${art === undefined ? 'tp-bay__fixture-art--icon' : ''}`} aria-hidden="true">
                     {art !== undefined ? <img src={art} alt="" loading="lazy" /> : <Icon name={station ? 'station' : 'mod'} />}
@@ -60,10 +64,14 @@ export function LineView({ run, bayState, onBay, onScrap, bayLabel }: LineViewPr
                 <span className="tp-bay__fixture">{welded ? 'Welded shut' : (slot.fixture?.def.name ?? 'No fixture')}</span>
                 {slot.fixture !== null && !welded && (
                   <span className="tp-bay__fixture-text">
-                    {slot.fixture.def.text.replace(/^Station\. /, '')} {fixtureNow(slot.fixture)}
+                    {slot.fixture.def.short ?? `${slot.fixture.def.text.replace(/^Station\. /, '')} ${fixtureNow(slot.fixture)}`}
                   </span>
                 )}
-                {idle && <span className="tp-bay__idle">Idle for this card</span>}
+                {idle && (
+                  <span className="tp-bay__idle" title="Idle for this card">
+                    Idle
+                  </span>
+                )}
               </div>
               <button type="button" className="tp-bay__spot" aria-label={bayLabel(i)} onClick={() => onBay(i)} disabled={inert}>
                 {held !== null ? (

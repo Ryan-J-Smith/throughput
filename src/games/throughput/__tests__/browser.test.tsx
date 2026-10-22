@@ -1,13 +1,13 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { GrantPicker, HowToPlay, LineView, ThroughputBrowserGame, ThroughputScreen, TraceReceipt, demandBossCut, demandViews, lineNotice } from '../browser';
-import { DEFAULT_CONFIG } from '../content';
+import { DEFAULT_CONFIG, SKETCH, TRUCK, WORKSHOP } from '../content';
 import type { BayState } from '../browser';
 import { CATEGORIES } from '../model';
 import type { Category, Stage } from '../model';
-import { ThroughputRun } from '../rules';
+import { ThroughputRun, scoreLine } from '../rules';
 import { MemoryStore } from '../../../ui/storage';
-import { easyConfig } from './fixtures';
+import { boss, card, context, easyConfig, fixture, slot } from './fixtures';
 
 function handIndex(run: ThroughputRun, stage: Stage): number {
   const i = run.hand.findIndex((c) => c.def.stage === stage);
@@ -80,6 +80,39 @@ describe('THROUGHPUT browser screen', () => {
     expect(html).toContain('target hit');
     const overkill = renderToStaticMarkup(<TraceReceipt result={preview} heading="If you run now" salesBefore={0} target={5} overkillPay={4} />);
     expect(overkill).toContain('target hit, +4C overkill');
+  });
+
+  it('receipt lines lay out the Fixture as a chip, struck through when idle, then the card', () => {
+    const line = [slot(fixture('quality-lab'), card(SKETCH, 'Home')), slot(null, card(WORKSHOP, 'Home')), slot(fixture('quality-lab'), card(TRUCK, 'Home')), slot(null, null)];
+    const html = renderToStaticMarkup(<TraceReceipt result={scoreLine(line, context())} heading="Shift" salesBefore={0} target={10} />);
+    const whats = [...html.matchAll(/<span class="tp-receipt__what">(.*?)(<small>|<\/span><span class="tp-receipt__batch")/g)].map((m) => m[1]);
+    expect(whats[0]).toMatch(/^<span class="tp-receipt__fixture" data-kind="mod" title="Quality Lab"><svg class="icon tp-receipt__fixture-icon".*<\/svg>Quality Lab<\/span> <span class="tp-receipt__card">Sketch-H<\/span>$/);
+    expect(whats[1]).toBe('<span class="tp-receipt__card">Workshop-H</span>');
+    expect(whats[2]).toContain('class="tp-receipt__fixture" data-kind="mod" data-idle="true" title="Quality Lab: idle for this card"');
+    expect(whats[3]).toBe('<span class="tp-receipt__card">Empty</span>');
+    expect(html).toContain('class="tp-receipt__line is-empty ">');
+
+    const welded = scoreLine(line, context({ boss: boss('supply-shock') }));
+    const weldedHtml = renderToStaticMarkup(<TraceReceipt result={welded} heading="Shift" salesBefore={0} target={10} />);
+    expect(weldedHtml).toContain('class="tp-receipt__line  is-welded"><span class="tp-receipt__slot">1</span><span class="tp-receipt__what"><span class="tp-receipt__card">Welded shut</span></span>');
+  });
+
+  it('Fixture plates carry the full rule as a tooltip and tag an idle Fixture', () => {
+    // A run whose first shop offers a Quality Lab, which does nothing for a Make or Ship card.
+    let run = new ThroughputRun(0);
+    for (let seed = 1; seed < 500 && run.offers[0]?.def.id !== 'quality-lab'; seed++) {
+      run = new ThroughputRun(seed, easyConfig());
+      run.load([
+        { hand: handIndex(run, 'make'), slot: 1 },
+        { hand: handIndex(run, 'ship'), slot: 2 },
+      ]);
+      run.runShift();
+    }
+    run.buy(0, { slot: 0 });
+    expect(renderLine(run)).toContain('title="Quality Lab (Mod): A Design here gets +$4."');
+    run.continueToNextRound();
+    run.load([{ hand: run.hand.findIndex((c) => c.def.stage !== 'design'), slot: 0 }]);
+    expect(renderLine(run)).toContain('<span class="tp-bay__idle" title="Idle for this card">Idle</span>');
   });
 
   it('each loaded card says whether it stays after the run', () => {

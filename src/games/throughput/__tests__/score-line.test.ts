@@ -118,7 +118,13 @@ describe('scoreLine: cards and fixtures', () => {
 
   it('tags a Fixture idle where it does nothing for the card on it', () => {
     const line = [slot(fixture('quality-lab'), card(SKETCH, 'Home')), slot(fixture('overtime-crew'), card(WORKSHOP, 'Home')), slot(fixture('quality-lab'), card(TRUCK, 'Home'))];
-    expect(scoreLine(line, context()).steps.map((s) => s.label)).toEqual(['[Quality Lab] Sketch-H', '[Overtime Crew] Workshop-H', '[Quality Lab: idle] Truck-H']);
+    const steps = scoreLine(line, context()).steps;
+    expect(steps.map((s) => s.label)).toEqual(['[Quality Lab] Sketch-H', '[Overtime Crew] Workshop-H', '[Quality Lab: idle] Truck-H']);
+    expect(steps.map((s) => [s.fixture?.name, s.card, s.idle, s.welded])).toEqual([
+      ['Quality Lab', 'Sketch-H', false, false],
+      ['Overtime Crew', 'Workshop-H', false, false],
+      ['Quality Lab', 'Truck-H', true, false],
+    ]);
   });
 
   it('Warehouse releases stored Units and stores leftovers up to 40', () => {
@@ -201,7 +207,7 @@ describe('scoreLine: bosses', () => {
   it('Supply Shock welds slot 1', () => {
     const line = [slot(fixture('quality-lab'), card(SKETCH, 'Home')), slot(null, card(WORKSHOP, 'Home')), slot(null, card(TRUCK, 'Home'))];
     const result = scoreLine(line, context({ boss: boss('supply-shock') }));
-    expect(result.steps[0]?.label).toBe('(welded)');
+    expect(result.steps[0]).toMatchObject({ label: '(welded)', welded: true, fixture: null, card: null, idle: false });
     expect(result.total).toBe(6 * 3);
   });
 
