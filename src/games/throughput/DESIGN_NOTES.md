@@ -409,3 +409,50 @@ Content dilution (Flagship, Robot Arm and Influencer are rarer) and the harder B
 **Aware Δ:**
 - Leaders: Flagship +34%, Quality Lab +20%, Robot Arm +17%.
 - Still negative: Megafactory −16%, Warehouse −15%, Assembly Line −14%, Lean Cell −13%. These are follow-up tuning targets.
+
+## Target re-fit (after the grafts and wave 1)
+
+- **New default:** 130, 200, 270 | 360, 470, 600 | 760, 950, 1200 | 1550, 2000, 2600.
+  - Up to round 8 it is gentler than before, because bots died at the Boards in rounds 6 and 9.
+  - From round 9 it climbs ×1.26–1.30 a round (the old curve was ×1.15–1.17), so strong players are
+    pressed late.
+- **Upper bound is seed-03.** Its late curve is 3600 / 5000 / 7000 / 10000. LLM testers reached it (Sonnet won
+  2 of 4), but bots can't (0%). Even this tail drops the best bot to the bottom of the 30–60% band.
+
+Curves tried (500 seeds, except the chosen one; win %):
+
+| Curve (r1…r12) | greedy | mass-market | rnd-compounder | trend-surfer |
+|---|---|---|---|---|
+| old default (…1500, 1750, 2050, 2350), 1000 seeds | 7.3 | 6.0 | 19.4 | 21.8 |
+| 130…950, 1150, 1450, 1800, 2200 | 17.0 | 16.4 | 45.4 | 36.6 |
+| 130…950, 1200, 1600, 2150, 2900 | 10.2 | 8.0 | 31.2 | 21.4 |
+| 130…950, 1250, 1750, 2400, 3300 | 7.6 | 6.0 | 24.4 | 15.6 |
+| **130…950, 1200, 1550, 2000, 2600 (chosen), 1000 seeds** | **13.6** | **11.1** | **36.7** | **30.1** |
+
+- **By build** (1000 seeds):
+
+  | Build | Win % |
+  |---|---|
+  | design-stack | 39.3 |
+  | rnd-compounder | 24.3 |
+  | skimmer | 22.7 |
+  | mass-market | 21.4 |
+
+  That is four families within 2× of each other.
+- **Tempo versus slow burn.** mass-market and trend-surfer clear round 3 at 96–98%, against 93–95% for
+  greedy and rnd-compounder. rnd-compounder overtakes from Year 2 (r6 84%, r9 69%).
+- **Boards** (300 seeds × 4 bots):
+
+  | Boss | Clears |
+  |---|---|
+  | JIT Auditor | 92% |
+  | Turnover | 89% |
+  | Line Shift | 87% |
+  | Recession | 87% |
+  | Ethics Review | 85% |
+  | Short Week | 85% |
+  | Bottleneck | 72% |
+  | Supply Shock | 72% |
+
+  The two weld bosses are telegraphed and can be countered by moving Fixtures or with a Floor Expansion,
+  but they cost a fifth of the Line.
