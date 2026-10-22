@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { GrantPicker, HowToPlay, KEYS_HINT, LineView, MarketBoard, PayoutSlip, Shelf, ThroughputBrowserGame, ThroughputScreen, TpHud, TraceReceipt, cardView, demandBossCut, demandViews, fixtureView, lineNotice, nextBoardNotice, overkillHelp, plateText } from '../browser';
+import { GrantPicker, HowToPlay, KEYS_HINT, LineView, MarketBoard, PayoutSlip, Shelf, ThroughputBrowserGame, ThroughputScreen, TpHud, TraceReceipt, cardView, demandBossCut, demandViews, eventHelp, fixtureView, lineNotice, nextBoardNotice, overkillHelp, plateText } from '../browser';
 import { cardText, demandUseText, grownText } from '../cli';
 import { DEFAULT_CONFIG, REBRAND, SKETCH, TRUCK, WORKSHOP } from '../content';
 import type { BayState } from '../browser';
@@ -318,6 +318,16 @@ describe('THROUGHPUT browser screen', () => {
     const rebrand = card(REBRAND, 'Home');
     expect(cardView(rebrand).valueLabel).toBe('-$2');
     expect(cardEffect(rebrand)).toBe('Design: -$2 Margin, then Margin ×2');
+  });
+
+  it('a repeat Rebrand on the receipt explains its smaller × on hover', () => {
+    const rule = 'A Rebrand that has already resolved this Shift (another copy, or the same card under Robot Arm) gives ×1.5 instead of ×2.';
+    expect(eventHelp('2nd Rebrand Margin ×1.5')).toBe(rule);
+    expect(eventHelp('3rd Rebrand Margin ×1.5')).toBe(rule);
+    expect(eventHelp('Design Margin ×2')).toBeUndefined();
+    const result = scoreLine([slot(fixture('robot-arm'), card(REBRAND, 'Food'))], context());
+    const html = renderToStaticMarkup(<TraceReceipt result={result} heading="If you run now" salesBefore={0} target={100} />);
+    expect(html).toContain(`<abbr title="${rule}">2nd Rebrand Margin ×1.5</abbr>`);
   });
 
   it('a plate shows the short gist (or the rule) and keeps what the Fixture does now', () => {

@@ -4,4 +4,4 @@ export { Batch, formatAmount } from './batch';
 export { FixtureEffect } from './fixture';
 export type { Fixture, FixtureDef, FixtureKind, SlotContext } from './fixture';
 export { BoardBoss } from './boss';
-export { cardEffect, cardName, designAdd, growthText, makeUnits, shipCap } from './describe';
+export { cardEffect, cardName, designAdd, growthText, makeUnits, repeatRule, shipCap } from './describe';

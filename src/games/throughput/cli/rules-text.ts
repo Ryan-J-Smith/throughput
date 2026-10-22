@@ -1,6 +1,6 @@
-import { BOSSES, BOUTIQUE, CONTRACTS, FIXTURES, STARTER_CARDS } from '../content';
+import { BOSSES, BOUTIQUE, CONTRACTS, FIXTURES, SHOP_CARDS, STARTER_CARDS } from '../content';
 import type { ThroughputConfig } from '../content';
-import { CATEGORIES } from '../model';
+import { CATEGORIES, repeatRule } from '../model';
 import { designOnlyMod } from '../rules';
 
 /** Line Shift needs more than its one-line text to play well, so the rules spell it out. */
@@ -30,6 +30,11 @@ function wrap(text: string, indent: string): string {
 export function rulesText(config: ThroughputConfig): string {
   const c = config;
   const boutiqueCap = BOUTIQUE.stage === 'ship' ? String(BOUTIQUE.cap) : '?';
+  // Rebrand: a repeat this Shift (another copy, or the same card under Robot Arm) gets a smaller ×.
+  const repeatDesigns = SHOP_CARDS.flatMap((d) => {
+    const rule = repeatRule(d);
+    return rule === null ? [] : [`\n       ${wrap(rule, '       ')}`];
+  }).join('');
   const sellOutShare = c.demand.sellOutRate === 0.5 ? 'half' : `${Math.round(c.demand.sellOutRate * 100)}%`;
   const contracts = CONTRACTS.map((k) => `  - ${wrap(`${k.name}${k.targetsCard ? ' (pick a deck card)' : ''}: ${k.text}`, '    ')}`).join('\n');
   const bosses = BOSSES.map((b) => `  ${b.id === 'line-shift' ? LINE_SHIFT_RULES : wrap(`${b.name}: ${b.text}`, '    ')}`).join('\n');
@@ -102,7 +107,7 @@ HOW A SALE IS PRICED
        Empty slots and Stations break the chain.
     b. The slot's Fixture applies.
     c. The card resolves. A Design adds its +$ and then applies its ×. A Make adds Units.
-       A Ship sells min(Units, its cap, its Category's Demand left); sold Units leave the Batch.
+       A Ship sells min(Units, its cap, its Category's Demand left); sold Units leave the Batch.${repeatDesigns}
   Every change to Margin (Handoffs, Fixtures, Designs, Factory Floor's -$1) carries on to all later
   slots. So order matters: Quality Lab's +$4 under an Influencer lands before the Influencer's ×1.5,
   and a Tooling Upgrade's +$1 on an Influencer is added before its ×1.5.

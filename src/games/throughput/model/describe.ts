@@ -1,6 +1,6 @@
 import { formatAmount } from './batch';
 import { CATEGORY_CODE } from './types';
-import type { Card } from './types';
+import type { Card, CardDef } from './types';
 
 const STAGE_LABEL = { design: 'Design', make: 'Make', ship: 'Ship' } as const;
 
@@ -29,6 +29,12 @@ export function makeUnits(card: Card): number {
 export function shipCap(card: Card): number | 'demand' | 'all' {
   if (card.def.stage !== 'ship') return 0;
   return typeof card.def.cap === 'number' ? card.def.cap + 5 * card.upgrades : card.def.cap;
+}
+
+/** The rule for a Design whose × shrinks on a repeat in one Shift (Rebrand), or null. */
+export function repeatRule(def: CardDef): string | null {
+  if (def.stage !== 'design' || def.repeatMul === undefined) return null;
+  return `A ${def.name} that has already resolved this Shift (another copy, or the same card under Robot Arm) gives ×${formatAmount(def.repeatMul)} instead of ×${formatAmount(def.marginMul)}.`;
 }
 
 /** What the card does with its current upgrades, e.g. "Design: +$5 Margin". */

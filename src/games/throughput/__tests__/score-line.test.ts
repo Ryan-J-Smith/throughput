@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BOUTIQUE, DEFAULT_CONFIG, FACTORY_FLOOR, INFLUENCER, SKETCH, TRUCK, WHOLESALE_CLUB, WORKSHOP } from '../content';
+import { BOUTIQUE, DEFAULT_CONFIG, FACTORY_FLOOR, INFLUENCER, REBRAND, SKETCH, TRUCK, WHOLESALE_CLUB, WORKSHOP } from '../content';
 import type { Card } from '../model';
 import { scoreLine } from '../rules';
 import { boss, card, context, demandLeft, fixture, grants, slot, trends } from './fixtures';
@@ -96,6 +96,16 @@ describe('scoreLine: cards and fixtures', () => {
   it('Robot Arm resolves an Influencer twice (×2.25)', () => {
     const line = [slot(null, card(SKETCH, 'Home')), slot(fixture('robot-arm'), card(INFLUENCER, 'Food'))];
     expect(scoreLine(line, context()).steps[1]?.margin).toBe(4 * 2.25);
+  });
+
+  it('a repeat Rebrand in one Shift gives its smaller × and names itself in the trace', () => {
+    // Robot Arm resolves one Rebrand twice: -$2 ×2, then -$2 ×1.5 as the "2nd Rebrand".
+    const armed = scoreLine([slot(null, card(SKETCH, 'Home')), slot(fixture('robot-arm'), card(REBRAND, 'Food'))], context()).steps[1];
+    expect(armed?.margin).toBe(((4 - 2) * 2 - 2) * 1.5);
+    expect(armed?.events).toEqual(['Design -$2', 'Design Margin ×2', 'Design -$2', '2nd Rebrand Margin ×1.5']);
+    // Three copies: the 3rd is counted on.
+    const three = scoreLine([slot(null, card(REBRAND, 'Home')), slot(null, card(REBRAND, 'Food')), slot(null, card(REBRAND, 'Gadgets'))], context());
+    expect(three.steps[2]?.events).toContain('3rd Rebrand Margin ×1.5');
   });
 
   it('Brand Manager needs three same-Category cards in a row', () => {

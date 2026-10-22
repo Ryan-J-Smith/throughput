@@ -163,8 +163,8 @@ export function scoreLine(line: readonly LineSlot[], ctx: ShiftContext, options:
 /** Trend and Demand effects collected while a Shift's Ship cards sell. */
 class SaleState {
   hotUsed = false;
-  /** Design card ids that have resolved this Shift (for `repeatMul`). */
-  readonly designsRun = new Set<string>();
+  /** How many times each Design card id has resolved this Shift (for `repeatMul`). */
+  readonly designsRun = new Map<string, number>();
   readonly demandSold = new Map<Category, number>();
   readonly soldOut = new Set<Category>();
   readonly emergingSold = new Set<Category>();
@@ -198,9 +198,12 @@ function resolveCard(card: Card, fixture: Fixture | null, batch: Batch, sale: Sa
     case 'design': {
       const add = designAdd(card);
       if (add !== 0) batch.addMargin(add, 'Design');
-      const mul = sale.designsRun.has(def.id) ? (def.repeatMul ?? def.marginMul) : def.marginMul;
-      if (mul !== 1 && (sale.ctx.boss?.designMultipliers() ?? true)) batch.mulMargin(mul, 'Design');
-      sale.designsRun.add(def.id);
+      const before = sale.designsRun.get(def.id) ?? 0;
+      // A repeat (another copy, or the same card under Robot Arm) names itself: "2nd Rebrand Margin ×1.5".
+      const repeat = before > 0 && def.repeatMul !== undefined;
+      const mul = repeat ? (def.repeatMul ?? def.marginMul) : def.marginMul;
+      if (mul !== 1 && (sale.ctx.boss?.designMultipliers() ?? true)) batch.mulMargin(mul, repeat ? `${ordinal(before + 1)} ${def.name}` : 'Design');
+      sale.designsRun.set(def.id, before + 1);
       return;
     }
     case 'make':
@@ -258,6 +261,12 @@ function ship(card: Card, marginMul: number, fixture: Fixture | null, batch: Bat
   const made = Math.floor(sold * price);
   const stopped = sold < wanted ? `${made > revenue ? ` ($${revenue} counts)` : ''}, reaching the $${batch.salesCap} Shift cap; ${wanted - sold} Units unsold` : '';
   batch.note(`Ship sells ${sold} × $${formatAmount(price)} = $${made}${stopped}${notes.length > 0 ? ` (${notes.join(', ')})` : ''}`);
+}
+
+/** 2 → "2nd", 3 → "3rd", 11 → "11th". */
+function ordinal(n: number): string {
+  const teen = n % 100 >= 11 && n % 100 <= 13;
+  return `${n}${teen ? 'th' : (['th', 'st', 'nd', 'rd'][n % 10] ?? 'th')}`;
 }
 
 function slotLabel(fixture: Fixture | null, card: Card | null, welded: boolean, idle: boolean): string {

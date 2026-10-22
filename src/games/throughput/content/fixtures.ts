@@ -387,7 +387,7 @@ export const FIXTURES: readonly FixtureDef[] = [
     effect: new LeanCell(),
   },
   { id: 'megafactory', name: 'Megafactory', kind: 'station', rarity: 'uncommon', price: 5, text: 'Station. Units ×3, -$1 Margin.', short: 'Units ×3, -$1', effect: new Megafactory() },
-  { id: 'robot-arm', name: 'Robot Arm', kind: 'mod', rarity: 'rare', price: 8, text: 'The card here resolves twice.', short: 'Card resolves twice', effect: new RobotArm() },
+  { id: 'robot-arm', name: 'Robot Arm', kind: 'mod', rarity: 'rare', price: 8, text: 'The card here resolves twice (a Ship sells twice, a Make adds twice; a 2nd Rebrand gets ×1.5).', short: 'Card resolves twice', effect: new RobotArm() },
   {
     id: 'flagship-store',
     name: 'Flagship Store',
