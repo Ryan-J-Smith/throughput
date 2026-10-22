@@ -75,9 +75,18 @@ class PriceGun extends FixtureEffect {
   }
 }
 
+/** Units multiplier of a Station after another Station in the same Line (playtest 3: Station × Station ran away). */
+export const REPEAT_STATION_MUL = 1.5;
+
+/** Multiplies Units by `factor`, or by `REPEAT_STATION_MUL` if a Station came before this one. */
+function stationUnits(batch: Batch, factor: number, source: string): void {
+  batch.mulUnits(batch.stations > 0 ? REPEAT_STATION_MUL : factor, source);
+  batch.stations += 1;
+}
+
 class AssemblyLine extends FixtureEffect {
   override onSlot(batch: Batch): void {
-    batch.mulUnits(2, 'Assembly Line');
+    stationUnits(batch, 2, 'Assembly Line');
   }
 }
 
@@ -210,6 +219,11 @@ class ExpressLane extends FixtureEffect {
     return card.def.stage === 'ship' && batch?.shift === 1 ? EXPRESS_LANE_MUL : 1;
   }
 
+  // Playtest 3: ×3 on top of Hot ×2 made one uncommon decide whole runs.
+  override stacksWithHot(): boolean {
+    return false;
+  }
+
   override appliesTo(card: Card): boolean {
     return card.def.stage === 'ship';
   }
@@ -223,7 +237,7 @@ class LeanCell extends FixtureEffect {
 
 class Megafactory extends FixtureEffect {
   override onSlot(batch: Batch): void {
-    batch.mulUnits(3, 'Megafactory');
+    stationUnits(batch, 3, 'Megafactory');
     batch.addMargin(-1, 'Megafactory');
   }
 }
@@ -335,11 +349,11 @@ export const FIXTURES: readonly FixtureDef[] = [
     kind: 'mod',
     rarity: 'uncommon',
     price: 6,
-    text: 'Margin ×2 here. Later Ship caps halve (a Truck: half the Demand left).',
-    short: '×2, later Ships halved',
+    text: 'Margin ×2. Ship caps halve from here on (a Truck: half the Demand left).',
+    short: '×2, Ship caps halve',
     effect: new PriceGun(),
   },
-  { id: 'assembly-line', name: 'Assembly Line', kind: 'station', rarity: 'uncommon', price: 5, text: 'Station. Units ×2.', short: 'Units ×2', effect: new AssemblyLine() },
+  { id: 'assembly-line', name: 'Assembly Line', kind: 'station', rarity: 'uncommon', price: 5, text: 'Station. Units ×2, or ×1.5 after another Station.', short: 'Units ×2', effect: new AssemblyLine() },
   {
     id: 'warehouse',
     name: 'Warehouse',
@@ -370,7 +384,7 @@ export const FIXTURES: readonly FixtureDef[] = [
     short: 'Ship cap ≤8: ×2',
     effect: new LuxuryCounter(),
   },
-  { id: 'express-lane', name: 'Express Lane', kind: 'mod', rarity: 'uncommon', price: 6, text: 'A Ship card here sells at Margin ×3 in the first Shift of each round.', short: 'Ship ×3, Shift 1', effect: new ExpressLane() },
+  { id: 'express-lane', name: 'Express Lane', kind: 'mod', rarity: 'uncommon', price: 6, text: "A Ship here sells at Margin ×3 in Shift 1 of each round; Hot doesn't stack.", short: 'Ship ×3, Shift 1', effect: new ExpressLane() },
   {
     id: 'lean-cell',
     name: 'Lean Cell',
@@ -381,7 +395,7 @@ export const FIXTURES: readonly FixtureDef[] = [
     short: '≤15 Units: ×1.5',
     effect: new LeanCell(),
   },
-  { id: 'megafactory', name: 'Megafactory', kind: 'station', rarity: 'uncommon', price: 5, text: 'Station. Units ×3, -$1 Margin.', short: 'Units ×3, -$1', effect: new Megafactory() },
+  { id: 'megafactory', name: 'Megafactory', kind: 'station', rarity: 'uncommon', price: 5, text: 'Station. Units ×3, or ×1.5 after another Station. -$1 Margin.', short: 'Units ×3, -$1', effect: new Megafactory() },
   { id: 'robot-arm', name: 'Robot Arm', kind: 'mod', rarity: 'rare', price: 8, text: 'The card here resolves twice.', short: 'Card resolves twice', effect: new RobotArm() },
   {
     id: 'flagship-store',

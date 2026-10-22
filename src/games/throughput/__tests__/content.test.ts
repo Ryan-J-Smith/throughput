@@ -97,6 +97,19 @@ describe('wave-1 Fixtures', () => {
     expect(scoreLine(express, context()).total).toBe(6 * 2 * 3);
     expect(scoreLine(express, context({ shift: 2 })).total).toBe(6 * 2);
   });
+
+  it("Express Lane's ×3 replaces Hot instead of stacking; every other Fixture stacks", () => {
+    for (const def of FIXTURES) expect(def.effect.stacksWithHot(), def.id).toBe(def.id !== 'express-lane');
+  });
+
+  it('a Station after another Station multiplies Units by 1.5', () => {
+    const outsourced = slot(null, card(CONTRACT_MANUFACTURER, 'Food'));
+    const megaFirst = scoreLine([outsourced, slot(fixture('megafactory'), null), slot(fixture('assembly-line'), null)], context());
+    expect(megaFirst.steps.map((s) => s.units)).toEqual([20, 60, 90]);
+    const assemblyFirst = scoreLine([outsourced, slot(fixture('assembly-line'), null), slot(fixture('megafactory'), null)], context());
+    expect(assemblyFirst.steps.map((s) => s.units)).toEqual([20, 40, 60]);
+    expect(assemblyFirst.steps[2]?.events).toContain('Megafactory Units ×1.5');
+  });
 });
 
 describe('wave-1 Board bosses', () => {

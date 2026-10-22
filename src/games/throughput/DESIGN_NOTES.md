@@ -842,3 +842,53 @@ Megafactory at the round's start.
 - The expert's Express Lane rounds run at 1.57× late. Its runs that end up as express-burst win 61% (85 runs).
   Station-volume wins 92% (13 runs).
 - Express Lane's best single rounds reach 7–11× (greedy 11.4×, expert 9.1×). That matches round 3's 8.71× R5.
+
+### Express Lane: a garnish (round 3 §7 #1)
+
+Express Lane multiplied Hot ×2, Marketplace ×1.5 and Premium on one Shift-1 Ship, for ×6–×11. Two candidates, each
+simmed on the full roster (1000 seeds a bot) and the expert:
+
+| Express Lane | Expert wins | Expert wins, owning EL / not | EL rounds, late | Burst / no-burst, late | Best EL round |
+|---|---|---|---|---|---|
+| ×3, stacks with Hot (before) | 53.0% (400 seeds) | 62.0% / 45.4% | 1.57 | 1.56 / 1.32 | 9.07× (R3) |
+| ×2, stacks with Hot | 43.5% (200 seeds) | 37.0% / 47.2% | 1.31 | 1.41 / 1.32 | 6.84× (R5) |
+| **×3, doesn't stack with Hot** | 49.5% (400 seeds) | **54.4% / 45.9%** | 1.37 | **1.42 / 1.32** | 6.73× |
+
+- **Chosen: ×3 that doesn't stack with Hot.** A Hot Ship on the Lane in Shift 1 takes the larger multiplier
+  (Express ×3) and doesn't spend the Hot pip, which stays for a later Hot sale. In later Shifts, Hot applies as normal.
+  - It stays a good pick: runs that own it win 8.5 points more often, against 16.6 before.
+  - The expert's R4–R6 rounds with it drop from 2.91× to 1.97× on average (200 seeds).
+  - Late, burst and no-burst land within 1.08× of each other (target: 1.3×).
+- **×2 made it a trap.** Runs that bought it won 10 points less often: ×2 on one Shift a round loses to a plain Mod.
+- **The no-burst field doesn't move.** Roster no-burst R7–R12 stays at 1.12–1.22 per bot, and the expert's at 1.32.
+- **Text:** "A Ship here sells at Margin ×3 in Shift 1 of each round; Hot doesn't stack." (75 characters.)
+- **Wiring:** `FixtureEffect.stacksWithHot()` (default true; Express Lane false) is the contract. asst-a wires it in
+  `scoreLine`: when it is false, the sale takes the larger of Hot and the Fixture's multiplier, and spends the pip only
+  if Hot is the larger.
+
+### Station × Station × sell-all (round 3 §7 #2)
+
+Sonnet's VS ran Robotics ×3 → Megafactory ×3 → Assembly ×2 → Price Gun ×2 → Export Deal: 144–185 Units a Shift, all
+sold, since sell-all ignored Demand and Price Gun's cap cut. Simmed on top of the Express Lane change. "Mega" rounds own
+Megafactory but not Express Lane.
+
+| Variant | Expert wins | Late burst / no-burst | Mega rounds, late | Megafactory runs win | VS builds (wins) | `station-volume` bot |
+|---|---|---|---|---|---|---|
+| Express Lane change only | 48.0% | 1.43 / 1.33 | 1.60 (best 7.91×) | 79% | 13 (92%) | 17.5%, burst 1.33 / 1.22 |
+| + sell-all respects cap cuts | 48.0% | 1.41 / 1.32 | 1.61 | 77% | 12 (83%) | 16.2%, 1.31 / 1.21 |
+| + Price Gun spares its own Ship (B1 text) | **60.0%** | 1.42 / 1.36 | 1.59 | 82% | 12 (92%) | 15.9%, 1.31 / 1.21 |
+| **+ cap cuts, a 2nd Station ×1.5** | 47.5% | **1.39 / 1.31** | **1.54 (best 6.61×)** | 78% | 10 (80%) | **13.3%, 1.21 / 1.21** |
+
+Expert on seeds 1–200; roster 1000 seeds per bot.
+
+- **Sell-all Ships respect cap cuts.** They still ignore Demand, which is their identity. With Price Gun ahead, a sell-all
+  sells half its Units at ×2, so the gun is no longer a free ×2. asst-a wires it in `scoreLine`.
+- **B1: the text changes, not the behaviour.** Sparing Price Gun's own Ship (what the old text said) gave every Truck a
+  clean ×2 and lifted expert wins from 48% to 60%. Price Gun keeps halving the Ship in its own slot. The new text:
+  "Margin ×2. Ship caps halve from here on (a Truck: half the Demand left)."
+- **A Station after another Station multiplies Units by ×1.5** (the 2nd-Rebrand pattern). Megafactory and Assembly Line
+  are the only Stations, and both are Units multipliers. The first Station in Line order keeps its full factor, so
+  ordering still matters: Megafactory then Assembly gives ×4.5, against ×3 the other way round.
+  - It cuts the Mega lane from 1.22× to 1.18× of the no-burst field, and trims its peak.
+  - It puts the `station-volume` bot's burst rounds level with its no-burst rounds.
+- **No-burst holds:** 1.31–1.33 for the expert in every variant, and the roster's no-burst is unchanged.

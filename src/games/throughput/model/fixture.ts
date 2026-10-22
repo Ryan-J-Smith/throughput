@@ -30,6 +30,14 @@ export abstract class FixtureEffect {
     return 1;
   }
 
+  /**
+   * False if `saleMultiplier` replaces Hot instead of stacking with it: the sale takes the larger of the two, and a
+   * Hot pip is spent only when Hot is the larger (Express Lane).
+   */
+  stacksWithHot(): boolean {
+    return true;
+  }
+
   /** Runs each time the card here finishes resolving. */
   afterResolve(_card: Card, _batch: Batch): void {}
 
