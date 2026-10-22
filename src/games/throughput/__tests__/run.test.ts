@@ -163,6 +163,25 @@ describe('ThroughputRun: payout and shop', () => {
     expect(run.line.every((s) => s.card === null)).toBe(true);
   });
 
+  it('pays overkill: +1C per full 25% of the target sold beyond it, at most 5C', () => {
+    const run = new ThroughputRun(1, easyConfig({ targets: [100, 100, 100] }));
+    expect([100, 124, 125, 150, 199, 225, 1000].map((sales) => run.overkillPayFor(sales))).toEqual([0, 0, 1, 2, 3, 5, 5]);
+    const capped = new ThroughputRun(1, easyConfig({ targets: [100, 100, 100], overkill: { step: 0.1, cap: 3 } }));
+    expect([109, 110, 130, 500].map((sales) => capped.overkillPayFor(sales))).toEqual([0, 1, 3, 3]);
+  });
+
+  it('clearing with overkill adds an Overkill payout line before interest', () => {
+    const run = new ThroughputRun(1, easyConfig({ targets: [5, 5, 5], startingCapital: 10 }));
+    makeAndShip(run);
+    expect(run.history[0]?.sales).toBe(12);
+    expect(run.lastPayout).toEqual([
+      { source: 'Q1 cleared', amount: 4 },
+      { source: '3 unused Shifts', amount: 6 },
+      { source: 'Overkill (140% over target)', amount: 5 },
+      { source: 'Interest', amount: 2 },
+    ]);
+  });
+
   it('buys a Fixture into a chosen slot, a card into the deck, and sells for half', () => {
     const run = new ThroughputRun(1, easyConfig({ startingCapital: 100 }));
     makeAndShip(run);

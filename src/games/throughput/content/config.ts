@@ -16,6 +16,11 @@ export type ThroughputConfig = {
   /** Capital for clearing each quarter of a Year (Q1, Q2, Board). */
   readonly income: readonly number[];
   readonly unusedShiftBonus: number;
+  /**
+   * Overkill pay when a round clears: +1C per full `step` × target of Sales beyond the target, at
+   * most `cap`C a round (BoM's Overtime pay, grafted as the tempo lever).
+   */
+  readonly overkill: { readonly step: number; readonly cap: number };
   readonly interest: { readonly per: number; readonly amount: number; readonly cap: number };
   readonly overstockValue: number;
   readonly rerollBaseCost: number;
@@ -50,6 +55,7 @@ export const DEFAULT_CONFIG: ThroughputConfig = {
   startingCapital: 4,
   income: [4, 5, 6],
   unusedShiftBonus: 2,
+  overkill: { step: 0.25, cap: 5 },
   interest: { per: 5, amount: 1, cap: 5 },
   overstockValue: 1,
   rerollBaseCost: 2,

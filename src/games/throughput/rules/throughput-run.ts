@@ -259,6 +259,14 @@ export class ThroughputRun {
     return out;
   }
 
+  /** Overkill pay that round Sales of `sales` would earn when the round clears (0 at or below the target). */
+  overkillPayFor(sales: number): number {
+    const over = sales - this.target;
+    if (over <= 0 || this.target <= 0) return 0;
+    const { step, cap } = this.config.overkill;
+    return Math.min(cap, Math.floor(over / (step * this.target) + 1e-9));
+  }
+
   /** What the Line would make if run now. */
   preview(): ShiftResult {
     return scoreLine(this.lineForScoring(), this.shiftContext());
@@ -577,6 +585,8 @@ export class ThroughputRun {
     payout.add(info.isBoard ? 'Board Review cleared' : `Q${info.quarter} cleared`, this.config.income[info.quarter - 1] ?? 0);
     const unused = this.config.shiftsPerRound - this.shift_;
     if (unused > 0) payout.add(`${unused} unused Shift${unused === 1 ? '' : 's'}`, unused * this.config.unusedShiftBonus);
+    const overkill = this.overkillPayFor(this.sales_);
+    if (overkill > 0) payout.add(`Overkill (${Math.floor((100 * (this.sales_ - this.target)) / this.target)}% over target)`, overkill);
     const interest = computeInterest(this.wallet.cash, this.config.interest);
     if (interest > 0) payout.add('Interest', interest);
     this.wallet.earn(payout.total());
