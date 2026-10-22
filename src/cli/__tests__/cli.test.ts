@@ -171,6 +171,38 @@ describe('cli rules', () => {
   });
 });
 
+describe('cli act: brief output', () => {
+  /** A THROUGHPUT save at Shift 1, and the hand numbers of a Make and a Ship. */
+  const throughput = () => {
+    const io = new FakeIo();
+    io.run('new', '--seed', '7', '--save', 't.json', '--game', 'throughput');
+    const hand = /^Hand[^\n]*\n((?: {2}\d+\. .*\n?)+)/m.exec(io.output)?.[1] ?? '';
+    const number = (stage: string) => new RegExp(`^ {2}(\\d+)\\. \\S+ · ${stage}`, 'm').exec(hand)?.[1];
+    return { io, load: `load ${number('Make')}:1 ${number('Ship')}:2` };
+  };
+
+  it('prints only the blocks an action changed, names the ones left out, and ends with the legal actions', () => {
+    const { io, load } = throughput();
+    expect(io.run('act', '--save', 't.json', load)).toBe(EXIT_OK);
+    expect(io.output).toMatch(/^> load /);
+    expect(io.output).toContain('\nLine (the Batch runs left to right');
+    expect(io.output).toContain('\nHand (5;');
+    expect(io.output).toContain('\nIf you run now:');
+    expect(io.output).not.toContain('Market (this round');
+    expect(io.output).toContain('\n\n(unchanged, not shown: Market; full view: npm run -s cli -- state --save t.json)\n\nLegal actions:\n');
+    expect(io.output).toMatch(/\n {2}rules — show the full rules \(free\)$/);
+  });
+
+  it('--full prints the whole view, as state does', () => {
+    const { io, load } = throughput();
+    expect(io.run('act', '--save', 't.json', load, '--full')).toBe(EXIT_OK);
+    const acted = io.output;
+    io.run('state', '--save', 't.json');
+    expect(acted.endsWith(`\n\n${io.output}`)).toBe(true);
+    expect(acted).not.toContain('unchanged, not shown');
+  });
+});
+
 describe('cli act "state"', () => {
   it('prints the full state as a free query and leaves the save alone', () => {
     const io = new FakeIo();
