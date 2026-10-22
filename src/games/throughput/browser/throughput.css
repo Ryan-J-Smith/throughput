@@ -862,15 +862,63 @@ body:has(.screen--tp-shop[data-year])::before {
   }
 }
 
+/*
+ * Wide: the Market and receipt rails stand either side of the Line and hand and end where the hand
+ * does, so the screen is one block with no empty hole under a short rail. How to play and the last
+ * Shift's receipt dock under the rails; How to play spans the screen once opened. The narrower
+ * gutters and receipt rail give the hand the width to show every card's name in the fan.
+ */
 @media (min-width: 1200px) {
+  .app:has(.screen--tp-shift, .screen--tp-shop) {
+    padding-inline: 14px;
+  }
+
   .screen.screen--tp-shift {
-    grid-template-columns: 280px minmax(0, 1fr) 300px;
+    grid-template-columns: 280px minmax(0, 1fr) 284px;
     grid-template-areas:
       'hud hud hud'
       'market line receipt'
       'market hand receipt'
-      'last last last'
-      'rules rules rules';
+      'rules hand last';
+    column-gap: 12px;
+  }
+
+  .screen.screen--tp-shift:not(:has(> .tp-last)) {
+    grid-template-areas:
+      'hud hud hud'
+      'market line receipt'
+      'market hand receipt'
+      'rules hand receipt';
+  }
+
+  .screen--tp-shift > .tp-market {
+    align-self: stretch;
+  }
+
+  .screen--tp-shift > .tp-market .tp-market__boards {
+    margin-top: auto;
+  }
+
+  .screen--tp-shift .tp-desk__receipt,
+  .screen--tp-shift .tp-desk__receipt > .tp-receipt,
+  .screen--tp-shift .tp-desk__receipt .receipt {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+  }
+
+  .screen--tp-shift .tp-desk__receipt {
+    align-self: stretch;
+  }
+
+  /* The Shift's total sits at the foot of the rail, level with the Run button. */
+  .screen--tp-shift .tp-desk__receipt .receipt__total {
+    margin-top: auto;
+  }
+
+  .screen--tp-shift > .tp-rules[open] {
+    grid-row: 5;
+    grid-column: 1 / -1;
   }
 
   /* The Market as a compact rail: icon chips, the current quarter first and brightest. */
@@ -1275,7 +1323,7 @@ body:has(.screen--tp-shop[data-year])::before {
 
 .screen--tp-shift .tp-hand {
   gap: 6px;
-  padding: 8px 14px 10px;
+  padding: 8px 8px 10px;
   background: var(--glass), var(--glass-solid);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-panel);
@@ -1329,6 +1377,41 @@ body:has(.screen--tp-shop[data-year])::before {
 .tp-hand .card--windowed .card__title {
   padding-top: 15px;
   padding-right: 10px;
+}
+
+/*
+ * Every name in the fan reads whole: each slot is a size container, so a title's box ends where the
+ * next card covers it (100cqw is the strip left showing) and Card's fit steps the type down to that
+ * strip. Past the smallest single line, a title takes two lines and the rules box gives up one, so
+ * the zones below still line up; a single word too long even then ellipsizes with a tooltip.
+ */
+@media (min-width: 641px) {
+  .tp-hand .hand__cards > .card-wrap {
+    container-type: inline-size;
+  }
+
+  .tp-hand .card--windowed > .card__title {
+    padding-left: 7px;
+    padding-right: max(8px, calc(var(--card-w) - 100cqw + 2px));
+  }
+
+  .tp-hand .card--windowed > .card__title:is([data-fit='2'], [data-fit='clamp']) {
+    font-size: 0.76rem;
+  }
+
+  .tp-hand .card--windowed:has(> .card__title[data-fit='clamp']) {
+    --card-lines: 1;
+  }
+
+  .tp-hand .card--windowed > .card__title[data-fit='clamp'] {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    height: calc(1.3rem + 1.35 * var(--text-xs));
+    line-height: calc(0.65rem + 0.675 * var(--text-xs));
+    white-space: normal;
+    hyphens: auto;
+  }
 }
 
 .tp-controls {
