@@ -3,7 +3,7 @@
  * Everything visual reads from here so the game can be re-skinned by editing this file alone.
  * Sections: surfaces, text, accents, rarity, glass, type, icons, space/radii, shadows, motion.
  * Older token names (floor, stock, paper, print…) are kept as the names components use; their
- * values now describe the premium surfaces. Legacy aliases at the bottom keep older styles working.
+ * values now describe the premium surfaces.
  */
 
 :root {
@@ -103,30 +103,6 @@
   --stagger: 45ms;
 
   color-scheme: dark;
-
-  /* ---- Legacy aliases (older sections; remove as they are restyled) ---- */
-  --bg: var(--floor);
-  --bg-raised: var(--panel);
-  --bg-card: var(--stock);
-  --ink-card: var(--print);
-  --ink: var(--chalk);
-  --ink-dim: var(--chalk-dim);
-  --line: var(--panel-edge);
-  --accent-score: #4d9fff;
-  --accent-plays: var(--dept-blue);
-  --accent-discard: var(--dept-red);
-  --accent-cash: var(--dept-mustard);
-  --accent-value: var(--dept-green);
-  --accent-select: var(--focus);
-  --accent-mult: #ff4d6d;
-  --accent-xmult: #a77bff;
-  --rarity-common: var(--rarity-satin);
-  --rarity-uncommon: var(--rarity-silver);
-  --rarity-rare: var(--rarity-gold);
-  --rarity-legendary: var(--type-design);
-  --radius: var(--radius-card);
-  --shadow: 0 6px 18px rgb(0 0 0 / 0.45);
-  --font: var(--font-body);
 }
 
 /* Department accent map: components set data-accent="<key>" and read --accent (and --accent-ink
