@@ -107,6 +107,29 @@
   line-height: 1.2;
 }
 
+/* With both notes, they stack in one column beside the piles, so the Run controls keep one row even
+   when the Run button adds "(capped)". */
+.tp-piles:has(> .tp-piles__ships + .tp-piles__note) {
+  display: inline-grid;
+  grid-template-rows: auto auto;
+  grid-auto-flow: column;
+  align-items: center;
+  gap: 3px 12px;
+}
+
+.tp-piles:has(> .tp-piles__ships + .tp-piles__note) > .tp-pile {
+  grid-row: 1 / span 2;
+  align-self: end;
+}
+
+.tp-piles__ships:has(+ .tp-piles__note) {
+  align-self: end;
+}
+
+.tp-piles__ships + .tp-piles__note {
+  align-self: start;
+}
+
 /* Phones: smaller piles, and the note lives in the label only, so the controls stay on one row. */
 @media (max-width: 640px) {
   .tp-piles {

@@ -806,6 +806,21 @@ body:has(.screen--tp-shop[data-year])::before {
   overflow: hidden;
 }
 
+/* A stamp is always one line: the stage keeps its width and a later stamp that runs out of room
+   ellipsizes, never squashing into a tall blob over the rules text. */
+:is(.screen--tp, .tp-summary, .qa__shelf) .card--windowed > .card__tags > .chip {
+  flex: none;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+:is(.screen--tp, .tp-summary, .qa__shelf) .card--windowed > .card__tags > .chip + .chip {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
 /* The hand's cards are narrower: two lines of rules text leave the art window room to read. The
    summary's tiles carry a short recap, so they give the art the same room. */
 :is(.tp-hand, .tp-summary) .card--windowed {
@@ -940,10 +955,22 @@ body:has(.screen--tp-shop[data-year])::before {
     display: flex;
     flex: 1;
     flex-direction: column;
+    min-height: 0;
   }
 
+  /* The rail takes the Line and hand's height and never sets it: a long receipt (a late Line's
+     notes, a cap) scrolls its lines inside the rail, so the Run button stays on screen. */
   .screen--tp-shift .tp-desk__receipt {
     align-self: stretch;
+    contain: size;
+  }
+
+  .screen--tp-shift .tp-desk__receipt .tp-receipt__lines {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgb(255 255 255 / 0.22) transparent;
   }
 
   /* The Shift's total sits at the foot of the rail, level with the Run button. */
@@ -1457,6 +1484,33 @@ body:has(.screen--tp-shop[data-year])::before {
     line-height: calc(0.65rem + 0.675 * var(--text-xs));
     white-space: normal;
     hyphens: auto;
+  }
+
+  /*
+   * A Ship's "N left" (or a Tooled or grown stamp) stacks above the stage stamp, which stays on the
+   * foot line with its neighbours', so each stamp reads whole inside the strip; every extra row
+   * takes one rules line, so the art window keeps its height.
+   */
+  .tp-hand .card--windowed > .card__tags {
+    flex-direction: column-reverse;
+    align-items: flex-start;
+    gap: 3px;
+    padding-left: 7px;
+    padding-right: max(8px, calc(var(--card-w) - 100cqw + 2px));
+  }
+
+  .tp-hand .card--windowed:has(> .card__tags > li:nth-child(2)) {
+    --card-lines: 1;
+    padding-bottom: 50px;
+  }
+
+  .tp-hand .card--windowed:has(> .card__tags > li:nth-child(3)),
+  .tp-hand .card--windowed:has(> .card__title[data-fit='clamp']):has(> .card__tags > li:nth-child(2)) {
+    --card-lines: 0;
+  }
+
+  .tp-hand .card--windowed:has(> .card__tags > li:nth-child(3)) {
+    padding-bottom: 72px;
   }
 }
 
