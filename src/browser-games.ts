@@ -1,6 +1,5 @@
 import { RunBrowserGame } from './app';
 import { DemoGame } from './content/demo';
-import { BomBrowserGame } from './games/bom/browser';
 import { ThroughputBrowserGame } from './games/throughput/browser';
 import { ThroughputQaBrowserGame } from './games/throughput/qa';
 import { ArtGalleryBrowserGame } from './ui/gallery';
@@ -12,7 +11,6 @@ import type { BrowserGame } from './ui/games';
  */
 export const BROWSER_GAMES: readonly BrowserGame[] = [
   new ThroughputBrowserGame(),
-  new BomBrowserGame(),
   new RunBrowserGame({
     id: 'demo',
     title: 'Card demo',

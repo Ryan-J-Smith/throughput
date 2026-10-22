@@ -125,8 +125,8 @@ describe('BoM browser screen', () => {
     expect(rules).not.toContain('Ship locks');
   });
 
-  it('is registered on the game picker', () => {
+  it('is off the title (retired from the product; the CLI and sim still play it)', () => {
     expect(new BomBrowserGame().id).toBe('bom');
-    expect(BROWSER_GAMES.map((g) => g.id)).toContain('bom');
+    expect(BROWSER_GAMES.map((g) => g.id)).not.toContain('bom');
   });
 });
