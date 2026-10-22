@@ -231,7 +231,39 @@
       "vector/9-truck.svg"
     ],
     "icon-sheet-2": [
-      "plain.webp"
+      "cutout/1-hot.png",
+      "cutout/10-units.png",
+      "cutout/11-margin.png",
+      "cutout/12-retool.png",
+      "cutout/13-scrap.png",
+      "cutout/14-station.png",
+      "cutout/15-mod.png",
+      "cutout/16-robot-arm.png",
+      "cutout/2-emerging.png",
+      "cutout/3-saturated.png",
+      "cutout/4-neutral.png",
+      "cutout/5-loyal.png",
+      "cutout/6-buzz.png",
+      "cutout/7-equity.png",
+      "cutout/8-capital.png",
+      "cutout/9-sales.png",
+      "plain.webp",
+      "vector/1-hot.svg",
+      "vector/10-units.svg",
+      "vector/11-margin.svg",
+      "vector/12-retool.svg",
+      "vector/13-scrap.svg",
+      "vector/14-station.svg",
+      "vector/15-mod.svg",
+      "vector/16-robot-arm.svg",
+      "vector/2-emerging.svg",
+      "vector/3-saturated.svg",
+      "vector/4-neutral.svg",
+      "vector/5-loyal.svg",
+      "vector/6-buzz.svg",
+      "vector/7-equity.svg",
+      "vector/8-capital.svg",
+      "vector/9-sales.svg"
     ]
   }
 }

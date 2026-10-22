@@ -217,6 +217,11 @@
 .gallery__piece img {
   width: 64px;
   height: 64px;
+  /* The raw pieces are dark ink; a pale tile keeps them visible on the dark panels. */
+  padding: 4px;
+  border-radius: var(--radius-button);
+  background: #e9edf5;
+  box-sizing: content-box;
 }
 
 /* An SVG used as a mask takes a CSS colour, like a currentColor icon would. */

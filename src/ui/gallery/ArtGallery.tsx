@@ -172,7 +172,10 @@ function IconSet() {
 
 /** Pieces cut from a generated icon sheet, one row per extraction route (folders under experiments/<name>/). */
 function IconSheetExperiment({ name }: { name: string }) {
-  const files = experimentFiles(name).filter((f) => f.path.includes('/'));
+  // Numbered pieces in sheet order (1, 2, … 10), not string order.
+  const files = experimentFiles(name)
+    .filter((f) => f.path.includes('/'))
+    .sort((x, y) => x.path.localeCompare(y.path, undefined, { numeric: true }));
   const routes = new Map<string, ExperimentFile[]>();
   for (const f of files) {
     const route = f.path.split('/')[0] ?? '';

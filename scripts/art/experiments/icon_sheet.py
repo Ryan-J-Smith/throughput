@@ -1,9 +1,10 @@
-"""Icon-sheet extraction experiment: can a generated 3x3 silhouette sheet become game icons?
+"""Icon-sheet extraction experiment: can a generated silhouette sheet (3x3 or 4x4) become game icons?
 
-Offline only; nothing here is part of the build. Run from the repo root:
+Offline only; nothing here is part of the build. Run from the repo root, naming a sheet in SHEETS
+(default icon-sheet):
 
-    uv run --with vtracer --with pillow --with numpy --with scipy python scripts/art/experiments/icon_sheet.py
-    npx -y svgo@3.3.2 -q -f src/assets/art/experiments/icon-sheet/vector
+    uv run --with vtracer --with pillow --with numpy --with scipy python scripts/art/experiments/icon_sheet.py icon-sheet-2
+    npx -y svgo@3.3.2 -q -f src/assets/art/experiments/icon-sheet-2/vector
 
 Route (a) "cutout": alpha (or dark-pixel) mask -> connected components -> grouped into grid cells
 by centroid -> trim, pad to a square with a margin, resize -> black-on-transparent PNG.
@@ -21,10 +22,16 @@ from scipy import ndimage
 import vtracer
 
 ROOT = Path.cwd()
-SHEET = ROOT / "scripts/art/raw/silhouettes/icon-sheet.png"
-OUT = ROOT / "src/assets/art/experiments/icon-sheet"
-NAMES = ["apparel", "gadgets", "home", "food", "design", "make", "ship", "coin", "truck"]
-GRID = 3
+# Each sheet's cell names, left to right and top to bottom; the grid is square.
+SHEETS = {
+    "icon-sheet": ["apparel", "gadgets", "home", "food", "design", "make", "ship", "coin", "truck"],
+    "icon-sheet-2": [
+        "hot", "emerging", "saturated", "neutral",
+        "loyal", "buzz", "equity", "capital",
+        "sales", "units", "margin", "retool",
+        "scrap", "station", "mod", "robot-arm",
+    ],
+}
 EDGE = 128
 MARGIN = 0.08
 
@@ -39,7 +46,7 @@ def coverage(image: Image.Image) -> np.ndarray:
     return 1 - luminance
 
 
-def cells(ink: np.ndarray) -> dict[int, tuple[int, int, int, int]]:
+def cells(ink: np.ndarray, grid: int) -> dict[int, tuple[int, int, int, int]]:
     """Bounding box (top, left, bottom, right) of the components whose centroid falls in each cell."""
     labels, count = ndimage.label(ink > 0.5)
     h, w = ink.shape
@@ -52,7 +59,7 @@ def cells(ink: np.ndarray) -> dict[int, tuple[int, int, int, int]]:
             continue
         cy = region[0].start + ys.mean()
         cx = region[1].start + xs.mean()
-        cell = int(cy // (h / GRID)) * GRID + int(cx // (w / GRID))
+        cell = int(cy // (h / grid)) * grid + int(cx // (w / grid))
         top, left, bottom, right = region[0].start, region[1].start, region[0].stop, region[1].stop
         if cell in boxes:
             t, l, b, r = boxes[cell]
@@ -97,25 +104,32 @@ def vector(canvas: np.ndarray, path: Path) -> None:
     path.write_text(svg)
 
 
-def main() -> int:
-    if not SHEET.exists():
-        print(f"missing {SHEET}")
+def main(sheet: str) -> int:
+    names = SHEETS.get(sheet)
+    if names is None:
+        print(f"unknown sheet {sheet}; one of {', '.join(SHEETS)}")
         return 1
-    ink = coverage(Image.open(SHEET))
-    boxes = cells(ink)
+    grid = int(len(names) ** 0.5)
+    source = ROOT / f"scripts/art/raw/silhouettes/{sheet}.png"
+    out = ROOT / f"src/assets/art/experiments/{sheet}"
+    if not source.exists():
+        print(f"missing {source}")
+        return 1
+    ink = coverage(Image.open(source))
+    boxes = cells(ink, grid)
     for sub in ("cutout", "vector"):
-        (OUT / sub).mkdir(parents=True, exist_ok=True)
-    for cell, name in enumerate(NAMES):
+        (out / sub).mkdir(parents=True, exist_ok=True)
+    for cell, name in enumerate(names):
         box = boxes.get(cell)
         if box is None:
             print(f"cell {cell} ({name}): nothing found")
             continue
         canvas = square(ink, box)
-        cutout(canvas, OUT / "cutout" / f"{cell + 1}-{name}.png")
-        vector(canvas, OUT / "vector" / f"{cell + 1}-{name}.svg")
+        cutout(canvas, out / "cutout" / f"{cell + 1}-{name}.png")
+        vector(canvas, out / "vector" / f"{cell + 1}-{name}.svg")
         print(f"cell {cell} ({name}): box {box}")
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(sys.argv[1] if len(sys.argv) > 1 else "icon-sheet"))
