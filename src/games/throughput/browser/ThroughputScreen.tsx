@@ -248,6 +248,8 @@ export function ThroughputScreen({ seed, onQuit, store, resume, sound = SILENT }
   return (
     <main
       className={`screen screen--tp ${inShift ? 'screen--tp-shift' : 'screen--tp-shop'}`}
+      data-year={run.quarter.year}
+      data-board={run.quarter.isBoard || undefined}
       data-replay={replay !== null || undefined}
       onClickCapture={replay !== null ? tapDuringReplay : undefined}
     >

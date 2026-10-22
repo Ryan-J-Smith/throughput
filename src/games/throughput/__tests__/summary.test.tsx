@@ -96,7 +96,7 @@ describe('THROUGHPUT run summary', () => {
     const summary = runSummary(run);
     const html = renderToStaticMarkup(<RunSummaryView run={run} onNewRun={() => {}} onQuit={() => {}} copy={async () => {}} />);
     expect(html).toContain('data-screen="run-summary"');
-    expect(html).toContain('data-outcome="lost"');
+    expect(html).toContain(`data-outcome="lost" data-year="${run.quarter.year}"`);
     expect(html).toContain('<h1 class="tp-summary__title">Run over</h1>');
     expect(html).toContain(`aria-label="Total sales $${summary.totalSales.toLocaleString('en-US')}"`);
     expect(html).toContain('Best Shift');

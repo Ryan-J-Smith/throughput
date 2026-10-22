@@ -115,6 +115,11 @@ describe('THROUGHPUT browser screen', () => {
     expect(renderLine(run)).toContain('<span class="tp-bay__idle" title="Idle for this card">Idle</span>');
   });
 
+  it('the screen carries the Year (and Board rounds) for per-Year backdrops', () => {
+    const html = renderToStaticMarkup(<ThroughputScreen seed={1} onQuit={() => {}} store={new MemoryStore()} resume={false} />);
+    expect(html).toMatch(/<main class="screen screen--tp screen--tp-shift" data-year="1">/);
+  });
+
   it('the HUD reveal lands a Shift\'s Sales before the Run applies, flagging a hit on the target', () => {
     const run = new ThroughputRun(1, easyConfig({ targets: [100, 100, 100] }));
     const score = (html: string) => /<div class="hud__stat hud__stat--score"[^>]*>/.exec(html)?.[0] ?? '';

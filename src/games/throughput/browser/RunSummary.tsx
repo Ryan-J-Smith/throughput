@@ -39,7 +39,7 @@ export function RunSummaryView({ run, onNewRun, onQuit, copy = clipboardCopy }: 
   };
 
   return (
-    <main className="screen tp-summary" data-screen="run-summary" data-outcome={summary.won ? 'won' : 'lost'}>
+    <main className="screen tp-summary" data-screen="run-summary" data-outcome={summary.won ? 'won' : 'lost'} data-year={run.quarter.year}>
       <div className="tp-summary__art" data-art={summary.won ? 'end-win' : 'end-loss'} aria-hidden="true" />
       <header className="tp-summary__header">
         <h1 className="tp-summary__title">{summary.won ? 'Victory' : 'Run over'}</h1>
