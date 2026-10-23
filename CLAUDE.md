@@ -1,4 +1,4 @@
-# Throughput (repo `throughput`; local folder `stratgame`)
+# Throughput
 
 Balatro-inspired single-player roguelike card game about running a consumer goods business
 (product design, pricing, manufacturing, distribution). Browser-only static site deployed to GitHub Pages.
